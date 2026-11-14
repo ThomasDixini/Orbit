@@ -100,6 +100,9 @@ builder.Services.AddScoped<SaveTrade>();
 builder.Services.AddScoped<DeleteTrade>();
 builder.Services.AddScoped<SaveIncome>();
 builder.Services.AddScoped<DeleteIncome>();
+builder.Services.AddScoped<ListInvestmentNotes>();
+builder.Services.AddScoped<SaveInvestmentNote>();
+builder.Services.AddScoped<DeleteInvestmentNote>();
 builder.Services.AddScoped<ListNotes>();
 builder.Services.AddScoped<SaveNote>();
 builder.Services.AddScoped<SetNoteStatus>();
@@ -133,6 +136,7 @@ app.MapSinkingFundEndpoints();
 app.MapInvestmentEndpoints();
 app.MapIncomeSplitEndpoints();
 app.MapNoteEndpoints();
+app.MapInvestmentNoteEndpoints();
 app.MapBackupEndpoints();
 
 await app.RunAsync();

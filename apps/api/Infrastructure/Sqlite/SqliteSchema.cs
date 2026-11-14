@@ -29,7 +29,7 @@ internal static class SqliteSchema
         "categories", "goals", "goal_progress", "routines", "routine_blocks", "routine_rotation",
         "routine_rotation_steps", "tasks", "task_completions", "block_outcomes",
         "finance_categories", "accounts", "transactions", "card_payments", "bills", "sinking_funds", "investments",
-        "investment_trades", "investment_incomes", "income_split", "income_split_parts",
+        "investment_trades", "investment_incomes", "investment_notes", "income_split", "income_split_parts",
         "income_split_categories", "notes",
     ];
 
@@ -240,8 +240,20 @@ internal static class SqliteSchema
             kind TEXT NOT NULL,
             price_cents INTEGER NULL,
             priced_on TEXT NULL,
+            risk TEXT NULL,
             PRIMARY KEY (user_id, id)
         );
+        CREATE TABLE IF NOT EXISTS investment_notes (
+            user_id TEXT NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+            id TEXT NOT NULL,
+            investment_id TEXT NOT NULL,
+            kind TEXT NOT NULL,
+            date TEXT NOT NULL,
+            text TEXT NOT NULL,
+            PRIMARY KEY (user_id, id),
+            FOREIGN KEY (user_id, investment_id) REFERENCES investments (user_id, id)
+        );
+        CREATE INDEX IF NOT EXISTS ix_investment_notes_investment ON investment_notes (user_id, investment_id, date);
         CREATE TABLE IF NOT EXISTS investment_trades (
             user_id TEXT NOT NULL REFERENCES users (id) ON DELETE CASCADE,
             id TEXT NOT NULL,
@@ -314,7 +326,18 @@ internal static class SqliteSchema
             await SqliteMultiUserMigration.ApplyAsync(connection, CreateTables, cancellationToken);
         }
         await SqliteCommands.ExecuteAsync(connection, CreateTables, cancellationToken);
+        await AddInvestmentRiskColumnAsync(connection, cancellationToken);
         await SqliteCommands.ExecuteAsync(connection, $"PRAGMA application_id = {ApplicationId}", cancellationToken);
         await SqliteCommands.ExecuteAsync(connection, $"PRAGMA user_version = {CurrentVersion}", cancellationToken);
+    }
+
+    // A column added to a table that already exists: CREATE TABLE IF NOT EXISTS leaves older databases
+    // without it, and nothing else would add it. Checked every start, so no version bump is needed.
+    private static async Task AddInvestmentRiskColumnAsync(
+        SqliteConnection connection, CancellationToken cancellationToken)
+    {
+        if (await SqliteMigrations.HasColumnAsync(connection, "investments", "risk", cancellationToken)) return;
+        await SqliteCommands.ExecuteAsync(
+            connection, "ALTER TABLE investments ADD COLUMN risk TEXT NULL", cancellationToken);
     }
 }

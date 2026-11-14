@@ -254,7 +254,12 @@
                     (click)="toggleAsset(line.investment.id)"
                   >
                     <span class="name">{{ line.investment.name }}</span>
-                    <span class="detail">{{ kindLabel(line.investment) | t }}</span>
+                    <span class="detail">
+                      {{ kindLabel(line.investment) | t }}
+                      @if (line.investment.risk; as risk) {
+                        · {{ riskLabel(risk) | t }}
+                      }
+                    </span>
                   </button>
                 </th>
                 <td class="number ui-tabular">{{ quantity(line) }}</td>
@@ -340,4 +345,8 @@
       <p class="ui-muted empty">{{ 'Nothing recorded yet.' | t }}</p>
     }
   </section>
+
+  @if (isLoaded()) {
+    <app-investment-notes [lines]="lines()" [today]="today" />
+  }
 </div>

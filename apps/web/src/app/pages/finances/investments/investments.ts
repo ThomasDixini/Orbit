@@ -16,6 +16,7 @@ import {
   averagePriceCents,
   formatPercent,
   investmentKindLabel,
+  investmentRiskLabel,
   quantityText,
 } from '../../../core/finances/investments';
 import {
@@ -33,6 +34,7 @@ import { PeriodFilter } from '../../../components/period-filter/period-filter';
 import { IncomeFields, IncomeForm } from './income-form/income-form';
 import { MovementImport, MovementImportResult } from './movement-import/movement-import';
 import { InvestmentForm } from './investment-form/investment-form';
+import { InvestmentNotes } from './investment-notes/investment-notes';
 import { PortfolioDistribution } from './portfolio-distribution/portfolio-distribution';
 import { TradeFields, TradeForm } from './trade-form/trade-form';
 import { TranslatePipe } from '../../../core/i18n/translate.pipe';
@@ -74,6 +76,7 @@ const DEFAULT_FILTERS: InvestmentFilters = { period: { kind: 'months', months: 1
     PortfolioDistribution,
     MovementImport,
     PeriodFilter,
+    InvestmentNotes,
   ],
   providers: [InvestmentsStore],
   templateUrl: './investments.html',
@@ -94,6 +97,7 @@ export class Investments {
   protected readonly importResult = signal<MovementImportResult | undefined>(undefined);
   protected readonly filters = signal<InvestmentFilters>(DEFAULT_FILTERS);
   protected readonly kindOptions = INVESTMENT_KIND_OPTIONS;
+  protected readonly riskLabel = investmentRiskLabel;
   protected readonly range = computed(() => periodRange(this.filters().period, this.today));
   protected readonly lines = computed(() => this.store.portfolio()?.lines ?? []);
   protected readonly tableLines = computed(() => this.sortedTableLines());

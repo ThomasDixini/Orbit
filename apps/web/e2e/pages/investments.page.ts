@@ -64,6 +64,31 @@ export class InvestmentsPage {
     await this.storing(() => form.getByRole('button', { name: 'Record income' }).click());
   }
 
+  /** Rates the investment's risk (like `High risk`) and waits for the API to store it. */
+  async setRisk(name: string, risk: string): Promise<void> {
+    await this.page.getByRole('button', { name: `Edit ${name}`, exact: true }).click();
+    const form = this.page.getByRole('form', { name: 'Edit investment' });
+    await form.getByLabel('Risk').selectOption({ label: risk });
+    await this.storing(() => form.getByRole('button', { name: 'Save investment' }).click());
+  }
+
+  /** Writes a note about the investment and waits for the API to store it. */
+  async addNote(name: string, text: string): Promise<void> {
+    await this.page.getByRole('button', { name: 'New note', exact: true }).click();
+    const form = this.page.getByRole('form', { name: 'New investment note' });
+    await form.getByLabel('Investment').selectOption({ label: name });
+    await form.getByLabel('Note text').fill(text);
+    await this.storing(() => form.getByRole('button', { name: 'Save', exact: true }).click());
+  }
+
+  /** The notes of the notes section that contain this text. */
+  notes(text: string): Locator {
+    return this.page
+      .getByRole('region', { name: 'Investment notes' })
+      .getByRole('listitem')
+      .filter({ hasText: text });
+  }
+
   /** Page width beyond the viewport; zero means no horizontal scroll. */
   horizontalOverflow(): Promise<number> {
     return this.page.evaluate(

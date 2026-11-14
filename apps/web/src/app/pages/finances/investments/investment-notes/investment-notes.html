@@ -1,0 +1,127 @@
+<section class="ui-card card" [attr.aria-label]="'Investment notes' | t">
+  <div class="header">
+    <h2 class="title">{{ 'Investment notes' | t }}</h2>
+    @if (investments().length > 0 && !isOpen()) {
+      <button class="ui-button-primary" type="button" (click)="openNew()">
+        {{ 'New note' | t }}
+      </button>
+    }
+  </div>
+
+  @if (isOpen()) {
+    <form
+      class="note-form ui-enter"
+      [attr.aria-label]="(isEditing() ? 'Edit investment note' : 'New investment note') | t"
+      (submit)="submit($event)"
+      (keydown.escape)="close()"
+    >
+      <div class="fields">
+        <label class="ui-field">
+          {{ 'Investment' | t }}
+          <select
+            class="ui-input"
+            name="investment"
+            [disabled]="isEditing()"
+            (change)="investmentId.set(valueOf($event))"
+          >
+            @for (item of investments(); track item.id) {
+              <option [value]="item.id" [selected]="item.id === investmentId()">
+                {{ item.name }}
+              </option>
+            }
+          </select>
+        </label>
+
+        <label class="ui-field">
+          {{ 'Note kind' | t }}
+          <select class="ui-input" name="kind" (change)="kind.set($any(valueOf($event)))">
+            @for (option of kindOptions; track option.value) {
+              <option [value]="option.value" [selected]="option.value === kind()">
+                {{ option.label | t }}
+              </option>
+            }
+          </select>
+        </label>
+
+        <label class="ui-field">
+          {{ 'Day it refers to' | t }}
+          <input
+            class="ui-input"
+            name="date"
+            type="date"
+            required
+            [value]="date()"
+            (input)="date.set(valueOf($event))"
+          />
+        </label>
+
+        <label class="ui-field text">
+          {{ 'Note text' | t }}
+          <textarea
+            class="ui-input"
+            name="text"
+            [rows]="textRows"
+            [maxLength]="maxLength"
+            [value]="text()"
+            (input)="text.set(valueOf($event))"
+          ></textarea>
+        </label>
+      </div>
+
+      @if (hasActionFailed()) {
+        <p class="error" role="alert">{{ "Couldn't save the note. Try again." | t }}</p>
+      }
+      <div class="actions">
+        <button class="ui-button-ghost" type="button" (click)="close()">
+          {{ 'Cancel' | t }}
+        </button>
+        <button class="ui-button-primary" type="submit" [disabled]="!canSave()">
+          {{ 'Save' | t }}
+        </button>
+      </div>
+    </form>
+  }
+
+  @if (hasLoadFailed()) {
+    <app-load-failed message="Couldn't load your investment notes." (retry)="reload()" />
+  } @else if (isLoaded() && notes().length === 0) {
+    <p class="ui-muted none">
+      {{
+        investments().length === 0
+          ? ('Add an investment to write notes about it.' | t)
+          : ('No notes yet. Write down an analysis, an event or a macro fact.' | t)
+      }}
+    </p>
+  } @else {
+    <ul class="list">
+      @for (note of notes(); track note.id) {
+        <li class="note">
+          <p class="meta">
+            <span class="kind">{{ kindLabel(note) | t }}</span>
+            <span>{{ investmentName(note) }}</span>
+            <span>{{ dateLabel(note) }}</span>
+          </p>
+          <p class="body">{{ note.text }}</p>
+          <div class="note-actions">
+            <button
+              class="ui-button-ghost"
+              type="button"
+              [attr.aria-label]="'Edit note on {name}' | t: { name: investmentName(note) }"
+              (click)="openEdit(note)"
+            >
+              {{ 'Edit' | t }}
+            </button>
+            <button
+              class="ui-button-ghost delete"
+              type="button"
+              [attr.aria-label]="'Delete note on {name}' | t: { name: investmentName(note) }"
+              (click)="remove(note)"
+            >
+              {{ 'Delete' | t }}
+            </button>
+          </div>
+        </li>
+      }
+    </ul>
+  }
+</section>

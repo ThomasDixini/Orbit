@@ -31,6 +31,18 @@
     </label>
 
     <label class="ui-field">
+      {{ 'Risk' | t }}
+      <select class="ui-input" name="risk" (change)="risk.set($any(valueOf($event)))">
+        <option value="" [selected]="risk() === ''">{{ 'Not rated' | t }}</option>
+        @for (option of riskOptions; track option.value) {
+          <option [value]="option.value" [selected]="option.value === risk()">
+            {{ option.label | t }}
+          </option>
+        }
+      </select>
+    </label>
+
+    <label class="ui-field">
       {{ 'Current price of one unit (R$)' | t }}
       <input
         class="ui-input"
