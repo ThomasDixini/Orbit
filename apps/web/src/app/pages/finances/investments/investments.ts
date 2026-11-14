@@ -29,12 +29,15 @@ import {
   periodPerformance,
 } from '../../../core/finances/investments-analytics';
 import { InvestmentsStore } from '../../../core/finances/investments-store';
+import { rateSeries } from '../../../core/finances/period-rates';
+import { PeriodRatesStore } from '../../../core/finances/period-rates-store';
 import { Period, periodMonths, periodRange } from '../../../core/finances/period';
 import { PeriodFilter } from '../../../components/period-filter/period-filter';
 import { IncomeFields, IncomeForm } from './income-form/income-form';
 import { MovementImport, MovementImportResult } from './movement-import/movement-import';
 import { InvestmentForm } from './investment-form/investment-form';
 import { InvestmentNotes } from './investment-notes/investment-notes';
+import { PeriodRates } from './period-rates/period-rates';
 import { PortfolioDistribution } from './portfolio-distribution/portfolio-distribution';
 import { TradeFields, TradeForm } from './trade-form/trade-form';
 import { TranslatePipe } from '../../../core/i18n/translate.pipe';
@@ -77,13 +80,15 @@ const DEFAULT_FILTERS: InvestmentFilters = { period: { kind: 'months', months: 1
     MovementImport,
     PeriodFilter,
     InvestmentNotes,
+    PeriodRates,
   ],
-  providers: [InvestmentsStore],
+  providers: [InvestmentsStore, PeriodRatesStore],
   templateUrl: './investments.html',
   styleUrl: './investments.css',
 })
 export class Investments {
   private readonly store = inject(InvestmentsStore);
+  private readonly periodRates = inject(PeriodRatesStore);
   private readonly locale = inject(LOCALE_ID);
 
   protected readonly today = this.store.today;
@@ -369,6 +374,10 @@ export class Investments {
     return [
       { name: 'Your investments', values: history.map((point) => point?.returnPercent) },
       { name: 'CDI', values: history.map((point) => point?.cdiPercent), dashed: true },
+      ...rateSeries(this.periodRates.rates(), this.months()).map((series) => ({
+        ...series,
+        dashed: true,
+      })),
     ];
   }
 

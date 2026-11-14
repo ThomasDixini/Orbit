@@ -347,6 +347,7 @@
   </section>
 
   @if (isLoaded()) {
+    <app-period-rates [today]="today" />
     <app-investment-notes [lines]="lines()" [today]="today" />
   }
 </div>

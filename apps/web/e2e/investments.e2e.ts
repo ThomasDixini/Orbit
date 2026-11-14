@@ -78,6 +78,29 @@ test('proventos are listed with the movements and a purchase can be deleted', as
   await expect(investments.holding(name).getByRole('cell').first()).toHaveText('0');
 });
 
+test('a typed rate is listed for its month, kept after a reload and can be deleted', async ({
+  page,
+}) => {
+  await page.clock.setFixedTime(ownMonth(test.info(), FIRST_SLOT + 4));
+  await investments.goto();
+
+  await investments.addRate('IPCA (per month)', '0,52');
+
+  await expect(investments.rates('IPCA (per month)')).toContainText('0.52%');
+  await page.reload();
+  await expect(investments.rates('IPCA (per month)')).toContainText('0.52%');
+  const deleted = page.waitForResponse(
+    (response) => response.request().method() === 'DELETE' && response.ok(),
+  );
+  await investments
+    .rates('IPCA (per month)')
+    .getByRole('button', { name: /^Delete/ })
+    .click();
+  await deleted;
+  await expect(investments.rates('IPCA (per month)')).toHaveCount(0);
+  expect(await investments.horizontalOverflow()).toBe(0);
+});
+
 test('an investment keeps its risk rating and the notes written about it', async ({ page }) => {
   const name = uniqueName(test.info(), 'BBAS');
   const note = `${name} has a solid balance sheet`;

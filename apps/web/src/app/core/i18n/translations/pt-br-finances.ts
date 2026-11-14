@@ -340,4 +340,25 @@ export const PT_BR_FINANCES: Readonly<Record<string, string>> = {
     'Nenhuma nota ainda. Anote uma análise, um evento ou um fato macroeconômico.',
   'Edit note on {name}': 'Editar nota de {name}',
   'Delete note on {name}': 'Excluir nota de {name}',
+
+  // Period rates
+  'Period rates': 'Taxas por período',
+  'The Selic and the IPCA you type here are drawn on the return chart.':
+    'A Selic e o IPCA que você digita aqui aparecem no gráfico de rentabilidade.',
+  'New rate': 'Nova taxa',
+  Rate: 'Taxa',
+  'Value (%)': 'Valor (%)',
+  'E.g. 13 or 0,52': 'Ex.: 13 ou 0,52',
+  'Selic (per year)': 'Selic (ao ano)',
+  'IPCA (per month)': 'IPCA (ao mês)',
+  'Income tax': 'Imposto de renda',
+  'Enter a rate between -10 and 100, like 13 or 0,52.':
+    'Informe uma taxa entre -10 e 100, como 13 ou 0,52.',
+  "Couldn't save the rate. Try again.": 'Não foi possível salvar a taxa. Tente de novo.',
+  "Couldn't load your rates.": 'Não foi possível carregar suas taxas.',
+  'No rates yet. Type the Selic or the IPCA of a month.':
+    'Nenhuma taxa ainda. Digite a Selic ou o IPCA de um mês.',
+  'Save rate': 'Salvar taxa',
+  'Edit {kind} of {month}': 'Editar {kind} de {month}',
+  'Delete {kind} of {month}': 'Excluir {kind} de {month}',
 };

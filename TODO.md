@@ -25,7 +25,7 @@
 - [x] Current prices: the API takes the latest price of B3 tickers from brapi.dev (at most once a day per ticker) and stores it as the investment price
 
 - [x] Store fundamental analyses of each investment
-- [ ] Store period rates (Selic, IPCA, income tax, etc.) so returns can be compared against them (example: in October the Selic was 13%, which is why it yielded X)
+- [x] Store period rates (Selic, IPCA, income tax, etc.) so returns can be compared against them (example: in October the Selic was 13%, which is why it yielded X)
 - [x] Notes for important events and facts (market analyses, macroeconomics, market potential, etc.)
 - [x] Flag an investment as high, moderate or low risk according to my own principles
 
