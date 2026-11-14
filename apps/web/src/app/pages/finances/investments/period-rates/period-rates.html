@@ -1,0 +1,102 @@
+<section class="ui-card card" [attr.aria-label]="'Period rates' | t">
+  <div class="header">
+    <h2 class="title">{{ 'Period rates' | t }}</h2>
+    <p class="ui-muted hint">
+      {{ 'The Selic and the IPCA you type here are drawn on the return chart.' | t }}
+    </p>
+  </div>
+
+  <form class="rate-form" [attr.aria-label]="'New rate' | t" (submit)="submit($event)">
+    <div class="fields">
+      <label class="ui-field">
+        {{ 'Rate' | t }}
+        <select class="ui-input" name="kind" (change)="kind.set($any(valueOf($event)))">
+          @for (option of kindOptions; track option.value) {
+            <option [value]="option.value" [selected]="option.value === kind()">
+              {{ option.label | t }}
+            </option>
+          }
+        </select>
+      </label>
+
+      <label class="ui-field">
+        {{ 'Month' | t }}
+        <input
+          class="ui-input"
+          name="month"
+          type="month"
+          required
+          [value]="month()"
+          (input)="month.set(valueOf($event))"
+        />
+      </label>
+
+      <label class="ui-field">
+        {{ 'Value (%)' | t }}
+        <input
+          class="ui-input"
+          name="value"
+          type="text"
+          inputmode="decimal"
+          autocomplete="off"
+          [placeholder]="'E.g. 13 or 0,52' | t"
+          [value]="value()"
+          [attr.aria-invalid]="valueError() !== undefined"
+          [attr.aria-describedby]="valueError() === undefined ? null : 'period-rate-error'"
+          (input)="value.set(valueOf($event))"
+        />
+        @if (valueError(); as error) {
+          <span id="period-rate-error" class="error">{{ error | t }}</span>
+        }
+      </label>
+    </div>
+
+    @if (hasActionFailed()) {
+      <p class="error" role="alert">{{ "Couldn't save the rate. Try again." | t }}</p>
+    }
+    <div class="actions">
+      <button class="ui-button-primary" type="submit" [disabled]="!canSave()">
+        {{ 'Save rate' | t }}
+      </button>
+    </div>
+  </form>
+
+  @if (hasLoadFailed()) {
+    <app-load-failed message="Couldn't load your rates." (retry)="reload()" />
+  } @else if (isLoaded() && rates().length === 0) {
+    <p class="ui-muted none">{{ 'No rates yet. Type the Selic or the IPCA of a month.' | t }}</p>
+  } @else {
+    <ul class="list">
+      @for (rate of rates(); track rate.kind + rate.month) {
+        <li class="rate">
+          <span class="month">{{ monthLabel(rate) }}</span>
+          <span class="kind">{{ kindLabel(rate) | t }}</span>
+          <span class="value ui-tabular">{{ rateText(rate) }}</span>
+          <span class="row-actions">
+            <button
+              class="ui-button-ghost"
+              type="button"
+              [attr.aria-label]="
+                'Edit {kind} of {month}' | t: { kind: kindLabel(rate) | t, month: monthLabel(rate) }
+              "
+              (click)="edit(rate)"
+            >
+              {{ 'Edit' | t }}
+            </button>
+            <button
+              class="ui-button-ghost delete"
+              type="button"
+              [attr.aria-label]="
+                'Delete {kind} of {month}'
+                  | t: { kind: kindLabel(rate) | t, month: monthLabel(rate) }
+              "
+              (click)="remove(rate)"
+            >
+              {{ 'Delete' | t }}
+            </button>
+          </span>
+        </li>
+      }
+    </ul>
+  }
+</section>

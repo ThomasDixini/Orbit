@@ -4,7 +4,9 @@ import { Clock } from '../../../core/calendar/clock';
 import { FixedClock } from '../../../core/calendar/fixed-clock';
 import { FakeInvestmentNotesGateway } from '../../../core/finances/fake-investment-notes-gateway';
 import { FakeInvestmentsGateway } from '../../../core/finances/fake-investments-gateway';
+import { FakePeriodRatesGateway } from '../../../core/finances/fake-period-rates-gateway';
 import { InvestmentNotesGateway } from '../../../core/finances/investment-notes-gateway';
+import { PeriodRatesGateway } from '../../../core/finances/period-rates-gateway';
 import { InvestmentsGateway } from '../../../core/finances/investments-gateway';
 import { IdGenerator } from '../../../core/ids/id-generator';
 import { SequentialIdGenerator } from '../../../core/ids/sequential-id-generator';
@@ -29,11 +31,13 @@ async function flush(fixture: ComponentFixture<Investments>): Promise<void> {
 async function render(
   gateway = new FakeInvestmentsGateway(),
   locale = 'en-US',
+  ratesGateway = new FakePeriodRatesGateway(),
 ): Promise<{ fixture: ComponentFixture<Investments>; gateway: FakeInvestmentsGateway }> {
   TestBed.configureTestingModule({
     providers: [
       { provide: InvestmentsGateway, useValue: gateway },
       { provide: InvestmentNotesGateway, useValue: new FakeInvestmentNotesGateway() },
+      { provide: PeriodRatesGateway, useValue: ratesGateway },
       { provide: LOCALE_ID, useValue: locale },
       { provide: Clock, useValue: new FixedClock(NOW) },
       { provide: IdGenerator, useValue: new SequentialIdGenerator() },
@@ -237,6 +241,28 @@ describe('Investments page', () => {
         'Proventos · Dec 1, 2025 – Nov 3, 2026',
       ],
     );
+  });
+
+  it('draws the typed IPCA on the return chart and leaves out a kind without rates', async () => {
+    const rates = new FakePeriodRatesGateway();
+    rates.ratesToServe = [
+      { kind: 'ipca', month: '2025-12', basisPoints: 50 },
+      { kind: 'ipca', month: '2026-01', basisPoints: 50 },
+    ];
+    const gateway = new FakeInvestmentsGateway();
+    gateway.portfolioToServe = {
+      ...gateway.portfolioToServe,
+      history: [
+        { month: '2025-12', valueCents: 1, appliedCents: 1, returnPercent: 1, cdiPercent: 1 },
+        { month: '2026-01', valueCents: 1, appliedCents: 1, returnPercent: 2, cdiPercent: 2 },
+      ],
+    };
+    const { fixture } = await render(gateway, 'en-US', rates);
+
+    const legends = texts(fixture, 'app-line-chart .legend li');
+
+    expect(legends).toContain('IPCA');
+    expect(legends).not.toContain('Selic');
   });
 
   it('shows the return of the period, not since purchase, once month-end figures cover it', async () => {

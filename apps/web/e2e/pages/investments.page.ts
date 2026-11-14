@@ -81,6 +81,22 @@ export class InvestmentsPage {
     await this.storing(() => form.getByRole('button', { name: 'Save', exact: true }).click());
   }
 
+  /** Types a rate (like `13,5`) of the given kind (like `IPCA (per month)`) for the current month and waits for the API. */
+  async addRate(kind: string, value: string): Promise<void> {
+    const form = this.page.getByRole('form', { name: 'New rate' });
+    await form.getByLabel('Rate').selectOption({ label: kind });
+    await form.getByLabel('Value (%)').fill(value);
+    await this.storing(() => form.getByRole('button', { name: 'Save rate' }).click());
+  }
+
+  /** The rows of the period rates section that mention this text. */
+  rates(text: string): Locator {
+    return this.page
+      .getByRole('region', { name: 'Period rates' })
+      .getByRole('listitem')
+      .filter({ hasText: text });
+  }
+
   /** The notes of the notes section that contain this text. */
   notes(text: string): Locator {
     return this.page
