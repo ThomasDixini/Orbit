@@ -32,7 +32,8 @@ public sealed class LatestPrices(IInvestmentRepository investments, IQuoteSource
         var quote = await TryFetchAsync(symbol, cancellationToken);
         if (quote is null || quote.Day > asOf || quote.Day < investment.Price?.On) return investment;
         var updated = Investment.Create(
-            investment.Id, investment.Name, investment.Kind, PricePoint.Create(quote.Cents, quote.Day));
+            investment.Id, investment.Name, investment.Kind, PricePoint.Create(quote.Cents, quote.Day),
+            investment.Risk);
         await investments.SaveAsync(updated, cancellationToken);
         return updated;
     }

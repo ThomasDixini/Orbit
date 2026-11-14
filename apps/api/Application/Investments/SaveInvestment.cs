@@ -4,7 +4,8 @@ using Orbit.Api.Domain.Investments;
 namespace Orbit.Api.Application.Investments;
 
 public sealed record SaveInvestmentCommand(
-    string Id, string Name, InvestmentKind Kind, long? PriceCents, DateOnly? PricedOn);
+    string Id, string Name, InvestmentKind Kind, long? PriceCents, DateOnly? PricedOn,
+    InvestmentRisk? Risk = null);
 
 /// <summary>Creates or replaces an investment, with the latest price the user typed; saving twice leaves the same state.</summary>
 public sealed class SaveInvestment(IInvestmentRepository investments)
@@ -15,7 +16,7 @@ public sealed class SaveInvestment(IInvestmentRepository investments)
     /// <example><code>await saveInvestment.ExecuteAsync(new SaveInvestmentCommand("petr4", "PETR4", InvestmentKind.Stock, 3845, day), ct);</code></example>
     public async Task<Investment> ExecuteAsync(SaveInvestmentCommand command, CancellationToken cancellationToken)
     {
-        var investment = Investment.Create(command.Id, command.Name, command.Kind, PriceOf(command));
+        var investment = Investment.Create(command.Id, command.Name, command.Kind, PriceOf(command), command.Risk);
         await investments.SaveAsync(investment, cancellationToken);
         return investment;
     }

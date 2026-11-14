@@ -118,7 +118,7 @@ internal static class SqliteMigrations
         await transaction.CommitAsync(cancellationToken);
     }
 
-    private static async Task<bool> HasColumnAsync(
+    internal static async Task<bool> HasColumnAsync(
         SqliteConnection connection, string table, string column, CancellationToken cancellationToken)
     {
         var counts = await SqliteCommands.QueryAsync(

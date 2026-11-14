@@ -161,6 +161,29 @@ public sealed class SqliteMigrationTests : IDisposable
     }
 
     [Fact]
+    public async Task AnInvestmentsTableWithoutRisk_GainsTheColumnAndKeepsItsRows()
+    {
+        await MigrateAsync();
+        await using (var connection = await _connections.OpenAsync(CancellationToken.None))
+        {
+            await SqliteCommands.ExecuteAsync(
+                connection,
+                """
+                PRAGMA foreign_keys = OFF;
+                DROP TABLE investment_notes;
+                ALTER TABLE investments DROP COLUMN risk;
+                INSERT INTO investments (user_id, id, name, kind) VALUES ('u1', 'petr4', 'PETR4', 'Stock');
+                """,
+                CancellationToken.None);
+        }
+
+        await MigrateAsync();
+
+        (await CountAsync("SELECT COUNT(*) FROM pragma_table_info('investments') WHERE name = 'risk'")).ShouldBe(1);
+        (await CountAsync("SELECT COUNT(*) FROM investments WHERE id = 'petr4' AND risk IS NULL")).ShouldBe(1);
+    }
+
+    [Fact]
     public async Task OldRecords_BelongToAPlaceholderOwnerNobodyCanSignInTo()
     {
         await CreateOldDatabaseAsync();

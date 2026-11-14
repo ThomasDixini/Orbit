@@ -10,16 +10,18 @@ public sealed record PriceBody(long Cents, DateOnly On)
 }
 
 /// <summary>Body of <c>PUT /investments/{investmentId}</c>; the id comes from the route. Leaving the price out clears it.</summary>
-public sealed record SaveInvestmentRequest(string Name, InvestmentKind Kind, PriceBody? Price = null)
+public sealed record SaveInvestmentRequest(
+    string Name, InvestmentKind Kind, PriceBody? Price = null, InvestmentRisk? Risk = null)
 {
     public SaveInvestmentCommand ToCommand(string investmentId) =>
-        new(investmentId, Name, Kind, Price?.Cents, Price?.On);
+        new(investmentId, Name, Kind, Price?.Cents, Price?.On, Risk);
 }
 
-public sealed record InvestmentResponse(string Id, string Name, InvestmentKind Kind, PriceBody? Price)
+public sealed record InvestmentResponse(
+    string Id, string Name, InvestmentKind Kind, PriceBody? Price, InvestmentRisk? Risk)
 {
     public static InvestmentResponse From(Investment investment) =>
-        new(investment.Id, investment.Name, investment.Kind, PriceBody.From(investment.Price));
+        new(investment.Id, investment.Name, investment.Kind, PriceBody.From(investment.Price), investment.Risk);
 }
 
 /// <summary>Body of <c>PUT /investment-trades/{tradeId}</c>; the id comes from the route.</summary>
