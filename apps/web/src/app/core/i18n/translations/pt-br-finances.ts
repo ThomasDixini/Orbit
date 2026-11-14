@@ -317,4 +317,27 @@ export const PT_BR_FINANCES: Readonly<Record<string, string>> = {
   'Credit cards': 'Cartões de crédito',
   'Owed on credit cards': 'Devido nos cartões de crédito',
   'No credit cards yet.': 'Nenhum cartão de crédito ainda.',
+
+  // Investment risk and notes
+  Risk: 'Risco',
+  'Not rated': 'Sem classificação',
+  'Low risk': 'Risco baixo',
+  'Moderate risk': 'Risco moderado',
+  'High risk': 'Risco alto',
+  'Investment notes': 'Notas dos investimentos',
+  Investment: 'Investimento',
+  Analysis: 'Análise',
+  Event: 'Evento',
+  Macro: 'Macro',
+  'Day it refers to': 'Dia a que se refere',
+  'New investment note': 'Nova nota de investimento',
+  'Edit investment note': 'Editar nota de investimento',
+  "Couldn't save the note. Try again.": 'Não foi possível salvar a nota. Tente de novo.',
+  "Couldn't load your investment notes.": 'Não foi possível carregar suas notas de investimento.',
+  'Add an investment to write notes about it.':
+    'Adicione um investimento para escrever notas sobre ele.',
+  'No notes yet. Write down an analysis, an event or a macro fact.':
+    'Nenhuma nota ainda. Anote uma análise, um evento ou um fato macroeconômico.',
+  'Edit note on {name}': 'Editar nota de {name}',
+  'Delete note on {name}': 'Excluir nota de {name}',
 };

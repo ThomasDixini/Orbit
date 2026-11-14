@@ -58,6 +58,9 @@ import { HttpAccountStatementsGateway } from './core/finances/http-account-state
 import { HttpIncomeSplitGateway } from './core/finances/http-income-split-gateway';
 import { IncomeSplitGateway } from './core/finances/income-split-gateway';
 import { BillsGateway } from './core/finances/bills-gateway';
+import { DemoInvestmentNotesGateway } from './core/finances/demo/demo-investment-notes';
+import { HttpInvestmentNotesGateway } from './core/finances/http-investment-notes-gateway';
+import { InvestmentNotesGateway } from './core/finances/investment-notes-gateway';
 import { HttpInvestmentsGateway } from './core/finances/http-investments-gateway';
 import { InvestmentsGateway } from './core/finances/investments-gateway';
 import { HttpBillsGateway } from './core/finances/http-bills-gateway';
@@ -122,6 +125,10 @@ export const appConfig: ApplicationConfig = {
     {
       provide: InvestmentsGateway,
       useClass: isDemo ? DemoInvestmentsGateway : HttpInvestmentsGateway,
+    },
+    {
+      provide: InvestmentNotesGateway,
+      useClass: isDemo ? DemoInvestmentNotesGateway : HttpInvestmentNotesGateway,
     },
     { provide: BackupGateway, useClass: HttpBackupGateway },
     // No auth backend yet: every request is accepted until one is built.

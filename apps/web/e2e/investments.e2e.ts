@@ -77,3 +77,23 @@ test('proventos are listed with the movements and a purchase can be deleted', as
   await expect(investments.movements(name)).toHaveCount(1);
   await expect(investments.holding(name).getByRole('cell').first()).toHaveText('0');
 });
+
+test('an investment keeps its risk rating and the notes written about it', async ({ page }) => {
+  const name = uniqueName(test.info(), 'BBAS');
+  const note = `${name} has a solid balance sheet`;
+  await page.clock.setFixedTime(ownMonth(test.info(), FIRST_SLOT + 3));
+  await investments.goto();
+  await investments.addInvestment(name, '10,00');
+  await investments.trade(name, 'Buy', '2', '10,00');
+  await expect(investments.holding(name).getByRole('cell').first()).toHaveText('2');
+
+  await investments.setRisk(name, 'High risk');
+  await investments.addNote(name, note);
+
+  await expect(investments.holding(name)).toContainText('High risk');
+  await expect(investments.notes(note)).toHaveCount(1);
+  await page.reload();
+  await expect(investments.holding(name)).toContainText('High risk');
+  await expect(investments.notes(note)).toHaveCount(1);
+  expect(await investments.horizontalOverflow()).toBe(0);
+});

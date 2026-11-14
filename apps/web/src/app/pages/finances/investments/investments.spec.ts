@@ -2,7 +2,9 @@ import { ErrorHandler, LOCALE_ID } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Clock } from '../../../core/calendar/clock';
 import { FixedClock } from '../../../core/calendar/fixed-clock';
+import { FakeInvestmentNotesGateway } from '../../../core/finances/fake-investment-notes-gateway';
 import { FakeInvestmentsGateway } from '../../../core/finances/fake-investments-gateway';
+import { InvestmentNotesGateway } from '../../../core/finances/investment-notes-gateway';
 import { InvestmentsGateway } from '../../../core/finances/investments-gateway';
 import { IdGenerator } from '../../../core/ids/id-generator';
 import { SequentialIdGenerator } from '../../../core/ids/sequential-id-generator';
@@ -31,6 +33,7 @@ async function render(
   TestBed.configureTestingModule({
     providers: [
       { provide: InvestmentsGateway, useValue: gateway },
+      { provide: InvestmentNotesGateway, useValue: new FakeInvestmentNotesGateway() },
       { provide: LOCALE_ID, useValue: locale },
       { provide: Clock, useValue: new FixedClock(NOW) },
       { provide: IdGenerator, useValue: new SequentialIdGenerator() },

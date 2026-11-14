@@ -11,12 +11,17 @@ export interface PricePoint {
   readonly on: string;
 }
 
+/** How risky the user considers an investment, by their own principles; nothing is calculated from it. */
+export type InvestmentRisk = 'low' | 'moderate' | 'high';
+
 export interface Investment {
   readonly id: string;
   readonly name: string;
   readonly kind: InvestmentKind;
   /** Absent until a price is typed; the investment is then valued at what it cost. */
   readonly price?: PricePoint;
+  /** Absent until the user rates it. */
+  readonly risk?: InvestmentRisk;
 }
 
 /** What the investment form fills in; the id is given by the store. */
@@ -124,6 +129,12 @@ export const INVESTMENT_KIND_OPTIONS: readonly { value: InvestmentKind; label: s
   { value: 'other', label: 'Other' },
 ];
 
+export const INVESTMENT_RISK_OPTIONS: readonly { value: InvestmentRisk; label: string }[] = [
+  { value: 'low', label: 'Low risk' },
+  { value: 'moderate', label: 'Moderate risk' },
+  { value: 'high', label: 'High risk' },
+];
+
 export const INCOME_KIND_OPTIONS: readonly { value: IncomeKind; label: string }[] = [
   { value: 'dividend', label: 'Dividend' },
   { value: 'interestOnEquity', label: 'Interest on equity' },
@@ -136,6 +147,14 @@ export const INCOME_KIND_OPTIONS: readonly { value: IncomeKind; label: string }[
  */
 export function investmentKindLabel(kind: InvestmentKind): string {
   return INVESTMENT_KIND_OPTIONS.find((option) => option.value === kind)?.label ?? kind;
+}
+
+/**
+ * The label of a risk rating.
+ * @example investmentRiskLabel('moderate') // 'Moderate risk'
+ */
+export function investmentRiskLabel(risk: InvestmentRisk): string {
+  return INVESTMENT_RISK_OPTIONS.find((option) => option.value === risk)?.label ?? risk;
 }
 
 /**

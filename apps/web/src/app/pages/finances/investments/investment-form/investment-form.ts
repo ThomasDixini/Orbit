@@ -10,6 +10,8 @@ import {
 } from '@angular/core';
 import {
   INVESTMENT_KIND_OPTIONS,
+  INVESTMENT_RISK_OPTIONS,
+  InvestmentRisk,
   Investment,
   InvestmentDraft,
   InvestmentKind,
@@ -53,6 +55,9 @@ export class InvestmentForm {
   protected readonly isEditing = computed(() => this.investment() !== undefined);
   protected readonly name = linkedSignal(() => this.investment()?.name ?? '');
   protected readonly kind = linkedSignal<InvestmentKind>(() => this.investment()?.kind ?? 'stock');
+  protected readonly riskOptions = INVESTMENT_RISK_OPTIONS;
+  /** Empty while the investment is not rated. */
+  protected readonly risk = linkedSignal<InvestmentRisk | ''>(() => this.investment()?.risk ?? '');
   protected readonly price = linkedSignal(() => {
     const price = this.investment()?.price;
     return price === undefined ? '' : amountText(price.cents);
@@ -75,6 +80,7 @@ export class InvestmentForm {
       name: this.name().trim(),
       kind: this.kind(),
       price: this.pricePoint(),
+      risk: this.risk() === '' ? undefined : (this.risk() as InvestmentRisk),
     });
   }
 
