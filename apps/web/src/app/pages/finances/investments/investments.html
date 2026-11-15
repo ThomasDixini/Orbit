@@ -321,7 +321,7 @@
     <h2 class="card-title">{{ 'Purchases, sales and proventos' | t }}</h2>
     @if (movements().length > 0) {
       <ul class="list">
-        @for (movement of movements(); track movement.key) {
+        @for (movement of visibleMovements(); track movement.key) {
           <li class="movement">
             <span class="text">
               <span class="name">{{ movementDetail(movement) | t }}</span>
@@ -341,6 +341,28 @@
           </li>
         }
       </ul>
+      @if (hasMoreMovements()) {
+        <button
+          class="ui-button-ghost more"
+          type="button"
+          [attr.aria-label]="'Show more movements' | t"
+          (click)="showMoreMovements()"
+        >
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M6 9l6 6 6-6"></path>
+          </svg>
+        </button>
+      }
     } @else if (isLoaded()) {
       <p class="ui-muted empty">{{ 'Nothing recorded yet.' | t }}</p>
     }

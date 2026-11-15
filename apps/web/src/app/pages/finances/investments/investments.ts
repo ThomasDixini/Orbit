@@ -58,6 +58,8 @@ interface Stat {
 
 const CLOSED: Panel = { kind: 'closed' };
 const DEFAULT_FILTERS: InvestmentFilters = { period: { kind: 'months', months: 12 } };
+/** How many movements the list shows at first, and how many more each press of its arrow adds. */
+const MOVEMENTS_PAGE_SIZE = 10;
 
 /**
  * Investments: the portfolio (what is held, what it cost, what it is worth) narrowed by kind, asset and
@@ -95,6 +97,13 @@ export class Investments {
   protected readonly isLoaded = this.store.isLoaded;
   protected readonly isSaving = this.store.isSaving;
   protected readonly hasLoadFailed = this.store.hasLoadFailed;
+  private readonly shownMovements = signal(MOVEMENTS_PAGE_SIZE);
+  protected readonly visibleMovements = computed(() =>
+    this.store.movements().slice(0, this.shownMovements()),
+  );
+  protected readonly hasMoreMovements = computed(
+    () => this.store.movements().length > this.shownMovements(),
+  );
   protected readonly movements = this.store.movements;
   protected readonly panel = signal<Panel>(CLOSED);
   protected readonly isImportOpen = signal(false);
@@ -196,6 +205,11 @@ export class Investments {
     const panel = this.panel();
     if (panel.kind !== 'income') return;
     if (await this.store.addIncome({ ...fields, investmentId: panel.investmentId })) this.close();
+  }
+
+  /** Reveals the next page of the movements list, which starts with the newest ones. */
+  protected showMoreMovements(): void {
+    this.shownMovements.update((shown) => shown + MOVEMENTS_PAGE_SIZE);
   }
 
   protected async removeMovement(movement: Movement): Promise<void> {

@@ -298,6 +298,7 @@ export const PT_BR_FINANCES: Readonly<Record<string, string>> = {
     'Nenhum investimento ainda. Adicione um e registre suas compras para acompanhá-lo aqui.',
   Movements: 'Movimentações',
   'Purchases, sales and proventos': 'Compras, vendas e proventos',
+  'Show more movements': 'Mostrar mais movimentações',
   'Delete {label} of {investmentName}': 'Excluir {label} de {investmentName}',
   'Portfolio distribution': 'Distribuição da carteira',
   'Share of each kind of investment': 'Participação de cada tipo de investimento',
