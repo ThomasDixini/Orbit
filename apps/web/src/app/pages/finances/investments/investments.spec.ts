@@ -461,6 +461,84 @@ describe('Investments page', () => {
     ]);
   });
 
+  describe('sections', () => {
+    it('opens on the portfolio, with the rates and the notes kept apart', async () => {
+      const { fixture } = await render();
+
+      expect(texts(fixture, '[role="tab"][aria-selected="true"]')).toEqual(['Portfolio']);
+      expect(
+        texts(fixture, '[aria-label="Period rates"], [aria-label="Investment notes"]'),
+      ).toEqual([]);
+      expect(texts(fixture, '[aria-label="Holdings"], [aria-label="Movements"]')).toHaveLength(2);
+    });
+
+    it('moves the rates and the notes to the analysis tab and back', async () => {
+      const { fixture } = await render();
+
+      await clickButton(fixture, 'Analysis');
+
+      expect(texts(fixture, '[role="tab"][aria-selected="true"]')).toEqual(['Analysis']);
+      expect(texts(fixture, '[aria-label="Holdings"], [aria-label="Movements"]')).toEqual([]);
+      expect(
+        texts(fixture, '[aria-label="Period rates"], [aria-label="Investment notes"]'),
+      ).toHaveLength(2);
+      await clickButton(fixture, 'Portfolio');
+      expect(texts(fixture, '[aria-label="Period rates"]')).toEqual([]);
+      expect(texts(fixture, '[aria-label="Holdings"]')).toHaveLength(1);
+    });
+
+    it('names the tabs in Portuguese', async () => {
+      const { fixture } = await render(new FakeInvestmentsGateway(), 'pt-BR');
+
+      expect(texts(fixture, '[role="tab"]')).toEqual(['Carteira', 'Análise']);
+    });
+  });
+
+  describe('movements list', () => {
+    async function renderWithTrades(count: number): Promise<ComponentFixture<Investments>> {
+      const gateway = new FakeInvestmentsGateway();
+      const investmentId = gateway.portfolioToServe.lines[0].investment.id;
+      const trades = Array.from({ length: count }, (_, index) => ({
+        id: `trade-${index}`,
+        investmentId,
+        date: `2026-10-${String(index + 1).padStart(2, '0')}`,
+        kind: 'buy' as const,
+        quantityThousandths: 1000,
+        unitPriceCents: 1000,
+      }));
+      gateway.portfolioToServe = { ...gateway.portfolioToServe, trades, incomes: [] };
+      return (await render(gateway)).fixture;
+    }
+
+    const rows = (fixture: ComponentFixture<Investments>): number =>
+      texts(fixture, '[aria-label="Movements"] .movement').length;
+
+    it('shows the first 10 and an arrow when there are more', async () => {
+      const fixture = await renderWithTrades(25);
+
+      expect(rows(fixture)).toBe(10);
+      expect(texts(fixture, '[aria-label="Show more movements"]')).toHaveLength(1);
+    });
+
+    it('reveals 10 more at each press of the arrow and drops it after the last', async () => {
+      const fixture = await renderWithTrades(25);
+
+      await clickButton(fixture, 'Show more movements');
+      expect(rows(fixture)).toBe(20);
+      await clickButton(fixture, 'Show more movements');
+
+      expect(rows(fixture)).toBe(25);
+      expect(texts(fixture, '[aria-label="Show more movements"]')).toEqual([]);
+    });
+
+    it('has no arrow when everything fits', async () => {
+      const fixture = await renderWithTrades(10);
+
+      expect(rows(fixture)).toBe(10);
+      expect(texts(fixture, '[aria-label="Show more movements"]')).toEqual([]);
+    });
+  });
+
   it('offers to try again when the portfolio does not load', async () => {
     const gateway = new FakeInvestmentsGateway();
     gateway.failure = new Error('offline');

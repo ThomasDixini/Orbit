@@ -355,3 +355,17 @@
   margin: 12px 0 0;
   font-size: var(--font-size-xs);
 }
+
+/* The arrow under the movements list: centred, one press reveals the next page. */
+.more {
+  display: flex;
+  margin: 8px auto 0;
+  padding: 6px 18px;
+}
+
+/* Switches between the portfolio and the analysis written around it. */
+.sections {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}

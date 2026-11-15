@@ -22,6 +22,16 @@ export class InvestmentsPage {
     await this.addButton.waitFor();
   }
 
+  /** Opens the Analysis tab, where the period rates and the investment notes are. */
+  async openAnalysis(): Promise<void> {
+    await this.page.getByRole('tab', { name: 'Analysis' }).click();
+  }
+
+  /** Goes back to the Portfolio tab: the charts, the holdings and the movements. */
+  async openPortfolio(): Promise<void> {
+    await this.page.getByRole('tab', { name: 'Portfolio' }).click();
+  }
+
   /** The holding of the investment with this name. */
   holding(name: string): Locator {
     return this.page.locator('tr.holding').filter({
@@ -72,8 +82,9 @@ export class InvestmentsPage {
     await this.storing(() => form.getByRole('button', { name: 'Save investment' }).click());
   }
 
-  /** Writes a note about the investment and waits for the API to store it. */
+  /** Writes a note about the investment (on the Analysis tab) and waits for the API to store it. */
   async addNote(name: string, text: string): Promise<void> {
+    await this.openAnalysis();
     await this.page.getByRole('button', { name: 'New note', exact: true }).click();
     const form = this.page.getByRole('form', { name: 'New investment note' });
     await form.getByLabel('Investment').selectOption({ label: name });
@@ -83,6 +94,7 @@ export class InvestmentsPage {
 
   /** Types a rate (like `13,5`) of the given kind (like `IPCA (per month)`) for the current month and waits for the API. */
   async addRate(kind: string, value: string): Promise<void> {
+    await this.openAnalysis();
     const form = this.page.getByRole('form', { name: 'New rate' });
     await form.getByLabel('Rate').selectOption({ label: kind });
     await form.getByLabel('Value (%)').fill(value);
