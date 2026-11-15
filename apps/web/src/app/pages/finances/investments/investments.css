@@ -362,3 +362,10 @@
   margin: 8px auto 0;
   padding: 6px 18px;
 }
+
+/* Switches between the portfolio and the analysis written around it. */
+.sections {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}

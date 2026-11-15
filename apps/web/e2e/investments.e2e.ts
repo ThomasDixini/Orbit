@@ -88,6 +88,7 @@ test('a typed rate is listed for its month, kept after a reload and can be delet
 
   await expect(investments.rates('IPCA (per month)')).toContainText('0.52%');
   await page.reload();
+  await investments.openAnalysis();
   await expect(investments.rates('IPCA (per month)')).toContainText('0.52%');
   const deleted = page.waitForResponse(
     (response) => response.request().method() === 'DELETE' && response.ok(),
@@ -113,10 +114,12 @@ test('an investment keeps its risk rating and the notes written about it', async
   await investments.setRisk(name, 'High risk');
   await investments.addNote(name, note);
 
-  await expect(investments.holding(name)).toContainText('High risk');
   await expect(investments.notes(note)).toHaveCount(1);
+  await investments.openPortfolio();
+  await expect(investments.holding(name)).toContainText('High risk');
   await page.reload();
   await expect(investments.holding(name)).toContainText('High risk');
+  await investments.openAnalysis();
   await expect(investments.notes(note)).toHaveCount(1);
   expect(await investments.horizontalOverflow()).toBe(0);
 });

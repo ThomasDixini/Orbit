@@ -33,6 +33,10 @@ import { rateSeries } from '../../../core/finances/period-rates';
 import { PeriodRatesStore } from '../../../core/finances/period-rates-store';
 import { Period, periodMonths, periodRange } from '../../../core/finances/period';
 import { PeriodFilter } from '../../../components/period-filter/period-filter';
+import {
+  INVESTMENTS_SECTION_OPTIONS,
+  InvestmentsSection,
+} from '../../../core/finances/investments-section';
 import { IncomeFields, IncomeForm } from './income-form/income-form';
 import { MovementImport, MovementImportResult } from './movement-import/movement-import';
 import { InvestmentForm } from './investment-form/investment-form';
@@ -97,6 +101,8 @@ export class Investments {
   protected readonly isLoaded = this.store.isLoaded;
   protected readonly isSaving = this.store.isSaving;
   protected readonly hasLoadFailed = this.store.hasLoadFailed;
+  protected readonly sectionOptions = INVESTMENTS_SECTION_OPTIONS;
+  protected readonly section = signal<InvestmentsSection>('portfolio');
   private readonly shownMovements = signal(MOVEMENTS_PAGE_SIZE);
   protected readonly visibleMovements = computed(() =>
     this.store.movements().slice(0, this.shownMovements()),

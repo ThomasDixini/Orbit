@@ -461,6 +461,39 @@ describe('Investments page', () => {
     ]);
   });
 
+  describe('sections', () => {
+    it('opens on the portfolio, with the rates and the notes kept apart', async () => {
+      const { fixture } = await render();
+
+      expect(texts(fixture, '[role="tab"][aria-selected="true"]')).toEqual(['Portfolio']);
+      expect(
+        texts(fixture, '[aria-label="Period rates"], [aria-label="Investment notes"]'),
+      ).toEqual([]);
+      expect(texts(fixture, '[aria-label="Holdings"], [aria-label="Movements"]')).toHaveLength(2);
+    });
+
+    it('moves the rates and the notes to the analysis tab and back', async () => {
+      const { fixture } = await render();
+
+      await clickButton(fixture, 'Analysis');
+
+      expect(texts(fixture, '[role="tab"][aria-selected="true"]')).toEqual(['Analysis']);
+      expect(texts(fixture, '[aria-label="Holdings"], [aria-label="Movements"]')).toEqual([]);
+      expect(
+        texts(fixture, '[aria-label="Period rates"], [aria-label="Investment notes"]'),
+      ).toHaveLength(2);
+      await clickButton(fixture, 'Portfolio');
+      expect(texts(fixture, '[aria-label="Period rates"]')).toEqual([]);
+      expect(texts(fixture, '[aria-label="Holdings"]')).toHaveLength(1);
+    });
+
+    it('names the tabs in Portuguese', async () => {
+      const { fixture } = await render(new FakeInvestmentsGateway(), 'pt-BR');
+
+      expect(texts(fixture, '[role="tab"]')).toEqual(['Carteira', 'Análise']);
+    });
+  });
+
   describe('movements list', () => {
     async function renderWithTrades(count: number): Promise<ComponentFixture<Investments>> {
       const gateway = new FakeInvestmentsGateway();

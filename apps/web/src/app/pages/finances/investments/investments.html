@@ -90,285 +90,301 @@
     <app-load-failed message="Couldn't load your investments." (retry)="reload()" />
   }
 
-  <div class="filters" [attr.aria-label]="'Filters' | t">
-    <div class="chips" role="group" [attr.aria-label]="'Kind' | t">
+  <div class="sections" role="tablist" [attr.aria-label]="'Investments sections' | t">
+    @for (option of sectionOptions; track option.value) {
       <button
         class="ui-chip"
         type="button"
-        [attr.aria-pressed]="filters().kind === undefined"
-        (click)="pickKind(undefined)"
+        role="tab"
+        [attr.aria-selected]="section() === option.value"
+        (click)="section.set(option.value)"
       >
-        {{ 'Whole portfolio' | t }}
+        {{ option.label | t }}
       </button>
-      @for (option of kindOptions; track option.value) {
+    }
+  </div>
+
+  @if (section() === 'portfolio') {
+    <div class="filters" [attr.aria-label]="'Filters' | t">
+      <div class="chips" role="group" [attr.aria-label]="'Kind' | t">
         <button
           class="ui-chip"
           type="button"
-          [attr.aria-pressed]="filters().kind === option.value"
-          (click)="pickKind(option.value)"
+          [attr.aria-pressed]="filters().kind === undefined"
+          (click)="pickKind(undefined)"
         >
-          {{ option.label | t }}
+          {{ 'Whole portfolio' | t }}
         </button>
-      }
-    </div>
-    <label class="asset-picker">
-      <span class="ui-muted">{{ 'Asset' | t }}</span>
-      <select
-        class="ui-input"
-        name="asset"
-        [value]="filters().investmentId ?? ''"
-        (change)="pickAsset($any($event.target).value || undefined)"
-      >
-        <option value="">{{ 'All' | t }}</option>
-        @for (line of tableLines(); track line.investment.id) {
-          <option [value]="line.investment.id">{{ line.investment.name }}</option>
-        }
-      </select>
-    </label>
-    <app-period-filter
-      class="periods"
-      [shortLabels]="true"
-      [period]="filters().period"
-      [today]="today"
-      (periodChange)="pickPeriod($event)"
-    />
-  </div>
-
-  <section class="stats" [attr.aria-label]="'Portfolio' | t">
-    @for (stat of stats(); track stat.label) {
-      <div class="stat">
-        <p class="label">{{ stat.label | t }}</p>
-        <p class="value ui-tabular">{{ stat.value }}</p>
-        @if (stat.note) {
-          <p class="note ui-tabular">{{ stat.note | t }}</p>
+        @for (option of kindOptions; track option.value) {
+          <button
+            class="ui-chip"
+            type="button"
+            [attr.aria-pressed]="filters().kind === option.value"
+            (click)="pickKind(option.value)"
+          >
+            {{ option.label | t }}
+          </button>
         }
       </div>
-    }
-  </section>
-  @if (cdiNote(); as note) {
-    <p class="ui-muted cdi-note">{{ note | t }}</p>
-  }
+      <label class="asset-picker">
+        <span class="ui-muted">{{ 'Asset' | t }}</span>
+        <select
+          class="ui-input"
+          name="asset"
+          [value]="filters().investmentId ?? ''"
+          (change)="pickAsset($any($event.target).value || undefined)"
+        >
+          <option value="">{{ 'All' | t }}</option>
+          @for (line of tableLines(); track line.investment.id) {
+            <option [value]="line.investment.id">{{ line.investment.name }}</option>
+          }
+        </select>
+      </label>
+      <app-period-filter
+        class="periods"
+        [shortLabels]="true"
+        [period]="filters().period"
+        [today]="today"
+        (periodChange)="pickPeriod($event)"
+      />
+    </div>
 
-  <section class="charts" [attr.aria-label]="'Charts' | t">
-    <app-line-chart
-      [title]="'Value over time' | t"
-      [labels]="monthLabels()"
-      [series]="valueSeries()"
-      [format]="formatAxisMoney"
-      emptyText="No history yet."
-    />
-    <app-line-chart
-      [title]="'Accumulated return vs CDI' | t"
-      [labels]="monthLabels()"
-      [series]="returnSeries()"
-      [format]="formatAxisPercent"
-      emptyText="No history yet."
-    />
-    <app-bar-chart
-      [title]="'Return per month' | t"
-      positiveLabel="Gain"
-      negativeLabel="Loss"
-      [labels]="monthLabels()"
-      [values]="monthlyGains()"
-      [format]="formatCentsAxis"
-      emptyText="No history yet."
-      [selectable]="true"
-      [selectedIndex]="selectedMonthIndex()"
-      (pick)="pickMonth($event)"
-    >
-      @if (monthDetail(); as detail) {
-        <dl class="month-detail" aria-live="polite">
-          <dt class="month-title">{{ detail.title }}</dt>
-          <div>
-            <dt>{{ detail.gainLabel | t }}</dt>
-            <dd
-              class="ui-tabular"
-              [class.gain]="detail.gainCents > 0"
-              [class.loss]="detail.gainCents < 0"
-            >
-              {{ detail.gain }}
-            </dd>
-          </div>
-          <div>
-            <dt>{{ 'Value at month end' | t }}</dt>
-            <dd class="ui-tabular">{{ detail.value }}</dd>
-          </div>
-          <div>
-            <dt>{{ 'Applied' | t }}</dt>
-            <dd class="ui-tabular">{{ detail.applied }}</dd>
-          </div>
-        </dl>
-      } @else {
-        <p class="ui-muted month-hint">
-          {{ 'Click a bar to see that month. Click it again to clear.' | t }}
+    <section class="stats" [attr.aria-label]="'Portfolio' | t">
+      @for (stat of stats(); track stat.label) {
+        <div class="stat">
+          <p class="label">{{ stat.label | t }}</p>
+          <p class="value ui-tabular">{{ stat.value }}</p>
+          @if (stat.note) {
+            <p class="note ui-tabular">{{ stat.note | t }}</p>
+          }
+        </div>
+      }
+    </section>
+    @if (cdiNote(); as note) {
+      <p class="ui-muted cdi-note">{{ note | t }}</p>
+    }
+
+    <section class="charts" [attr.aria-label]="'Charts' | t">
+      <app-line-chart
+        [title]="'Value over time' | t"
+        [labels]="monthLabels()"
+        [series]="valueSeries()"
+        [format]="formatAxisMoney"
+        emptyText="No history yet."
+      />
+      <app-line-chart
+        [title]="'Accumulated return vs CDI' | t"
+        [labels]="monthLabels()"
+        [series]="returnSeries()"
+        [format]="formatAxisPercent"
+        emptyText="No history yet."
+      />
+      <app-bar-chart
+        [title]="'Return per month' | t"
+        positiveLabel="Gain"
+        negativeLabel="Loss"
+        [labels]="monthLabels()"
+        [values]="monthlyGains()"
+        [format]="formatCentsAxis"
+        emptyText="No history yet."
+        [selectable]="true"
+        [selectedIndex]="selectedMonthIndex()"
+        (pick)="pickMonth($event)"
+      >
+        @if (monthDetail(); as detail) {
+          <dl class="month-detail" aria-live="polite">
+            <dt class="month-title">{{ detail.title }}</dt>
+            <div>
+              <dt>{{ detail.gainLabel | t }}</dt>
+              <dd
+                class="ui-tabular"
+                [class.gain]="detail.gainCents > 0"
+                [class.loss]="detail.gainCents < 0"
+              >
+                {{ detail.gain }}
+              </dd>
+            </div>
+            <div>
+              <dt>{{ 'Value at month end' | t }}</dt>
+              <dd class="ui-tabular">{{ detail.value }}</dd>
+            </div>
+            <div>
+              <dt>{{ 'Applied' | t }}</dt>
+              <dd class="ui-tabular">{{ detail.applied }}</dd>
+            </div>
+          </dl>
+        } @else {
+          <p class="ui-muted month-hint">
+            {{ 'Click a bar to see that month. Click it again to clear.' | t }}
+          </p>
+        }
+      </app-bar-chart>
+      <app-bar-chart
+        [title]="'Proventos received' | t"
+        [note]="incomeNote()"
+        [labels]="monthLabels()"
+        [values]="monthlyIncome()"
+        [format]="formatCentsAxis"
+        emptyText="No proventos in this period."
+      />
+    </section>
+
+    <app-portfolio-distribution [slices]="slices()" />
+
+    <section class="ui-card card" [attr.aria-label]="'Holdings' | t">
+      <div class="card-head">
+        <h2 class="card-title">{{ 'Your assets' | t }}</h2>
+        <span class="ui-muted hint">{{ 'Click an asset to see only it above.' | t }}</span>
+      </div>
+      @if (tableLines().length > 0) {
+        <div class="table-wrap">
+          <table class="assets">
+            <thead>
+              <tr>
+                <th scope="col">{{ 'Asset' | t }}</th>
+                <th scope="col" class="number">{{ 'Units' | t }}</th>
+                <th scope="col" class="number">{{ 'Average price' | t }}</th>
+                <th scope="col" class="number">{{ 'Current price' | t }}</th>
+                <th scope="col" class="number">{{ 'Invested' | t }}</th>
+                <th scope="col" class="number sorted">{{ 'Current value ↓' | t }}</th>
+                <th scope="col" class="number">{{ 'Return' | t }}</th>
+                <th scope="col">
+                  <span class="ui-visually-hidden">{{ 'Actions' | t }}</span>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (line of tableLines(); track line.investment.id) {
+                <tr
+                  class="holding"
+                  [class.picked]="filters().investmentId === line.investment.id"
+                  [attr.data-kind]="line.investment.kind"
+                >
+                  <th scope="row" class="asset">
+                    <button
+                      class="asset-button"
+                      type="button"
+                      [attr.aria-pressed]="filters().investmentId === line.investment.id"
+                      [attr.aria-label]="'Show only {name}' | t: { name: line.investment.name }"
+                      (click)="toggleAsset(line.investment.id)"
+                    >
+                      <span class="name">{{ line.investment.name }}</span>
+                      <span class="detail">
+                        {{ kindLabel(line.investment) | t }}
+                        @if (line.investment.risk; as risk) {
+                          · {{ riskLabel(risk) | t }}
+                        }
+                      </span>
+                    </button>
+                  </th>
+                  <td class="number ui-tabular">{{ quantity(line) }}</td>
+                  <td class="number ui-tabular">{{ average(line) }}</td>
+                  <td class="number ui-tabular">
+                    {{ priceText(line.investment) | t }}
+                    <span class="detail">{{ priceDay(line.investment) }}</span>
+                  </td>
+                  <td class="number ui-tabular">{{ costText(line) }}</td>
+                  <td class="number ui-tabular strong value-text">{{ valueText(line) | t }}</td>
+                  <td
+                    class="number ui-tabular"
+                    [class.gain]="(line.gainCents ?? 0) > 0"
+                    [class.loss]="(line.gainCents ?? 0) < 0"
+                  >
+                    {{ gainText(line) }}
+                  </td>
+                  <td class="actions-cell">
+                    <div class="actions">
+                      <button
+                        class="ui-button-ghost"
+                        type="button"
+                        [attr.aria-label]="'Trade {name}' | t: { name: line.investment.name }"
+                        (click)="open({ kind: 'trade', investmentId: line.investment.id })"
+                      >
+                        {{ 'Buy / sell' | t }}
+                      </button>
+                      <button
+                        class="ui-button-ghost"
+                        type="button"
+                        [attr.aria-label]="
+                          'Add income to {name}' | t: { name: line.investment.name }
+                        "
+                        (click)="open({ kind: 'income', investmentId: line.investment.id })"
+                      >
+                        {{ 'Income' | t }}
+                      </button>
+                      <button
+                        class="ui-button-ghost"
+                        type="button"
+                        [attr.aria-label]="'Edit {name}' | t: { name: line.investment.name }"
+                        (click)="open({ kind: 'edit', investmentId: line.investment.id })"
+                      >
+                        {{ 'Edit' | t }}
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      } @else if (isLoaded()) {
+        <p class="ui-muted empty">
+          {{ 'No investments yet. Add one, then record your purchases to follow it here.' | t }}
         </p>
       }
-    </app-bar-chart>
-    <app-bar-chart
-      [title]="'Proventos received' | t"
-      [note]="incomeNote()"
-      [labels]="monthLabels()"
-      [values]="monthlyIncome()"
-      [format]="formatCentsAxis"
-      emptyText="No proventos in this period."
-    />
-  </section>
+    </section>
 
-  <app-portfolio-distribution [slices]="slices()" />
-
-  <section class="ui-card card" [attr.aria-label]="'Holdings' | t">
-    <div class="card-head">
-      <h2 class="card-title">{{ 'Your assets' | t }}</h2>
-      <span class="ui-muted hint">{{ 'Click an asset to see only it above.' | t }}</span>
-    </div>
-    @if (tableLines().length > 0) {
-      <div class="table-wrap">
-        <table class="assets">
-          <thead>
-            <tr>
-              <th scope="col">{{ 'Asset' | t }}</th>
-              <th scope="col" class="number">{{ 'Units' | t }}</th>
-              <th scope="col" class="number">{{ 'Average price' | t }}</th>
-              <th scope="col" class="number">{{ 'Current price' | t }}</th>
-              <th scope="col" class="number">{{ 'Invested' | t }}</th>
-              <th scope="col" class="number sorted">{{ 'Current value ↓' | t }}</th>
-              <th scope="col" class="number">{{ 'Return' | t }}</th>
-              <th scope="col">
-                <span class="ui-visually-hidden">{{ 'Actions' | t }}</span>
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            @for (line of tableLines(); track line.investment.id) {
-              <tr
-                class="holding"
-                [class.picked]="filters().investmentId === line.investment.id"
-                [attr.data-kind]="line.investment.kind"
+    <section class="ui-card card" [attr.aria-label]="'Movements' | t">
+      <h2 class="card-title">{{ 'Purchases, sales and proventos' | t }}</h2>
+      @if (movements().length > 0) {
+        <ul class="list">
+          @for (movement of visibleMovements(); track movement.key) {
+            <li class="movement">
+              <span class="text">
+                <span class="name">{{ movementDetail(movement) | t }}</span>
+              </span>
+              <span class="amount ui-tabular">{{ signed(movement.cents) }}</span>
+              <button
+                class="ui-button-ghost"
+                type="button"
+                [attr.aria-label]="
+                  'Delete {label} of {investmentName}'
+                    | t: { label: movement.label, investmentName: movement.investmentName }
+                "
+                (click)="removeMovement(movement)"
               >
-                <th scope="row" class="asset">
-                  <button
-                    class="asset-button"
-                    type="button"
-                    [attr.aria-pressed]="filters().investmentId === line.investment.id"
-                    [attr.aria-label]="'Show only {name}' | t: { name: line.investment.name }"
-                    (click)="toggleAsset(line.investment.id)"
-                  >
-                    <span class="name">{{ line.investment.name }}</span>
-                    <span class="detail">
-                      {{ kindLabel(line.investment) | t }}
-                      @if (line.investment.risk; as risk) {
-                        · {{ riskLabel(risk) | t }}
-                      }
-                    </span>
-                  </button>
-                </th>
-                <td class="number ui-tabular">{{ quantity(line) }}</td>
-                <td class="number ui-tabular">{{ average(line) }}</td>
-                <td class="number ui-tabular">
-                  {{ priceText(line.investment) | t }}
-                  <span class="detail">{{ priceDay(line.investment) }}</span>
-                </td>
-                <td class="number ui-tabular">{{ costText(line) }}</td>
-                <td class="number ui-tabular strong value-text">{{ valueText(line) | t }}</td>
-                <td
-                  class="number ui-tabular"
-                  [class.gain]="(line.gainCents ?? 0) > 0"
-                  [class.loss]="(line.gainCents ?? 0) < 0"
-                >
-                  {{ gainText(line) }}
-                </td>
-                <td class="actions-cell">
-                  <div class="actions">
-                    <button
-                      class="ui-button-ghost"
-                      type="button"
-                      [attr.aria-label]="'Trade {name}' | t: { name: line.investment.name }"
-                      (click)="open({ kind: 'trade', investmentId: line.investment.id })"
-                    >
-                      {{ 'Buy / sell' | t }}
-                    </button>
-                    <button
-                      class="ui-button-ghost"
-                      type="button"
-                      [attr.aria-label]="'Add income to {name}' | t: { name: line.investment.name }"
-                      (click)="open({ kind: 'income', investmentId: line.investment.id })"
-                    >
-                      {{ 'Income' | t }}
-                    </button>
-                    <button
-                      class="ui-button-ghost"
-                      type="button"
-                      [attr.aria-label]="'Edit {name}' | t: { name: line.investment.name }"
-                      (click)="open({ kind: 'edit', investmentId: line.investment.id })"
-                    >
-                      {{ 'Edit' | t }}
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            }
-          </tbody>
-        </table>
-      </div>
-    } @else if (isLoaded()) {
-      <p class="ui-muted empty">
-        {{ 'No investments yet. Add one, then record your purchases to follow it here.' | t }}
-      </p>
-    }
-  </section>
-
-  <section class="ui-card card" [attr.aria-label]="'Movements' | t">
-    <h2 class="card-title">{{ 'Purchases, sales and proventos' | t }}</h2>
-    @if (movements().length > 0) {
-      <ul class="list">
-        @for (movement of visibleMovements(); track movement.key) {
-          <li class="movement">
-            <span class="text">
-              <span class="name">{{ movementDetail(movement) | t }}</span>
-            </span>
-            <span class="amount ui-tabular">{{ signed(movement.cents) }}</span>
-            <button
-              class="ui-button-ghost"
-              type="button"
-              [attr.aria-label]="
-                'Delete {label} of {investmentName}'
-                  | t: { label: movement.label, investmentName: movement.investmentName }
-              "
-              (click)="removeMovement(movement)"
-            >
-              {{ 'Delete' | t }}
-            </button>
-          </li>
-        }
-      </ul>
-      @if (hasMoreMovements()) {
-        <button
-          class="ui-button-ghost more"
-          type="button"
-          [attr.aria-label]="'Show more movements' | t"
-          (click)="showMoreMovements()"
-        >
-          <svg
-            width="18"
-            height="18"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="1.8"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            aria-hidden="true"
+                {{ 'Delete' | t }}
+              </button>
+            </li>
+          }
+        </ul>
+        @if (hasMoreMovements()) {
+          <button
+            class="ui-button-ghost more"
+            type="button"
+            [attr.aria-label]="'Show more movements' | t"
+            (click)="showMoreMovements()"
           >
-            <path d="M6 9l6 6 6-6"></path>
-          </svg>
-        </button>
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.8"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M6 9l6 6 6-6"></path>
+            </svg>
+          </button>
+        }
+      } @else if (isLoaded()) {
+        <p class="ui-muted empty">{{ 'Nothing recorded yet.' | t }}</p>
       }
-    } @else if (isLoaded()) {
-      <p class="ui-muted empty">{{ 'Nothing recorded yet.' | t }}</p>
-    }
-  </section>
-
-  @if (isLoaded()) {
+    </section>
+  } @else if (isLoaded()) {
     <app-period-rates [today]="today" />
     <app-investment-notes [lines]="lines()" [today]="today" />
   }
