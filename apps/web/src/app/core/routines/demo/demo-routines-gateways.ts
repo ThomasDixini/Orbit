@@ -95,8 +95,18 @@ export class DemoCategoriesGateway extends CategoriesGateway {
 export class DemoGoalsGateway extends GoalsGateway {
   private readonly demo = inject(DemoRoutines);
 
+  /** Goals deleted in the demo and the day each was, so the history can still show them. */
+  private readonly deletedOn = new Map<string, { goal: Goal; isoDay: string }>();
+
   override list(isoDay: string): Observable<readonly Goal[]> {
     return of(this.demo.goals.map((goal) => this.demo.withProgress(goal, isoDay)));
+  }
+
+  override listIncludingDeleted(isoDay: string): Observable<readonly Goal[]> {
+    const later = [...this.deletedOn.values()]
+      .filter((deleted) => deleted.isoDay > isoDay)
+      .map((deleted) => deleted.goal);
+    return of([...this.demo.goals, ...later].map((goal) => this.demo.withProgress(goal, isoDay)));
   }
 
   override create(goal: Goal, isoDay: string): Observable<Goal> {
@@ -112,8 +122,10 @@ export class DemoGoalsGateway extends GoalsGateway {
     return of(this.demo.withProgress(edited, isoDay));
   }
 
-  override delete(goalId: string): Observable<void> {
-    this.demo.goals = this.demo.goals.filter((goal) => goal.id !== goalId);
+  override delete(goalId: string, isoDay: string): Observable<void> {
+    const goal = this.demo.goals.find((candidate) => candidate.id === goalId);
+    if (goal !== undefined) this.deletedOn.set(goalId, { goal, isoDay });
+    this.demo.goals = this.demo.goals.filter((candidate) => candidate.id !== goalId);
     return of(undefined);
   }
 

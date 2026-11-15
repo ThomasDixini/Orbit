@@ -20,7 +20,9 @@ export interface HistoryBlock {
 
 /**
  * The blocks completed or skipped on a day, in the order they ended; a night shift's 00:30 comes after
- * its 23:50. A block or routine deleted since then is still listed, by name if known.
+ * its 23:50. Blocks are named as they were when recorded, so one whose block or routine was deleted
+ * since is still listed by its name; an outcome recorded before names were kept falls back to the
+ * current names.
  * @example historyBlocks(outcomes, routines, categories)[0].name // 'C# study'
  */
 export function historyBlocks(
@@ -31,18 +33,25 @@ export function historyBlocks(
   const endedAt = (outcome: BlockOutcome): number => endedOffset(outcome, routines);
   return [...outcomes]
     .sort((first, second) => endedAt(first) - endedAt(second))
-    .map((outcome) => {
-      const routine = routines.find((candidate) => candidate.id === outcome.routineId);
-      const block = routine?.blocks.find((candidate) => candidate.id === outcome.blockId);
-      return {
-        key: `${outcome.routineId}/${outcome.blockId}`,
-        name: block?.name ?? 'Removed block',
-        routineName: routine?.name ?? 'Removed routine',
-        outcome: outcome.outcome,
-        at: outcome.at,
-        category: findCategory(categories, block?.categoryId),
-      };
-    });
+    .map((outcome) => toHistoryBlock(outcome, routines, categories));
+}
+
+function toHistoryBlock(
+  outcome: BlockOutcome,
+  routines: readonly Routine[],
+  categories: readonly Category[],
+): HistoryBlock {
+  const routine = routines.find((candidate) => candidate.id === outcome.routineId);
+  const block = routine?.blocks.find((candidate) => candidate.id === outcome.blockId);
+  const isRecordedByName = outcome.blockName !== undefined;
+  return {
+    key: `${outcome.routineId}/${outcome.blockId}`,
+    name: outcome.blockName ?? block?.name ?? 'Removed block',
+    routineName: outcome.routineName ?? routine?.name ?? 'Removed routine',
+    outcome: outcome.outcome,
+    at: outcome.at,
+    category: findCategory(categories, isRecordedByName ? outcome.categoryId : block?.categoryId),
+  };
 }
 
 /**

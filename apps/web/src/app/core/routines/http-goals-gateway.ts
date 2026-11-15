@@ -15,6 +15,12 @@ export class HttpGoalsGateway extends GoalsGateway {
     return this.httpClient.get<readonly Goal[]>(GOALS_URL, { params: { date: isoDay } });
   }
 
+  override listIncludingDeleted(isoDay: string): Observable<readonly Goal[]> {
+    return this.httpClient.get<readonly Goal[]>(GOALS_URL, {
+      params: { date: isoDay, includeDeleted: true },
+    });
+  }
+
   override create(goal: Goal, isoDay: string): Observable<Goal> {
     return this.httpClient.post<Goal>(GOALS_URL, goal, { params: { date: isoDay } });
   }
@@ -23,8 +29,8 @@ export class HttpGoalsGateway extends GoalsGateway {
     return this.httpClient.put<Goal>(goalUrl(goalId), changes, { params: { date: isoDay } });
   }
 
-  override delete(goalId: string): Observable<void> {
-    return this.httpClient.delete<void>(goalUrl(goalId));
+  override delete(goalId: string, isoDay: string): Observable<void> {
+    return this.httpClient.delete<void>(goalUrl(goalId), { params: { date: isoDay } });
   }
 
   override setAchievement(goalId: string, isoDay: string, isAchieved: boolean): Observable<Goal> {

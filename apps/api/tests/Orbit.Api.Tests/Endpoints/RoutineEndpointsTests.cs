@@ -105,7 +105,7 @@ public sealed class RoutineEndpointsTests : IDisposable
 
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         var body = await _client.GetStringAsync("/block-outcomes?date=2026-10-27");
-        body.ShouldBe("""[{"routineId":"weekdays","blockId":"csharp","outcome":"skipped","at":"14:10"}]""");
+        body.ShouldBe("""[{"routineId":"weekdays","blockId":"csharp","outcome":"skipped","at":"14:10","blockName":"C# study","routineName":"Weekdays","categoryId":"languages"}]""");
         (await _client.GetStringAsync("/block-outcomes?date=2026-10-28")).ShouldBe("[]");
     }
 

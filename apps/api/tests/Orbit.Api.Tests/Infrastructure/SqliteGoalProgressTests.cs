@@ -256,17 +256,17 @@ public sealed class SqliteGoalProgressTests : IAsyncLifetime, IDisposable
     }
 
     [Fact]
-    public async Task Delete_TakesTheEntriesWithTheGoal()
+    public async Task Archive_KeepsTheEntriesOfTheGoal()
     {
         await AddGoalAsync(GoalDefinitions.WeeklyStudy());
         await Log("e1", TestDays.Today);
 
-        await _goals.DeleteAsync("g1", CancellationToken.None);
+        await _goals.ArchiveAsync("g1", TestDays.Today, CancellationToken.None);
 
         await using var connection = await _connections.OpenAsync(CancellationToken.None);
         var entries = await SqliteCommands.QueryAsync(
             connection, "SELECT COUNT(*) FROM goal_progress", reader => reader.GetInt64(0), CancellationToken.None);
-        entries[0].ShouldBe(0);
+        entries[0].ShouldBe(1);
     }
 
     [Fact]

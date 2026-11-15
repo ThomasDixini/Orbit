@@ -183,6 +183,67 @@ public sealed class SqliteMigrationTests : IDisposable
         (await CountAsync("SELECT COUNT(*) FROM investments WHERE id = 'petr4' AND risk IS NULL")).ShouldBe(1);
     }
 
+    // The shape before history was kept: outcomes cascaded with their routine and goals had no archive day.
+    private async Task GoBackToHistoryThatCascadesAsync()
+    {
+        await using var connection = await _connections.OpenAsync(CancellationToken.None);
+        await SqliteCommands.ExecuteAsync(
+            connection,
+            """
+            PRAGMA foreign_keys = OFF;
+            DROP TABLE block_outcomes;
+            CREATE TABLE block_outcomes (
+                user_id TEXT NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+                routine_id TEXT NOT NULL, block_id TEXT NOT NULL, date TEXT NOT NULL, kind TEXT NOT NULL, at TEXT NOT NULL,
+                PRIMARY KEY (user_id, routine_id, block_id, date),
+                FOREIGN KEY (user_id, routine_id) REFERENCES routines (user_id, id) ON DELETE CASCADE
+            );
+            CREATE INDEX ix_block_outcomes_date ON block_outcomes (user_id, date);
+            ALTER TABLE goals DROP COLUMN archived_on;
+            INSERT INTO users (id, email, name, password_hash) VALUES ('u1', 'u1@example.com', 'U', '');
+            INSERT INTO routines (user_id, id, name, days, start_time, end_time) VALUES ('u1', 'weekdays', 'Weekdays', '0', '08:00', '17:00');
+            INSERT INTO routine_blocks (user_id, routine_id, id, position, name, start_time, end_time, category_id)
+                VALUES ('u1', 'weekdays', 'work', 0, 'Work', '08:00', '12:00', NULL);
+            INSERT INTO block_outcomes VALUES ('u1', 'weekdays', 'work', '2026-10-27', 'done', '11:20'),
+                                              ('u1', 'weekdays', 'removed', '2026-10-27', 'done', '12:00');
+            """,
+            CancellationToken.None);
+    }
+
+    [Fact]
+    public async Task OutcomesThatCascadedWithTheirRoutine_AreRebuiltWithoutItAndNamedAfterTheirBlock()
+    {
+        await MigrateAsync();
+        await GoBackToHistoryThatCascadesAsync();
+
+        await MigrateAsync();
+
+        (await CountAsync("SELECT COUNT(*) FROM pragma_foreign_key_list('block_outcomes') WHERE \"table\" = 'routines'"))
+            .ShouldBe(0);
+        (await CountAsync("SELECT COUNT(*) FROM block_outcomes")).ShouldBe(2);
+        (await CountAsync("SELECT COUNT(*) FROM block_outcomes WHERE block_id = 'work' AND block_name = 'Work' AND routine_name = 'Weekdays'"))
+            .ShouldBe(1);
+        (await CountAsync("SELECT COUNT(*) FROM block_outcomes WHERE block_id = 'removed' AND block_name IS NULL")).ShouldBe(1);
+        (await CountAsync("SELECT COUNT(*) FROM sqlite_master WHERE name = 'ix_block_outcomes_date'")).ShouldBe(1);
+        (await CountAsync("SELECT COUNT(*) FROM pragma_table_info('goals') WHERE name = 'archived_on'")).ShouldBe(1);
+    }
+
+    [Fact]
+    public async Task AfterTheRebuild_DeletingTheRoutineKeepsItsOutcomes()
+    {
+        await MigrateAsync();
+        await GoBackToHistoryThatCascadesAsync();
+        await MigrateAsync();
+
+        await using (var connection = await _connections.OpenAsync(CancellationToken.None))
+        {
+            await SqliteCommands.ExecuteAsync(
+                connection, "DELETE FROM routines WHERE id = 'weekdays'", CancellationToken.None);
+        }
+
+        (await CountAsync("SELECT COUNT(*) FROM block_outcomes")).ShouldBe(2);
+    }
+
     [Fact]
     public async Task OldRecords_BelongToAPlaceholderOwnerNobodyCanSignInTo()
     {

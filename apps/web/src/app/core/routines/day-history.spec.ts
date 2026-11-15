@@ -44,6 +44,46 @@ describe('historyBlocks', () => {
     expect(blocks[1].routineName).toBe('Weekdays');
   });
 
+  // Regression: deleting a routine erased its past days; the API now keeps the names with the outcome.
+  it('names a block by what was recorded, even when its routine was deleted since', () => {
+    const recorded: BlockOutcome = {
+      routineId: 'gone',
+      blockId: 'old',
+      outcome: 'done',
+      at: '09:00',
+      blockName: 'Gym',
+      routineName: 'Mornings',
+      categoryId: 'study',
+    };
+
+    const [block] = historyBlocks([recorded], SAMPLE_ROUTINES, SAMPLE_CATEGORIES);
+
+    expect([block.name, block.routineName, block.category?.name]).toEqual([
+      'Gym',
+      'Mornings',
+      'Study',
+    ]);
+  });
+
+  it('shows the names recorded rather than the current ones of a routine edited since', () => {
+    const recorded: BlockOutcome = {
+      routineId: 'weekdays',
+      blockId: 'csharp',
+      outcome: 'done',
+      at: '14:50',
+      blockName: 'Old name',
+      routineName: 'Old routine',
+    };
+
+    const [block] = historyBlocks([recorded], SAMPLE_ROUTINES, SAMPLE_CATEGORIES);
+
+    expect([block.name, block.routineName, block.category]).toEqual([
+      'Old name',
+      'Old routine',
+      undefined,
+    ]);
+  });
+
   // Regression: outcomes were sorted as text, so a night shift's 00:30 came before its 23:50.
   it('lists what a night shift ended after midnight last', () => {
     const nightShift = {

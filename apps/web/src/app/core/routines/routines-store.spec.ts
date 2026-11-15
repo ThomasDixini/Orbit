@@ -61,8 +61,9 @@ class ControlledGoalsGateway extends FakeGoalsGateway {
     return reply;
   }
 
-  override delete(goalId: string): Observable<void> {
+  override delete(goalId: string, isoDay: string): Observable<void> {
     this.deleted.push(goalId);
+    this.deletedOn.push(isoDay);
     const reply = new Subject<void>();
     this.pendingDeletes.push(reply);
     return reply;
@@ -243,6 +244,7 @@ describe('RoutinesStore', () => {
 
     expect(goalIds(store)).not.toContain('g3');
     expect(goals.deleted).toEqual(['g3']);
+    expect(goals.deletedOn).toEqual(['2026-10-26']);
   });
 
   it('puts a goal back in its place when deleting it fails', () => {

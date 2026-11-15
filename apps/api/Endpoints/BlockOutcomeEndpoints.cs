@@ -6,10 +6,17 @@ namespace Orbit.Api.Endpoints;
 /// <summary>Body of <c>PUT /routines/{routineId}/days/{date}/blocks/{blockId}</c>.</summary>
 public sealed record RecordBlockOutcomeRequest(BlockOutcomeKind Outcome, string At);
 
-public sealed record BlockOutcomeResponse(string RoutineId, string BlockId, BlockOutcomeKind Outcome, string At)
+/// <param name="BlockName">The block's name when it was recorded; null for an outcome stored before names were kept.</param>
+/// <param name="RoutineName">The routine's name when it was recorded; null like <paramref name="BlockName"/>.</param>
+/// <param name="CategoryId">The block's category when it was recorded, if it had one.</param>
+public sealed record BlockOutcomeResponse(
+    string RoutineId, string BlockId, BlockOutcomeKind Outcome, string At,
+    string? BlockName = null, string? RoutineName = null, string? CategoryId = null)
 {
     public static BlockOutcomeResponse From(BlockOutcome outcome) =>
-        new(outcome.RoutineId, outcome.BlockId, outcome.Kind, outcome.At);
+        new(
+            outcome.RoutineId, outcome.BlockId, outcome.Kind, outcome.At,
+            outcome.Labels?.BlockName, outcome.Labels?.RoutineName, outcome.Labels?.CategoryId);
 }
 
 /// <summary>HTTP routes for routine blocks completed or skipped on a day.</summary>

@@ -11,6 +11,7 @@ internal sealed class InMemoryGoalRepository : IGoalRepository, IGoalProgressLed
 {
     private readonly List<GoalDefinition> _definitions = [];
     private readonly List<GoalProgressEvent> _events = [];
+    private readonly Dictionary<string, DateOnly> _archivedOn = [];
 
     public int AddCount { get; private set; }
 
@@ -27,12 +28,20 @@ internal sealed class InMemoryGoalRepository : IGoalRepository, IGoalProgressLed
 
     public Task<IReadOnlyList<Goal>> ListAsync(DateOnly day, CancellationToken cancellationToken)
     {
-        return Task.FromResult<IReadOnlyList<Goal>>(_definitions.Select(definition => Restore(definition, day)).ToList());
+        var standing = _definitions.Where(definition => !_archivedOn.ContainsKey(definition.Id));
+        return Task.FromResult<IReadOnlyList<Goal>>(standing.Select(definition => Restore(definition, day)).ToList());
+    }
+
+    public Task<IReadOnlyList<Goal>> ListExistingOnAsync(DateOnly day, CancellationToken cancellationToken)
+    {
+        var existing = _definitions.Where(
+            definition => !_archivedOn.TryGetValue(definition.Id, out var archivedOn) || archivedOn > day);
+        return Task.FromResult<IReadOnlyList<Goal>>(existing.Select(definition => Restore(definition, day)).ToList());
     }
 
     public Task<Goal?> FindAsync(string id, DateOnly day, CancellationToken cancellationToken)
     {
-        var definition = _definitions.Find(candidate => candidate.Id == id);
+        var definition = _definitions.Find(candidate => candidate.Id == id && !_archivedOn.ContainsKey(id));
         return Task.FromResult(definition is null ? null : Restore(definition, day));
     }
 
@@ -50,10 +59,9 @@ internal sealed class InMemoryGoalRepository : IGoalRepository, IGoalProgressLed
         return Task.CompletedTask;
     }
 
-    public Task DeleteAsync(string id, CancellationToken cancellationToken)
+    public Task ArchiveAsync(string id, DateOnly day, CancellationToken cancellationToken)
     {
-        _definitions.RemoveAll(definition => definition.Id == id);
-        _events.RemoveAll(entry => entry.GoalId == id);
+        if (_definitions.Exists(definition => definition.Id == id)) _archivedOn.TryAdd(id, day);
         return Task.CompletedTask;
     }
 

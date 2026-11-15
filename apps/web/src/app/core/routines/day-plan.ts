@@ -10,6 +10,15 @@ export interface BlockOutcome {
   readonly blockId: string;
   readonly outcome: BlockOutcomeKind;
   readonly at: string;
+  /**
+   * The block's name when the API recorded it, so the history still names a block whose routine was
+   * deleted since. Absent on outcomes built here and on old ones whose block was already gone.
+   */
+  readonly blockName?: string;
+  /** The routine's name when the API recorded it; absent like `blockName`. */
+  readonly routineName?: string;
+  /** The block's category when the API recorded it, if it had one. */
+  readonly categoryId?: string;
 }
 
 /** Today's version of a routine, after completing or skipping blocks, with how each block ended. */

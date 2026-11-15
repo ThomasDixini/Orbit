@@ -110,7 +110,7 @@ public sealed class SqlitePlannerIsolationTests : IAsyncLifetime, IDisposable
 
         await _mine.Goals.UpdateAsync(GoalDefinitions.WeeklyStudy() with { Target = 7 }, CancellationToken.None);
         (await _theirs.Goals.FindAsync("g1", Today, CancellationToken.None))!.Definition.Target.ShouldBe(5);
-        await _mine.Goals.DeleteAsync("g1", CancellationToken.None);
+        await _mine.Goals.ArchiveAsync("g1", Today, CancellationToken.None);
 
         (await _mine.Goals.FindAsync("g1", Today, CancellationToken.None)).ShouldBeNull();
         (await _theirs.Goals.FindAsync("g1", Today, CancellationToken.None)).ShouldNotBeNull();

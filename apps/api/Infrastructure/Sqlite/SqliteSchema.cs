@@ -33,7 +33,26 @@ internal static class SqliteSchema
         "income_split_categories", "notes",
     ];
 
-    private const string CreateTables = """
+    /// <summary>
+    /// The outcomes of routine blocks. There is deliberately no foreign key to <c>routines</c>: deleting a
+    /// routine must not delete the days it was done on, so each row keeps the names it was recorded with.
+    /// </summary>
+    internal const string BlockOutcomesTable = """
+        CREATE TABLE IF NOT EXISTS block_outcomes (
+            user_id TEXT NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+            routine_id TEXT NOT NULL,
+            block_id TEXT NOT NULL,
+            date TEXT NOT NULL,
+            kind TEXT NOT NULL,
+            at TEXT NOT NULL,
+            block_name TEXT NULL,
+            routine_name TEXT NULL,
+            category_id TEXT NULL,
+            PRIMARY KEY (user_id, routine_id, block_id, date)
+        );
+        """;
+
+    private const string CreateTables = $"""
         CREATE TABLE IF NOT EXISTS users (
             id TEXT PRIMARY KEY,
             email TEXT NOT NULL UNIQUE COLLATE NOCASE,
@@ -60,6 +79,7 @@ internal static class SqliteSchema
             unit TEXT NULL,
             deadline TEXT NULL,
             tracking TEXT NOT NULL DEFAULT 'manual',
+            archived_on TEXT NULL,
             PRIMARY KEY (user_id, id),
             FOREIGN KEY (user_id, category_id) REFERENCES categories (user_id, id)
         );
@@ -145,16 +165,7 @@ internal static class SqliteSchema
             PRIMARY KEY (user_id, id)
         );
         CREATE INDEX IF NOT EXISTS ix_notes_updated_at ON notes (user_id, updated_at);
-        CREATE TABLE IF NOT EXISTS block_outcomes (
-            user_id TEXT NOT NULL REFERENCES users (id) ON DELETE CASCADE,
-            routine_id TEXT NOT NULL,
-            block_id TEXT NOT NULL,
-            date TEXT NOT NULL,
-            kind TEXT NOT NULL,
-            at TEXT NOT NULL,
-            PRIMARY KEY (user_id, routine_id, block_id, date),
-            FOREIGN KEY (user_id, routine_id) REFERENCES routines (user_id, id) ON DELETE CASCADE
-        );
+        {BlockOutcomesTable}
         CREATE INDEX IF NOT EXISTS ix_block_outcomes_date ON block_outcomes (user_id, date);
         CREATE TABLE IF NOT EXISTS finance_categories (
             user_id TEXT NOT NULL REFERENCES users (id) ON DELETE CASCADE,
@@ -332,8 +343,10 @@ internal static class SqliteSchema
             await SqliteLegacySchema.EnsureCreatedAsync(connection, cancellationToken);
             await SqliteMultiUserMigration.ApplyAsync(connection, CreateTables, cancellationToken);
         }
+        await SqliteHistoryMigration.DetachBlockOutcomesAsync(connection, cancellationToken);
         await SqliteCommands.ExecuteAsync(connection, CreateTables, cancellationToken);
         await AddInvestmentRiskColumnAsync(connection, cancellationToken);
+        await SqliteHistoryMigration.KeepHistoryAsync(connection, cancellationToken);
         await SqliteCommands.ExecuteAsync(connection, $"PRAGMA application_id = {ApplicationId}", cancellationToken);
         await SqliteCommands.ExecuteAsync(connection, $"PRAGMA user_version = {CurrentVersion}", cancellationToken);
     }

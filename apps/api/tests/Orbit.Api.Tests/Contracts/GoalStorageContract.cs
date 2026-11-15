@@ -118,15 +118,41 @@ public abstract class GoalStorageContract : IAsyncLifetime
     }
 
     [Fact]
-    public async Task Delete_TakesTheProgressWithTheGoal()
+    public async Task Archive_HidesTheGoalFromTheListAndFromFind()
     {
         await Goals.AddAsync(Goal.Create(GoalDefinitions.WeeklyStudy()), CancellationToken.None);
-        await LogAsync("today", TestDays.Today);
-        await Goals.DeleteAsync("g1", CancellationToken.None);
+        await Goals.AddAsync(Goal.Create(GoalDefinitions.WeeklyStudy("g2")), CancellationToken.None);
 
+        await Goals.ArchiveAsync("g1", TestDays.Today, CancellationToken.None);
+
+        (await Goals.FindAsync("g1", TestDays.Today, CancellationToken.None)).ShouldBeNull();
+        (await Goals.ListAsync(TestDays.Today, CancellationToken.None)).Select(goal => goal.Id).ShouldBe(["g2"]);
+    }
+
+    [Fact]
+    public async Task ListExistingOn_KeepsAGoalDeletedAfterTheDayWithItsProgress()
+    {
+        await Goals.AddAsync(Goal.Create(GoalDefinitions.WeeklyStudy()), CancellationToken.None);
+        await LogAsync("monday", Monday);
+        await Goals.ArchiveAsync("g1", Monday.AddDays(2), CancellationToken.None);
+
+        var thatDay = await Goals.ListExistingOnAsync(Monday, CancellationToken.None);
+        var laterDay = await Goals.ListExistingOnAsync(Monday.AddDays(2), CancellationToken.None);
+
+        thatDay.Select(goal => (goal.Id, goal.Done)).ShouldBe([("g1", 1)]);
+        laterDay.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task Archive_IgnoresAnUnknownGoalAndKeepsTheFirstDayOfOneArchivedTwice()
+    {
         await Goals.AddAsync(Goal.Create(GoalDefinitions.WeeklyStudy()), CancellationToken.None);
 
-        (await FindAsync("g1", TestDays.Today)).Done.ShouldBe(0);
+        await Goals.ArchiveAsync("missing", Monday, CancellationToken.None);
+        await Goals.ArchiveAsync("g1", Monday.AddDays(3), CancellationToken.None);
+        await Goals.ArchiveAsync("g1", Monday.AddDays(5), CancellationToken.None);
+
+        (await Goals.ListExistingOnAsync(Monday.AddDays(4), CancellationToken.None)).ShouldBeEmpty();
     }
 }
 

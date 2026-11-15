@@ -9,7 +9,7 @@ import { GoalsGateway } from './goals-gateway';
 export interface DayRecord {
   readonly isoDay: string;
   readonly outcomes: readonly BlockOutcome[];
-  /** Every goal with the progress of its period around the day. */
+  /** Every goal that existed that day, deleted since or not, with the progress of its period around it. */
   readonly goals: readonly Goal[];
 }
 
@@ -24,8 +24,9 @@ export class DayRecords {
    * @example inject(DayRecords).load('2026-10-27').subscribe((record) => record.outcomes.length)
    */
   load(isoDay: string): Observable<DayRecord> {
-    return forkJoin({ outcomes: this.outcomes.list(isoDay), goals: this.goals.list(isoDay) }).pipe(
-      map(({ outcomes, goals }) => ({ isoDay, outcomes, goals })),
-    );
+    return forkJoin({
+      outcomes: this.outcomes.list(isoDay),
+      goals: this.goals.listIncludingDeleted(isoDay),
+    }).pipe(map(({ outcomes, goals }) => ({ isoDay, outcomes, goals })));
   }
 }
