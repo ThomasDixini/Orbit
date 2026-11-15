@@ -161,6 +161,28 @@ describe('demo routine rotation gateway', () => {
     ]);
   });
 
+  it('stops listing a deleted goal but keeps it for the days before the deletion', async () => {
+    const { goals } = setup();
+
+    await firstValueFrom(goals.delete('goal-csharp', TODAY));
+
+    const ids = async (isoDay: string): Promise<string[]> =>
+      (await firstValueFrom(goals.listIncludingDeleted(isoDay))).map((goal) => goal.id);
+    expect((await firstValueFrom(goals.list(TODAY))).map((goal) => goal.id)).not.toContain(
+      'goal-csharp',
+    );
+    expect(await ids('2026-11-03')).toContain('goal-csharp');
+    expect(await ids(TODAY)).not.toContain('goal-csharp');
+  });
+
+  it('ignores deleting a goal that is already gone', async () => {
+    const { goals } = setup();
+
+    await firstValueFrom(goals.delete('nope', TODAY));
+
+    expect((await firstValueFrom(goals.listIncludingDeleted(TODAY))).length).toBeGreaterThan(0);
+  });
+
   it('drops the steps of a deleted routine', async () => {
     const { rotation, routines } = rotationSetup();
     await firstValueFrom(

@@ -156,13 +156,14 @@ export class RoutinesStore {
   }
 
   /**
-   * Deletes a goal and its progress; puts it back in place if the gateway rejects it.
+   * Deletes a goal from today on (the history keeps its past); puts it back in place if the gateway
+   * rejects it.
    * @example store.deleteGoal('g1')
    */
   deleteGoal(goalId: string): void {
     const removed = positionOf(this.goalList(), (goal) => goal.id === goalId);
     removeById(this.goalList, goalId);
-    this.goalsGateway.delete(goalId).subscribe({
+    this.goalsGateway.delete(goalId, this.today()).subscribe({
       error: (error: unknown) => this.rejected(error, () => putBack(this.goalList, removed)),
     });
   }

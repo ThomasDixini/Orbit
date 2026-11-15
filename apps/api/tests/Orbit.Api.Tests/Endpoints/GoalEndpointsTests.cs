@@ -243,11 +243,31 @@ public sealed class GoalEndpointsTests : IAsyncLifetime, IDisposable
     {
         await CreateGoalAsync(WeeklyGoal("g1"));
 
-        var first = await _client.DeleteAsync("/goals/g1");
-        var retry = await _client.DeleteAsync("/goals/g1");
+        var first = await _client.DeleteAsync("/goals/g1?date=2026-10-28");
+        var retry = await _client.DeleteAsync("/goals/g1?date=2026-10-28");
 
         (first.StatusCode, retry.StatusCode).ShouldBe((HttpStatusCode.NoContent, HttpStatusCode.NoContent));
         (await _client.GetFromJsonAsync<JsonArray>("/goals?date=2026-10-28"))!.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task Delete_KeepsTheGoalForTheDaysBeforeItWhenDeletedsAreRequested()
+    {
+        await CreateGoalAsync(WeeklyGoal("g1"));
+        await _client.DeleteAsync("/goals/g1?date=2026-10-28");
+
+        var before = await _client.GetFromJsonAsync<JsonArray>("/goals?date=2026-10-27&includeDeleted=true");
+        var onTheDay = await _client.GetFromJsonAsync<JsonArray>("/goals?date=2026-10-28&includeDeleted=true");
+
+        (before!.Count, onTheDay!.Count).ShouldBe((1, 0));
+    }
+
+    [Fact]
+    public async Task Delete_WithoutADayIsRejected()
+    {
+        await CreateGoalAsync(WeeklyGoal("g1"));
+
+        (await _client.DeleteAsync("/goals/g1")).StatusCode.ShouldBe(HttpStatusCode.BadRequest);
     }
 
     [Fact]

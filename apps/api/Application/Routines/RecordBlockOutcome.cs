@@ -21,8 +21,11 @@ public sealed class RecordBlockOutcome(
     /// <example><code>await recordBlockOutcome.ExecuteAsync(new("weekdays", "project", day, BlockOutcomeKind.Done, "20:40"), ct);</code></example>
     public async Task<BlockOutcome> ExecuteAsync(RecordBlockOutcomeCommand command, CancellationToken cancellationToken)
     {
-        var outcome = BlockOutcome.Create(command.RoutineId, command.BlockId, command.Date, command.Kind, command.At);
-        var block = await RequireBlockAsync(outcome, cancellationToken);
+        var checkedOutcome = BlockOutcome.Create(command.RoutineId, command.BlockId, command.Date, command.Kind, command.At);
+        var (routine, block) = await RequireBlockAsync(checkedOutcome, cancellationToken);
+        var outcome = BlockOutcome.Create(
+            command.RoutineId, command.BlockId, command.Date, command.Kind, command.At,
+            new OutcomeLabels(block.Name, routine.Name, block.CategoryId));
         await unitOfWork.RunAsync(async () =>
         {
             await outcomes.SaveAsync(outcome, cancellationToken);
@@ -42,12 +45,14 @@ public sealed class RecordBlockOutcome(
         await goalCredits.RevokeBlockAsync(sourceRef, outcome.Date, cancellationToken);
     }
 
-    private async Task<RoutineBlock> RequireBlockAsync(BlockOutcome outcome, CancellationToken cancellationToken)
+    private async Task<(Routine Routine, RoutineBlock Block)> RequireBlockAsync(
+        BlockOutcome outcome, CancellationToken cancellationToken)
     {
         var routine = await routines.FindAsync(outcome.RoutineId, cancellationToken)
             ?? throw ResourceNotFoundException.For("routine", outcome.RoutineId);
-        return routine.Blocks.FirstOrDefault(block => block.Id == outcome.BlockId)
+        var block = routine.Blocks.FirstOrDefault(candidate => candidate.Id == outcome.BlockId)
             ?? throw ResourceNotFoundException.For($"block of routine \"{routine.Id}\"", outcome.BlockId);
+        return (routine, block);
     }
 }
 

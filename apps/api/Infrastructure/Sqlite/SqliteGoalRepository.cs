@@ -8,20 +8,30 @@ namespace Orbit.Api.Infrastructure.Sqlite;
 /// <summary>
 /// Goals stored in the <c>goals</c> table (enums as lower-case names). A goal's progress is not stored
 /// on it: it is the sum of its <c>goal_progress</c> entries inside the period around the requested day.
+/// A deleted goal is only archived (<c>archived_on</c> is the day it was deleted), so its progress stays.
 /// </summary>
 public sealed class SqliteGoalRepository(SqliteConnectionFactory connections) : IGoalRepository
 {
     private const string DateFormat = "yyyy-MM-dd";
     private const string SelectColumns =
         "SELECT id, category_id, title, type, period, target, unit, deadline, tracking FROM goals WHERE user_id = $user";
+    private const string NotArchived = "archived_on IS NULL";
+    private const string NotArchivedBefore = "(archived_on IS NULL OR archived_on > $day)";
+
+    public Task<IReadOnlyList<Goal>> ListAsync(DateOnly day, CancellationToken cancellationToken) =>
+        ListWhereAsync(NotArchived, day, cancellationToken);
+
+    public Task<IReadOnlyList<Goal>> ListExistingOnAsync(DateOnly day, CancellationToken cancellationToken) =>
+        ListWhereAsync(NotArchivedBefore, day, cancellationToken);
 
     // Two queries whatever the number of goals: the definitions, then the log entries of their periods.
-    public async Task<IReadOnlyList<Goal>> ListAsync(DateOnly day, CancellationToken cancellationToken)
+    private async Task<IReadOnlyList<Goal>> ListWhereAsync(
+        string condition, DateOnly day, CancellationToken cancellationToken)
     {
         await using var lease = await connections.LeaseAsync(cancellationToken);
         var definitions = await SqliteCommands.QueryAsync(
-            lease.Connection, $"{SelectColumns} ORDER BY rowid", ToDefinition, cancellationToken,
-            ("$user", connections.UserId));
+            lease.Connection, $"{SelectColumns} AND {condition} ORDER BY rowid", ToDefinition, cancellationToken,
+            ("$user", connections.UserId), ("$day", ToText(day)));
         var entries = await EntriesAroundAsync(lease.Connection, connections.UserId, definitions, day, cancellationToken);
         return [.. definitions.Select(definition => Goal.StandingOn(definition, entries[definition.Id], day))];
     }
@@ -30,7 +40,7 @@ public sealed class SqliteGoalRepository(SqliteConnectionFactory connections) : 
     {
         await using var lease = await connections.LeaseAsync(cancellationToken);
         var definitions = await SqliteCommands.QueryAsync(
-            lease.Connection, $"{SelectColumns} AND id = $id", ToDefinition, cancellationToken,
+            lease.Connection, $"{SelectColumns} AND id = $id AND {NotArchived}", ToDefinition, cancellationToken,
             ("$user", connections.UserId), ("$id", id));
         if (definitions.Count == 0) return null;
         var entries = await EntriesAroundAsync(lease.Connection, connections.UserId, definitions, day, cancellationToken);
@@ -75,14 +85,14 @@ public sealed class SqliteGoalRepository(SqliteConnectionFactory connections) : 
             ("$tracking", ToText(definition.Tracking)));
     }
 
-    public async Task DeleteAsync(string id, CancellationToken cancellationToken)
+    public async Task ArchiveAsync(string id, DateOnly day, CancellationToken cancellationToken)
     {
         await using var lease = await connections.LeaseAsync(cancellationToken);
         var connection = lease.Connection;
-        // The progress entries go with it through ON DELETE CASCADE.
+        // The row and its progress stay, so the days before this one still show the goal.
         await SqliteCommands.ExecuteAsync(
-            connection, "DELETE FROM goals WHERE user_id = $user AND id = $id", cancellationToken,
-            ("$user", connections.UserId), ("$id", id));
+            connection, $"UPDATE goals SET archived_on = $day WHERE user_id = $user AND id = $id AND {NotArchived}",
+            cancellationToken, ("$user", connections.UserId), ("$id", id), ("$day", ToText(day)));
     }
 
     /// <summary>

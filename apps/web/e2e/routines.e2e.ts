@@ -459,4 +459,26 @@ test.describe('history', () => {
     const goals = page.getByRole('region', { name: 'Goals met' });
     await expect(goals.getByText(goal.title)).toBeVisible();
   });
+
+  test('keeps a past day readable after its routine and goal are deleted', async ({
+    page,
+    request,
+  }) => {
+    const category = await createCategory(request, 'Reading');
+    const goal = await createWeeklyGoal(request, category.id, 1);
+    const routine = await createRoutine(request, category.id);
+    const yesterday = localDay(-1);
+    await completeBlock(request, routine, yesterday);
+
+    const routineDeleted = await request.delete(`/api/routines/${routine.id}`);
+    const goalDeleted = await request.delete(`/api/goals/${goal.id}?date=${localToday()}`);
+    expect([routineDeleted.ok(), goalDeleted.ok()]).toEqual([true, true]);
+    await routines.goto('/routines/history');
+    await page.getByLabel('Day to show').fill(yesterday);
+
+    const blocks = page.getByRole('region', { name: 'Blocks completed' });
+    await expect(blocks.getByText(routine.name)).toBeVisible();
+    const goals = page.getByRole('region', { name: 'Goals met' });
+    await expect(goals.getByText(goal.title)).toBeVisible();
+  });
 });

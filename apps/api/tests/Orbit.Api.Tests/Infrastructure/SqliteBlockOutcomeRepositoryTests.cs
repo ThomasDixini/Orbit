@@ -71,12 +71,37 @@ public sealed class SqliteBlockOutcomeRepositoryTests : IAsyncLifetime, IDisposa
     }
 
     [Fact]
-    public async Task Outcomes_GoWithTheirRoutine()
+    public async Task Outcomes_SurviveDeletingTheirRoutine_ReadableByTheNamesTheyWereRecordedWith()
     {
-        await _outcomes.SaveAsync(Outcome("work", BlockOutcomeKind.Done, "11:20"), CancellationToken.None);
+        var labels = new OutcomeLabels("C# study", "Weekdays", "study");
+        await _outcomes.SaveAsync(
+            BlockOutcome.Create("weekdays", "csharp", Today, BlockOutcomeKind.Done, "14:00", labels),
+            CancellationToken.None);
 
         await _routines.DeleteAsync("weekdays", CancellationToken.None);
 
-        (await _outcomes.ListAsync(Today, CancellationToken.None)).ShouldBeEmpty();
+        (await _outcomes.ListAsync(Today, CancellationToken.None)).Single().Labels.ShouldBe(labels);
+    }
+
+    [Fact]
+    public async Task Save_ReplacingAnOutcomeReplacesItsNamesToo()
+    {
+        await _outcomes.SaveAsync(
+            BlockOutcome.Create("weekdays", "work", Today, BlockOutcomeKind.Done, "11:20", new("Work", "Weekdays", null)),
+            CancellationToken.None);
+        await _outcomes.SaveAsync(
+            BlockOutcome.Create("weekdays", "work", Today, BlockOutcomeKind.Done, "11:30", new("Job", "Office", "study")),
+            CancellationToken.None);
+
+        (await _outcomes.ListAsync(Today, CancellationToken.None)).Single().Labels
+            .ShouldBe(new OutcomeLabels("Job", "Office", "study"));
+    }
+
+    [Fact]
+    public async Task Save_WithoutNamesReadsBackWithoutLabels()
+    {
+        await _outcomes.SaveAsync(Outcome("work", BlockOutcomeKind.Done, "11:20"), CancellationToken.None);
+
+        (await _outcomes.ListAsync(Today, CancellationToken.None)).Single().Labels.ShouldBeNull();
     }
 }

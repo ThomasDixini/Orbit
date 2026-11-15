@@ -6,8 +6,9 @@ using Microsoft.Data.Sqlite;
 namespace Orbit.Api.Infrastructure.Sqlite;
 
 /// <summary>
-/// Outcomes stored in <c>block_outcomes</c>. Rows point at the routine only, not at its block rows,
-/// because saving a routine rewrites those rows and would otherwise wipe the history.
+/// Outcomes stored in <c>block_outcomes</c>. Rows hold no foreign key to the routine or its block rows:
+/// saving a routine rewrites those rows and deleting it removes them, and neither may wipe the history.
+/// The names recorded with each row keep it readable after that.
 /// </summary>
 public sealed class SqliteBlockOutcomeRepository(SqliteConnectionFactory connections) : IBlockOutcomeRepository
 {
@@ -19,7 +20,10 @@ public sealed class SqliteBlockOutcomeRepository(SqliteConnectionFactory connect
         var connection = lease.Connection;
         return await SqliteCommands.QueryAsync(
             connection,
-            "SELECT routine_id, block_id, date, kind, at FROM block_outcomes WHERE user_id = $user AND date = $date ORDER BY rowid",
+            """
+            SELECT routine_id, block_id, date, kind, at, block_name, routine_name, category_id
+            FROM block_outcomes WHERE user_id = $user AND date = $date ORDER BY rowid
+            """,
             ToOutcome,
             cancellationToken,
             ("$user", connections.UserId), ("$date", ToText(date)));
@@ -32,13 +36,17 @@ public sealed class SqliteBlockOutcomeRepository(SqliteConnectionFactory connect
         await SqliteCommands.ExecuteAsync(
             connection,
             """
-            INSERT INTO block_outcomes (user_id, routine_id, block_id, date, kind, at)
-            VALUES ($user, $routineId, $blockId, $date, $kind, $at)
-            ON CONFLICT (user_id, routine_id, block_id, date) DO UPDATE SET kind = excluded.kind, at = excluded.at
+            INSERT INTO block_outcomes (user_id, routine_id, block_id, date, kind, at, block_name, routine_name, category_id)
+            VALUES ($user, $routineId, $blockId, $date, $kind, $at, $blockName, $routineName, $categoryId)
+            ON CONFLICT (user_id, routine_id, block_id, date) DO UPDATE SET
+                kind = excluded.kind, at = excluded.at, block_name = excluded.block_name,
+                routine_name = excluded.routine_name, category_id = excluded.category_id
             """,
             cancellationToken,
             ("$user", connections.UserId), ("$routineId", outcome.RoutineId), ("$blockId", outcome.BlockId), ("$date", ToText(outcome.Date)),
-            ("$kind", outcome.Kind.ToString().ToLowerInvariant()), ("$at", outcome.At));
+            ("$kind", outcome.Kind.ToString().ToLowerInvariant()), ("$at", outcome.At),
+            ("$blockName", outcome.Labels?.BlockName), ("$routineName", outcome.Labels?.RoutineName),
+            ("$categoryId", outcome.Labels?.CategoryId));
     }
 
     public async Task DeleteAsync(string routineId, string blockId, DateOnly date, CancellationToken cancellationToken)
@@ -59,7 +67,15 @@ public sealed class SqliteBlockOutcomeRepository(SqliteConnectionFactory connect
             reader.GetString(1),
             DateOnly.ParseExact(reader.GetString(2), DateFormat, CultureInfo.InvariantCulture),
             Enum.Parse<BlockOutcomeKind>(reader.GetString(3), ignoreCase: true),
-            reader.GetString(4));
+            reader.GetString(4),
+            ToLabels(reader));
+    }
+
+    // Rows stored before names were kept have none, and are read without labels.
+    private static OutcomeLabels? ToLabels(SqliteDataReader reader)
+    {
+        if (reader.IsDBNull(5) || reader.IsDBNull(6)) return null;
+        return new OutcomeLabels(reader.GetString(5), reader.GetString(6), reader.IsDBNull(7) ? null : reader.GetString(7));
     }
 
     private static string ToText(DateOnly date) => date.ToString(DateFormat, CultureInfo.InvariantCulture);

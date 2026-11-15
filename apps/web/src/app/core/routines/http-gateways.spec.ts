@@ -215,8 +215,18 @@ describe('HttpGoalsGateway', () => {
   });
 
   it('deletes a goal at its escaped id', () => {
-    TestBed.inject(HttpGoalsGateway).delete('g 1').subscribe();
+    TestBed.inject(HttpGoalsGateway).delete('g 1', '2026-10-28').subscribe();
 
-    httpTesting.expectOne({ method: 'DELETE', url: '/api/goals/g%201' }).flush(null);
+    httpTesting
+      .expectOne({ method: 'DELETE', url: '/api/goals/g%201?date=2026-10-28' })
+      .flush(null);
+  });
+
+  it('lists the goals of a day with the ones deleted after it', () => {
+    TestBed.inject(HttpGoalsGateway).listIncludingDeleted('2026-10-27').subscribe();
+
+    httpTesting
+      .expectOne({ method: 'GET', url: '/api/goals?date=2026-10-27&includeDeleted=true' })
+      .flush([]);
   });
 });

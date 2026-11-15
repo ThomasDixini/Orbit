@@ -67,22 +67,23 @@ public class UpdateAndDeleteGoalTests
     }
 
     [Fact]
-    public async Task Delete_RemovesTheGoalAndItsProgressAndIgnoresOneAlreadyGone()
+    public async Task Delete_StopsListingTheGoalButKeepsItsProgressAndIgnoresOneAlreadyGone()
     {
         var delete = new DeleteGoal(_goals);
 
-        await delete.ExecuteAsync("g1", CancellationToken.None);
-        await delete.ExecuteAsync("g1", CancellationToken.None);
+        await delete.ExecuteAsync("g1", TestDays.Today, CancellationToken.None);
+        await delete.ExecuteAsync("g1", TestDays.Today, CancellationToken.None);
 
         (await _goals.ListAsync(TestDays.Today, CancellationToken.None)).ShouldBeEmpty();
-        _goals.Events.ShouldBeEmpty();
+        (await _goals.ListExistingOnAsync(TestDays.Today.AddDays(-1), CancellationToken.None)).ShouldHaveSingleItem();
+        _goals.Events.ShouldNotBeEmpty();
     }
 
     [Fact]
     public async Task Delete_RejectsAMalformedId()
     {
         var exception = await Should.ThrowAsync<DomainRuleException>(() =>
-            new DeleteGoal(_goals).ExecuteAsync("has spaces", CancellationToken.None));
+            new DeleteGoal(_goals).ExecuteAsync("has spaces", TestDays.Today, CancellationToken.None));
 
         exception.Message.ShouldContain("\"has spaces\"");
     }

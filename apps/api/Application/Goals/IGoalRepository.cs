@@ -8,7 +8,13 @@ public interface IGoalRepository
     /// <summary>All goals in creation order, each with the progress of the period around <paramref name="day"/>.</summary>
     Task<IReadOnlyList<Goal>> ListAsync(DateOnly day, CancellationToken cancellationToken);
 
-    /// <summary>The goal with this id and its progress around <paramref name="day"/>, or null when there is none.</summary>
+    /// <summary>
+    /// The goals as they stood on <paramref name="day"/>: those not deleted, plus those deleted after it,
+    /// each with the progress of the period around the day.
+    /// </summary>
+    Task<IReadOnlyList<Goal>> ListExistingOnAsync(DateOnly day, CancellationToken cancellationToken);
+
+    /// <summary>The goal with this id and its progress around <paramref name="day"/>, or null when there is none or it was deleted.</summary>
     Task<Goal?> FindAsync(string id, DateOnly day, CancellationToken cancellationToken);
 
     /// <summary>
@@ -20,6 +26,9 @@ public interface IGoalRepository
     /// <summary>Replaces the definition of a stored goal; its progress entries are kept.</summary>
     Task UpdateAsync(GoalDefinition definition, CancellationToken cancellationToken);
 
-    /// <summary>Removes the goal and its progress entries; an unknown id is ignored.</summary>
-    Task DeleteAsync(string id, CancellationToken cancellationToken);
+    /// <summary>
+    /// Deletes the goal from <paramref name="day"/> on: it stops being listed, but it and its progress entries
+    /// are kept so earlier days still show it. An unknown or already deleted id is ignored.
+    /// </summary>
+    Task ArchiveAsync(string id, DateOnly day, CancellationToken cancellationToken);
 }

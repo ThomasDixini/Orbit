@@ -61,8 +61,8 @@ public sealed record GoalResponse(
 public static class GoalEndpoints
 {
     /// <summary>
-    /// Maps <c>GET /goals?date=</c>, <c>POST /goals?date=</c>, <c>PUT /goals/{goalId}?date=</c>,
-    /// <c>DELETE /goals/{goalId}</c> and <c>PUT /goals/{goalId}/achievement</c>.
+    /// Maps <c>GET /goals?date=[&amp;includeDeleted=true]</c>, <c>POST /goals?date=</c>, <c>PUT /goals/{goalId}?date=</c>,
+    /// <c>DELETE /goals/{goalId}?date=</c> and <c>PUT /goals/{goalId}/achievement</c>.
     /// </summary>
     /// <example><code>app.MapGoalEndpoints();</code></example>
     public static IEndpointRouteBuilder MapGoalEndpoints(this IEndpointRouteBuilder routes)
@@ -76,9 +76,9 @@ public static class GoalEndpoints
     }
 
     private static async Task<IResult> ListAsync(
-        DateOnly date, ListGoals listGoals, CancellationToken cancellationToken)
+        DateOnly date, bool? includeDeleted, ListGoals listGoals, CancellationToken cancellationToken)
     {
-        var goals = await listGoals.ExecuteAsync(date, cancellationToken);
+        var goals = await listGoals.ExecuteAsync(date, includeDeleted ?? false, cancellationToken);
         return Results.Ok(goals.Select(GoalResponse.From));
     }
 
@@ -98,9 +98,10 @@ public static class GoalEndpoints
         return Results.Ok(GoalResponse.From(goal));
     }
 
-    private static async Task<IResult> DeleteAsync(string goalId, DeleteGoal deleteGoal, CancellationToken cancellationToken)
+    private static async Task<IResult> DeleteAsync(
+        string goalId, DateOnly date, DeleteGoal deleteGoal, CancellationToken cancellationToken)
     {
-        await deleteGoal.ExecuteAsync(goalId, cancellationToken);
+        await deleteGoal.ExecuteAsync(goalId, date, cancellationToken);
         return Results.NoContent();
     }
 

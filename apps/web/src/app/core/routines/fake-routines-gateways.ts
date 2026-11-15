@@ -56,6 +56,8 @@ export class FakeGoalsGateway extends GoalsGateway {
   readonly saved: Goal[] = [];
   readonly updated: { readonly goalId: string; readonly changes: GoalChanges }[] = [];
   readonly deleted: string[] = [];
+  /** The days passed to `delete`, in order. */
+  readonly deletedOn: string[] = [];
   /** Calls to `setAchievement`, in order. */
   readonly achievements: {
     readonly goalId: string;
@@ -104,8 +106,15 @@ export class FakeGoalsGateway extends GoalsGateway {
     return of(this.find(goalId) ?? goal);
   }
 
-  override delete(goalId: string): Observable<void> {
+  override listIncludingDeleted(isoDay: string): Observable<readonly Goal[]> {
+    this.listedDays.push(isoDay);
+    if (this.failure !== undefined) return throwError(() => this.failure);
+    return of(this.goalsOnDay.get(isoDay) ?? this.known());
+  }
+
+  override delete(goalId: string, isoDay: string): Observable<void> {
     this.deleted.push(goalId);
+    this.deletedOn.push(isoDay);
     if (this.failure !== undefined) return throwError(() => this.failure);
     this.removed.add(goalId);
     return of(undefined);
