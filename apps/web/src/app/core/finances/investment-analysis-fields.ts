@@ -23,247 +23,214 @@ export interface AnalysisSection {
   readonly metrics: readonly MetricField[];
 }
 
-function text(key: string, label: string): AnalysisField {
-  return { key, label };
+/** Field names and their labels, written as a map (like the translations) to keep the catalog short. */
+type Labels = Readonly<Record<string, string>>;
+
+function fields(labels: Labels): readonly AnalysisField[] {
+  return Object.entries(labels).map(([key, label]) => ({ key, label }));
 }
 
-function metric(key: string, label: string, unit: MetricUnit): MetricField {
-  return { key, label, unit };
+function numbers(unit: MetricUnit, labels: Labels): readonly MetricField[] {
+  return fields(labels).map((field) => ({ ...field, unit }));
 }
+
+function section(
+  id: string,
+  title: string,
+  texts: Labels,
+  metrics: readonly MetricField[] = [],
+): AnalysisSection {
+  return { id, title, texts: fields(texts), metrics };
+}
+
+const NO_TEXTS: Labels = {};
 
 /** The company part: everything but the peers and the scenarios, in the order the form shows it. */
 export const COMPANY_SECTIONS: readonly AnalysisSection[] = [
-  {
-    id: 'summary',
-    title: 'Summary',
-    texts: [
-      text('thesis', 'Thesis summary'),
-      text('sector', 'Sector'),
-      text('segment', 'Segment'),
-      text('country', 'Country'),
-      text('businessDescription', 'Business description'),
-    ],
-    metrics: [
-      metric('price', 'Current price', 'money'),
-      metric('targetPrice', 'Target price', 'money'),
-    ],
-  },
-  {
-    id: 'business',
-    title: 'Business model',
-    texts: [
-      text('revenueSources', 'Revenue sources'),
-      text('moat', 'Competitive advantages (moat)'),
-      text('marketPosition', 'Market positioning'),
-      text('whyItCaughtAttention', 'Why this company caught my attention'),
-      text('predictability', 'Is the business predictable?'),
-    ],
-    metrics: [],
-  },
-  {
-    id: 'management',
-    title: 'Management',
-    texts: [
-      text('managementQuality', 'Quality of management'),
-      text('executiveHistory', 'Track record of the executives'),
-      text('shareholderAlignment', 'Alignment with shareholders'),
-      text('sectorLeader', 'Sector leader?'),
-    ],
-    metrics: [],
-  },
-  {
-    id: 'market',
-    title: 'Market and competition',
-    texts: [
-      text('marketSize', 'Market size and growth'),
-      text('competitors', 'Main competitors'),
-      text('marketShare', 'Market share'),
-      text('entryBarriers', 'Barriers to entry'),
-    ],
-    metrics: [],
-  },
-  {
-    id: 'risks',
-    title: 'Risks',
-    texts: [
-      text('operationalRisks', 'Operational risks'),
-      text('regulatoryRisks', 'Regulatory risks'),
-      text('marketRisks', 'Market risks'),
-      text('financialRisks', 'Financial risks'),
-      text('companyRisks', 'Company-specific risks'),
-    ],
-    metrics: [],
-  },
-  {
-    id: 'outlook',
-    title: 'Outlook and catalysts',
-    texts: [
-      text('growthExpectations', 'Growth expectations'),
-      text('newProducts', 'New products and expansions'),
-      text('sectorTrends', 'Sector trends'),
-      text('corporateEvents', 'Relevant corporate events'),
-    ],
-    metrics: [],
-  },
-  {
-    id: 'profitability',
-    title: 'Profitability',
-    texts: [],
-    metrics: [
-      metric('roe', 'ROE', 'percent'),
-      metric('roa', 'ROA', 'percent'),
-      metric('roic', 'ROIC', 'percent'),
-      metric('grossMargin', 'Gross margin', 'percent'),
-      metric('ebitdaMargin', 'EBITDA margin', 'percent'),
-      metric('netMargin', 'Net margin', 'percent'),
-    ],
-  },
-  {
-    id: 'efficiency',
-    title: 'Efficiency',
-    texts: [],
-    metrics: [
-      metric('assetTurnover', 'Asset turnover', 'multiple'),
-      metric('receivableDays', 'Days sales outstanding', 'days'),
-      metric('payableDays', 'Days payable outstanding', 'days'),
-      metric('inventoryTurnover', 'Inventory turnover', 'multiple'),
-    ],
-  },
-  {
-    id: 'debt',
-    title: 'Debt',
-    texts: [],
-    metrics: [
-      metric('netDebtToEbitda', 'Net debt / EBITDA', 'multiple'),
-      metric('netDebtToEquity', 'Net debt / equity', 'multiple'),
-      metric('currentRatio', 'Current ratio', 'multiple'),
-      metric('interestCoverage', 'Interest coverage', 'multiple'),
-    ],
-  },
-  {
-    id: 'growth',
-    title: 'Growth',
-    texts: [],
-    metrics: [
-      metric('revenueCagr', 'Revenue CAGR 5y', 'percent'),
-      metric('earningsCagr', 'Earnings CAGR 5y', 'percent'),
-      metric('ebitdaGrowth', 'EBITDA growth', 'percent'),
-    ],
-  },
-  {
-    id: 'multiples',
-    title: 'Multiples',
-    texts: [],
-    metrics: [
-      metric('priceToEarnings', 'P/E', 'multiple'),
-      metric('priceToBook', 'P/B', 'multiple'),
-      metric('evToEbitda', 'EV/EBITDA', 'multiple'),
-      metric('priceToSales', 'P/S', 'multiple'),
-      metric('dividendYield', 'Dividend yield', 'percent'),
-      metric('earningsPerShare', 'Earnings per share', 'money'),
-    ],
-  },
-  {
-    id: 'cashFlow',
-    title: 'Cash flow',
-    texts: [],
-    metrics: [
-      metric('operatingCashFlow', 'Operating cash flow', 'millions'),
-      metric('freeCashFlow', 'Free cash flow', 'millions'),
-      metric('capex', 'CAPEX', 'millions'),
-    ],
-  },
-  {
-    id: 'valuation',
-    title: 'Valuation (DCF)',
-    texts: [],
-    metrics: [
-      metric('wacc', 'WACC', 'percent'),
-      metric('perpetualGrowth', 'Perpetual growth (g)', 'percent'),
-      metric('estimatedEps', 'Estimated EPS', 'money'),
-      metric('intrinsicValue', 'Intrinsic value', 'money'),
-    ],
-  },
-  {
-    id: 'macro',
-    title: 'Macroeconomic context',
-    texts: [
-      text('interestRates', 'Interest rates (Selic / Fed)'),
-      text('exchangeRate', 'Exchange rate'),
-      text('inflation', 'Inflation'),
-      text('economicGrowth', 'GDP and economic growth'),
-      text('unemployment', 'Unemployment'),
-      text('cycleExposure', 'Exposure to economic cycles'),
-      text('monetaryPolicy', 'Impact of monetary policy'),
-      text('fiscalPolicy', 'Impact of fiscal policy'),
-      text('internationalExposure', 'International exposure'),
-      text('macroRisks', 'Macro risks (description, probability, impact)'),
-      text('riskMitigation', 'How the company mitigates them'),
-      text('diversification', 'Diversification of revenue, clients and suppliers'),
-      text('hedges', 'Hedges and financial protections'),
-    ],
-    metrics: [],
-  },
-  {
-    id: 'sector',
-    title: 'Sector',
-    texts: [
-      text('sectorOverview', 'Current situation and main trends'),
-      text('sectorGrowth', 'Historical growth'),
-      text('sectorDrivers', 'Growth drivers'),
-      text('sectorChallenges', 'Sector challenges'),
-      text('sectorRegulation', 'Regulation'),
-      text('sectorInnovation', 'Innovations and disruptions'),
-      text('peerAdvantages', 'Advantages over competitors'),
-      text('peerDisadvantages', 'Disadvantages against competitors'),
-    ],
-    metrics: [],
-  },
-  {
-    id: 'review',
-    title: 'Since the previous analysis',
-    texts: [text('previousReview', 'What came true of the previous risks and catalysts')],
-    metrics: [],
-  },
+  section(
+    'summary',
+    'Summary',
+    {
+      thesis: 'Thesis summary',
+      sector: 'Sector',
+      segment: 'Segment',
+      country: 'Country',
+      businessDescription: 'Business description',
+    },
+    numbers('money', { price: 'Current price', targetPrice: 'Target price' }),
+  ),
+  section('business', 'Business model', {
+    revenueSources: 'Revenue sources',
+    moat: 'Competitive advantages (moat)',
+    marketPosition: 'Market positioning',
+    whyItCaughtAttention: 'Why this company caught my attention',
+    predictability: 'Is the business predictable?',
+  }),
+  section('management', 'Management', {
+    managementQuality: 'Quality of management',
+    executiveHistory: 'Track record of the executives',
+    shareholderAlignment: 'Alignment with shareholders',
+    sectorLeader: 'Sector leader?',
+  }),
+  section('market', 'Market and competition', {
+    marketSize: 'Market size and growth',
+    competitors: 'Main competitors',
+    marketShare: 'Market share',
+    entryBarriers: 'Barriers to entry',
+  }),
+  section('risks', 'Risks', {
+    operationalRisks: 'Operational risks',
+    regulatoryRisks: 'Regulatory risks',
+    marketRisks: 'Market risks',
+    financialRisks: 'Financial risks',
+    companyRisks: 'Company-specific risks',
+  }),
+  section('outlook', 'Outlook and catalysts', {
+    growthExpectations: 'Growth expectations',
+    newProducts: 'New products and expansions',
+    sectorTrends: 'Sector trends',
+    corporateEvents: 'Relevant corporate events',
+  }),
+  section(
+    'profitability',
+    'Profitability',
+    NO_TEXTS,
+    numbers('percent', {
+      roe: 'ROE',
+      roa: 'ROA',
+      roic: 'ROIC',
+      grossMargin: 'Gross margin',
+      ebitdaMargin: 'EBITDA margin',
+      netMargin: 'Net margin',
+    }),
+  ),
+  section('efficiency', 'Efficiency', NO_TEXTS, [
+    ...numbers('multiple', {
+      assetTurnover: 'Asset turnover',
+      inventoryTurnover: 'Inventory turnover',
+    }),
+    ...numbers('days', {
+      receivableDays: 'Days sales outstanding',
+      payableDays: 'Days payable outstanding',
+    }),
+  ]),
+  section(
+    'debt',
+    'Debt',
+    NO_TEXTS,
+    numbers('multiple', {
+      netDebtToEbitda: 'Net debt / EBITDA',
+      netDebtToEquity: 'Net debt / equity',
+      currentRatio: 'Current ratio',
+      interestCoverage: 'Interest coverage',
+    }),
+  ),
+  section(
+    'growth',
+    'Growth',
+    NO_TEXTS,
+    numbers('percent', {
+      revenueCagr: 'Revenue CAGR 5y',
+      earningsCagr: 'Earnings CAGR 5y',
+      ebitdaGrowth: 'EBITDA growth',
+    }),
+  ),
+  section('multiples', 'Multiples', NO_TEXTS, [
+    ...numbers('multiple', {
+      priceToEarnings: 'P/E',
+      priceToBook: 'P/B',
+      evToEbitda: 'EV/EBITDA',
+      priceToSales: 'P/S',
+    }),
+    ...numbers('percent', { dividendYield: 'Dividend yield' }),
+    ...numbers('money', { earningsPerShare: 'Earnings per share' }),
+  ]),
+  section(
+    'cashFlow',
+    'Cash flow',
+    NO_TEXTS,
+    numbers('millions', {
+      operatingCashFlow: 'Operating cash flow',
+      freeCashFlow: 'Free cash flow',
+      capex: 'CAPEX',
+    }),
+  ),
+  section('valuation', 'Valuation (DCF)', NO_TEXTS, [
+    ...numbers('percent', { wacc: 'WACC', perpetualGrowth: 'Perpetual growth (g)' }),
+    ...numbers('money', { estimatedEps: 'Estimated EPS', intrinsicValue: 'Intrinsic value' }),
+  ]),
+  section('macro', 'Macroeconomic context', {
+    interestRates: 'Interest rates (Selic / Fed)',
+    exchangeRate: 'Exchange rate',
+    inflation: 'Inflation',
+    economicGrowth: 'GDP and economic growth',
+    unemployment: 'Unemployment',
+    cycleExposure: 'Exposure to economic cycles',
+    monetaryPolicy: 'Impact of monetary policy',
+    fiscalPolicy: 'Impact of fiscal policy',
+    internationalExposure: 'International exposure',
+    macroRisks: 'Macro risks (description, probability, impact)',
+    riskMitigation: 'How the company mitigates them',
+    diversification: 'Diversification of revenue, clients and suppliers',
+    hedges: 'Hedges and financial protections',
+  }),
+  section('sector', 'Sector', {
+    sectorOverview: 'Current situation and main trends',
+    sectorGrowth: 'Historical growth',
+    sectorDrivers: 'Growth drivers',
+    sectorChallenges: 'Sector challenges',
+    sectorRegulation: 'Regulation',
+    sectorInnovation: 'Innovations and disruptions',
+    peerAdvantages: 'Advantages over competitors',
+    peerDisadvantages: 'Disadvantages against competitors',
+  }),
+  section('review', 'Since the previous analysis', {
+    previousReview: 'What came true of the previous risks and catalysts',
+  }),
 ];
+
+/** Peer numbers kept by the company under another name. */
+const COMPANY_KEY_OF_PEER: Labels = { revenueGrowth: 'revenueCagr' };
 
 /** What a peer is compared on; `companyKey` is the company's own number shown beside it. */
 export const PEER_METRICS: readonly (MetricField & { readonly companyKey: string })[] = [
-  { ...metric('priceToEarnings', 'P/E', 'multiple'), companyKey: 'priceToEarnings' },
-  { ...metric('priceToBook', 'P/B', 'multiple'), companyKey: 'priceToBook' },
-  { ...metric('evToEbitda', 'EV/EBITDA', 'multiple'), companyKey: 'evToEbitda' },
-  { ...metric('dividendYield', 'Dividend yield', 'percent'), companyKey: 'dividendYield' },
-  { ...metric('roe', 'ROE', 'percent'), companyKey: 'roe' },
-  { ...metric('roic', 'ROIC', 'percent'), companyKey: 'roic' },
-  { ...metric('ebitdaMargin', 'EBITDA margin', 'percent'), companyKey: 'ebitdaMargin' },
-  { ...metric('netMargin', 'Net margin', 'percent'), companyKey: 'netMargin' },
-  { ...metric('netDebtToEbitda', 'Net debt / EBITDA', 'multiple'), companyKey: 'netDebtToEbitda' },
-  { ...metric('revenueGrowth', 'Revenue growth', 'percent'), companyKey: 'revenueCagr' },
-];
+  ...numbers('multiple', { priceToEarnings: 'P/E', priceToBook: 'P/B', evToEbitda: 'EV/EBITDA' }),
+  ...numbers('percent', {
+    dividendYield: 'Dividend yield',
+    roe: 'ROE',
+    roic: 'ROIC',
+    ebitdaMargin: 'EBITDA margin',
+    netMargin: 'Net margin',
+  }),
+  ...numbers('multiple', { netDebtToEbitda: 'Net debt / EBITDA' }),
+  ...numbers('percent', { revenueGrowth: 'Revenue growth' }),
+].map((field) => ({ ...field, companyKey: COMPANY_KEY_OF_PEER[field.key] ?? field.key }));
 
 /** The part every scenario has. */
-export const SCENARIO_SECTION: AnalysisSection = {
-  id: 'scenario',
-  title: 'Scenario',
-  texts: [
-    text('thesis', 'Thesis for this scenario'),
-    text('growthAssumptions', 'Growth premises'),
-    text('marginAssumptions', 'Margin premises'),
-    text('risks', 'Risks of this scenario'),
-    text('triggers', 'Triggers'),
-    text('notes', 'Additional notes'),
+export const SCENARIO_SECTION: AnalysisSection = section(
+  'scenario',
+  'Scenario',
+  {
+    thesis: 'Thesis for this scenario',
+    growthAssumptions: 'Growth premises',
+    marginAssumptions: 'Margin premises',
+    risks: 'Risks of this scenario',
+    triggers: 'Triggers',
+    notes: 'Additional notes',
+  },
+  [
+    ...numbers('percent', {
+      probability: 'Probability',
+      revenueGrowth: 'Revenue growth (per year)',
+      ebitdaMargin: 'EBITDA margin',
+      capexShare: 'CAPEX (% of revenue)',
+      netMargin: 'Net margin',
+      wacc: 'WACC',
+      perpetualGrowth: 'Perpetual growth (g)',
+    }),
+    ...numbers('money', { valuation: 'Value per share' }),
   ],
-  metrics: [
-    metric('probability', 'Probability', 'percent'),
-    metric('revenueGrowth', 'Revenue growth (per year)', 'percent'),
-    metric('ebitdaMargin', 'EBITDA margin', 'percent'),
-    metric('capexShare', 'CAPEX (% of revenue)', 'percent'),
-    metric('netMargin', 'Net margin', 'percent'),
-    metric('wacc', 'WACC', 'percent'),
-    metric('perpetualGrowth', 'Perpetual growth (g)', 'percent'),
-    metric('valuation', 'Value per share', 'money'),
-  ],
-};
+);
 
 /** The previous analysis' texts a new one is reviewed against. */
 export const REVIEWED_TEXT_KEYS: readonly string[] = [
