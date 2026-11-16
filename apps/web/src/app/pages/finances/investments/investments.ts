@@ -40,6 +40,7 @@ import {
 import { IncomeFields, IncomeForm } from './income-form/income-form';
 import { MovementImport, MovementImportResult } from './movement-import/movement-import';
 import { InvestmentForm } from './investment-form/investment-form';
+import { InvestmentAnalyses } from './investment-analyses/investment-analyses';
 import { InvestmentNotes } from './investment-notes/investment-notes';
 import { PeriodRates } from './period-rates/period-rates';
 import { PortfolioDistribution } from './portfolio-distribution/portfolio-distribution';
@@ -86,6 +87,7 @@ const MOVEMENTS_PAGE_SIZE = 10;
     MovementImport,
     PeriodFilter,
     InvestmentNotes,
+    InvestmentAnalyses,
     PeriodRates,
   ],
   providers: [InvestmentsStore, PeriodRatesStore],

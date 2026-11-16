@@ -61,6 +61,9 @@ import { BillsGateway } from './core/finances/bills-gateway';
 import { DemoInvestmentNotesGateway } from './core/finances/demo/demo-investment-notes';
 import { HttpInvestmentNotesGateway } from './core/finances/http-investment-notes-gateway';
 import { InvestmentNotesGateway } from './core/finances/investment-notes-gateway';
+import { DemoInvestmentAnalysesGateway } from './core/finances/demo/demo-investment-analyses';
+import { HttpInvestmentAnalysesGateway } from './core/finances/http-investment-analyses-gateway';
+import { InvestmentAnalysesGateway } from './core/finances/investment-analyses-gateway';
 import { DemoPeriodRatesGateway } from './core/finances/demo/demo-period-rates';
 import { HttpPeriodRatesGateway } from './core/finances/http-period-rates-gateway';
 import { PeriodRatesGateway } from './core/finances/period-rates-gateway';
@@ -132,6 +135,10 @@ export const appConfig: ApplicationConfig = {
     {
       provide: InvestmentNotesGateway,
       useClass: isDemo ? DemoInvestmentNotesGateway : HttpInvestmentNotesGateway,
+    },
+    {
+      provide: InvestmentAnalysesGateway,
+      useClass: isDemo ? DemoInvestmentAnalysesGateway : HttpInvestmentAnalysesGateway,
     },
     {
       provide: PeriodRatesGateway,

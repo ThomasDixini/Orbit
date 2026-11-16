@@ -1,0 +1,100 @@
+:host {
+  display: block;
+}
+
+.detail {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  border-radius: var(--radius-control);
+  border: var(--border-hairline) solid var(--color-border);
+  background: var(--color-surface-glass);
+  min-width: 0;
+}
+
+.head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}
+
+.title {
+  margin: 0;
+}
+
+.close {
+  margin-left: auto;
+}
+
+.badge {
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: var(--border-hairline) solid var(--color-border);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+}
+
+.block {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 8px;
+  border-top: var(--border-hairline) solid var(--color-border);
+  min-width: 0;
+}
+
+.block-title {
+  margin: 0;
+}
+
+.numbers {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 8px 16px;
+  margin: 0;
+}
+
+.numbers dt {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}
+
+.numbers dd {
+  margin: 0;
+}
+
+.text-label {
+  margin: 4px 0 0;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}
+
+/* Line breaks are kept and nothing is read as HTML. */
+.text {
+  margin: 0;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+
+.table-wrap {
+  overflow-x: auto;
+}
+
+.peers {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.peers th,
+.peers td {
+  padding: 4px 8px;
+  text-align: left;
+  border-bottom: var(--border-hairline) solid var(--color-border);
+  white-space: nowrap;
+}
+
+.peers .number {
+  text-align: right;
+}

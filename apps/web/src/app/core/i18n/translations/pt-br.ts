@@ -1,3 +1,4 @@
+import { PT_BR_ANALYSES } from './pt-br-analyses';
 import { PT_BR_FINANCES } from './pt-br-finances';
 import { PT_BR_LANDING } from './pt-br-landing';
 import { PT_BR_ROUTINES } from './pt-br-routines';
@@ -9,6 +10,7 @@ import { PT_BR_SENTENCES } from './pt-br-sentences';
  * left out shows in English. Keep every `{placeholder}` of the key in the translation.
  */
 export const PT_BR: Readonly<Record<string, string>> = {
+  ...PT_BR_ANALYSES,
   ...PT_BR_FINANCES,
   ...PT_BR_LANDING,
   ...PT_BR_ROUTINES,

@@ -6,6 +6,8 @@ import { FakeInvestmentNotesGateway } from '../../../core/finances/fake-investme
 import { FakeInvestmentsGateway } from '../../../core/finances/fake-investments-gateway';
 import { FakePeriodRatesGateway } from '../../../core/finances/fake-period-rates-gateway';
 import { InvestmentNotesGateway } from '../../../core/finances/investment-notes-gateway';
+import { FakeInvestmentAnalysesGateway } from '../../../core/finances/fake-investment-analyses-gateway';
+import { InvestmentAnalysesGateway } from '../../../core/finances/investment-analyses-gateway';
 import { PeriodRatesGateway } from '../../../core/finances/period-rates-gateway';
 import { InvestmentsGateway } from '../../../core/finances/investments-gateway';
 import { IdGenerator } from '../../../core/ids/id-generator';
@@ -37,6 +39,7 @@ async function render(
     providers: [
       { provide: InvestmentsGateway, useValue: gateway },
       { provide: InvestmentNotesGateway, useValue: new FakeInvestmentNotesGateway() },
+      { provide: InvestmentAnalysesGateway, useValue: new FakeInvestmentAnalysesGateway() },
       { provide: PeriodRatesGateway, useValue: ratesGateway },
       { provide: LOCALE_ID, useValue: locale },
       { provide: Clock, useValue: new FixedClock(NOW) },
@@ -490,7 +493,19 @@ describe('Investments page', () => {
     it('names the tabs in Portuguese', async () => {
       const { fixture } = await render(new FakeInvestmentsGateway(), 'pt-BR');
 
-      expect(texts(fixture, '[role="tab"]')).toEqual(['Carteira', 'Análise']);
+      expect(texts(fixture, '[role="tab"]')).toEqual(['Carteira', 'Análise', 'Fundamentalista']);
+    });
+
+    it('keeps the fundamental analyses on a tab of their own', async () => {
+      const { fixture } = await render();
+
+      await clickButton(fixture, 'Fundamentals');
+
+      expect(texts(fixture, '[role="tab"][aria-selected="true"]')).toEqual(['Fundamentals']);
+      expect(texts(fixture, '[aria-label="Fundamental analysis"]')).toHaveLength(1);
+      expect(texts(fixture, '[aria-label="Investment notes"], [aria-label="Holdings"]')).toEqual(
+        [],
+      );
     });
   });
 

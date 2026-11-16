@@ -27,6 +27,50 @@ export class InvestmentsPage {
     await this.page.getByRole('tab', { name: 'Analysis' }).click();
   }
 
+  /** Opens the Fundamentals tab, where the dated fundamental analyses of each investment are. */
+  async openFundamentals(): Promise<void> {
+    await this.page.getByRole('tab', { name: 'Fundamentals' }).click();
+  }
+
+  /**
+   * Starts an analysis of the investment (a copy of its latest one), fills the given fields by their form
+   * names (like `company.roe`) and waits for the API to store it.
+   */
+  async addAnalysis(
+    name: string,
+    date: string,
+    fields: Readonly<Record<string, string>>,
+  ): Promise<void> {
+    await this.openFundamentals();
+    await this.pickAnalysed(name);
+    await this.page.getByRole('button', { name: 'New analysis' }).click();
+    const form = this.page.getByRole('form', { name: 'New fundamental analysis' });
+    await form.locator('[name="date"]').fill(date);
+    for (const [field, value] of Object.entries(fields)) {
+      const input = form.locator(`[name="${field}"]`);
+      // Each part of the template is a collapsible block; open the one holding the field first.
+      const block = form.locator('details', { has: this.page.locator(`[name="${field}"]`) });
+      if (!(await block.evaluate((details) => (details as HTMLDetailsElement).open))) {
+        await block.locator('summary').click();
+      }
+      await input.fill(value);
+    }
+    await this.storing(() => form.getByRole('button', { name: 'Save analysis' }).click());
+  }
+
+  /** Shows the fundamental analyses of the investment with this name. */
+  async pickAnalysed(name: string): Promise<void> {
+    // By role: the label wraps the select, so its text also holds every option's name.
+    await this.page
+      .getByRole('combobox', { name: 'Investment', exact: true })
+      .selectOption({ label: name });
+  }
+
+  /** The entries of the fundamental analyses timeline. */
+  analyses(): Locator {
+    return this.page.getByRole('region', { name: 'Fundamental analysis' }).locator('li.entry');
+  }
+
   /** Goes back to the Portfolio tab: the charts, the holdings and the movements. */
   async openPortfolio(): Promise<void> {
     await this.page.getByRole('tab', { name: 'Portfolio' }).click();
