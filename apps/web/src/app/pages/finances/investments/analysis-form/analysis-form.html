@@ -1,0 +1,222 @@
+<form
+  class="analysis-form ui-enter"
+  [attr.aria-label]="(isEditing() ? 'Edit fundamental analysis' : 'New fundamental analysis') | t"
+  (submit)="submit($event)"
+  (keydown.escape)="dismiss.emit()"
+>
+  <div class="head">
+    <label class="ui-field">
+      {{ 'Analysis date' | t }}
+      <input
+        class="ui-input"
+        name="date"
+        type="date"
+        required
+        [value]="form().date"
+        (input)="setDate($event)"
+      />
+    </label>
+    <label class="ui-field">
+      {{ 'Recommendation' | t }}
+      <select class="ui-input" name="recommendation" (change)="setRecommendation($event)">
+        <option value="" [selected]="form().recommendation === ''">{{ 'None yet' | t }}</option>
+        @for (option of recommendationOptions; track option.value) {
+          <option [value]="option.value" [selected]="option.value === form().recommendation">
+            {{ option.label | t }}
+          </option>
+        }
+      </select>
+    </label>
+    <p class="derived" aria-live="polite">
+      @if (upside()) {
+        <span>{{ 'Upside to target: {value}' | t: { value: upside() } }}</span>
+      }
+      @if (marginOfSafety()) {
+        <span>{{ 'Margin of safety: {value}' | t: { value: marginOfSafety() } }}</span>
+      }
+    </p>
+  </div>
+
+  @for (section of sections; track section.id; let first = $first) {
+    <details class="block" [open]="first" [attr.data-section]="section.id">
+      <summary class="block-title">{{ section.title | t }}</summary>
+      <div class="block-body">
+        @if (section.id === 'review' && reviewed().length > 0) {
+          <div class="previous" [attr.aria-label]="'From the previous analysis' | t">
+            <p class="ui-muted previous-title">{{ 'From the previous analysis' | t }}</p>
+            @for (item of reviewed(); track item.label) {
+              <p class="previous-item">
+                <strong>{{ item.label | t }}:</strong> {{ item.text }}
+              </p>
+            }
+          </div>
+        }
+        @if (section.metrics.length > 0) {
+          <div class="numbers">
+            @for (field of section.metrics; track field.key) {
+              <label class="ui-field">
+                <span
+                  >{{ field.label | t }}
+                  <span class="ui-muted unit">{{ unitHint(field) | t }}</span></span
+                >
+                <input
+                  class="ui-input ui-tabular"
+                  type="text"
+                  inputmode="decimal"
+                  [name]="'company.' + field.key"
+                  [class.invalid]="isInvalid('company', field.key)"
+                  [attr.aria-invalid]="isInvalid('company', field.key)"
+                  [value]="form().company.metrics[field.key] ?? ''"
+                  (input)="setCompanyMetric(field.key, $event)"
+                />
+              </label>
+            }
+          </div>
+        }
+        @for (field of section.texts; track field.key) {
+          <label class="ui-field">
+            {{ field.label | t }}
+            <textarea
+              class="ui-input"
+              [name]="'company.' + field.key"
+              [rows]="textRows"
+              [maxLength]="textMax"
+              [value]="form().company.texts[field.key] ?? ''"
+              (input)="setCompanyText(field.key, $event)"
+            ></textarea>
+          </label>
+        }
+      </div>
+    </details>
+  }
+
+  <details class="block" data-section="peers">
+    <summary class="block-title">{{ 'Comparison with peers' | t }}</summary>
+    <div class="block-body">
+      @for (peer of form().peers; track $index; let index = $index) {
+        <fieldset class="peer">
+          <legend class="ui-visually-hidden">
+            {{ 'Peer {number}' | t: { number: index + 1 } }}
+          </legend>
+          <div class="peer-head">
+            <label class="ui-field peer-name">
+              {{ 'Competitor or sector average' | t }}
+              <input
+                class="ui-input"
+                type="text"
+                [name]="'peer.' + index + '.name'"
+                [maxLength]="peerNameMax"
+                [class.invalid]="isInvalid('peer', index, 'name')"
+                [attr.aria-invalid]="isInvalid('peer', index, 'name')"
+                [value]="peer.name"
+                (input)="setPeerName(index, $event)"
+              />
+            </label>
+            <button
+              class="ui-button-ghost"
+              type="button"
+              [attr.aria-label]="'Remove peer {number}' | t: { number: index + 1 }"
+              (click)="removePeer(index)"
+            >
+              {{ 'Remove' | t }}
+            </button>
+          </div>
+          <div class="numbers">
+            @for (field of peerMetrics; track field.key) {
+              <label class="ui-field">
+                <span
+                  >{{ field.label | t }}
+                  <span class="ui-muted unit">{{ unitHint(field) | t }}</span></span
+                >
+                <input
+                  class="ui-input ui-tabular"
+                  type="text"
+                  inputmode="decimal"
+                  [name]="'peer.' + index + '.' + field.key"
+                  [class.invalid]="isInvalid('peer', index, field.key)"
+                  [attr.aria-invalid]="isInvalid('peer', index, field.key)"
+                  [value]="peer.metrics[field.key] ?? ''"
+                  (input)="setPeerMetric(index, field.key, $event)"
+                />
+              </label>
+            }
+          </div>
+        </fieldset>
+      }
+      @if (form().peers.length < peersMax) {
+        <button class="ui-button-ghost add-peer" type="button" (click)="addPeer()">
+          {{ 'Add peer' | t }}
+        </button>
+      }
+    </div>
+  </details>
+
+  @for (option of scenarioOptions; track option.value) {
+    <details class="block" [attr.data-section]="'scenario-' + option.value">
+      <summary class="block-title">{{ option.label | t }}</summary>
+      <div class="block-body">
+        @if (scenarioReturn(option.value)) {
+          <p class="derived">
+            {{ 'Return to this value: {value}' | t: { value: scenarioReturn(option.value) } }}
+          </p>
+        }
+        <div class="numbers">
+          @for (field of scenarioSection.metrics; track field.key) {
+            <label class="ui-field">
+              <span
+                >{{ field.label | t }}
+                <span class="ui-muted unit">{{ unitHint(field) | t }}</span></span
+              >
+              <input
+                class="ui-input ui-tabular"
+                type="text"
+                inputmode="decimal"
+                [name]="'scenario.' + option.value + '.' + field.key"
+                [class.invalid]="isInvalid('scenario', option.value, field.key)"
+                [attr.aria-invalid]="isInvalid('scenario', option.value, field.key)"
+                [value]="form().scenarios[option.value].metrics[field.key] ?? ''"
+                (input)="setScenarioMetric(option.value, field.key, $event)"
+              />
+            </label>
+          }
+        </div>
+        @for (field of scenarioSection.texts; track field.key) {
+          <label class="ui-field">
+            {{ field.label | t }}
+            <textarea
+              class="ui-input"
+              [name]="'scenario.' + option.value + '.' + field.key"
+              [rows]="textRows"
+              [maxLength]="textMax"
+              [value]="form().scenarios[option.value].texts[field.key] ?? ''"
+              (input)="setScenarioText(option.value, field.key, $event)"
+            ></textarea>
+          </label>
+        }
+      </div>
+    </details>
+  }
+
+  @if (weighted()) {
+    <p class="derived">
+      {{ 'Value weighed by the scenarios: {value}' | t: { value: weighted() } }}
+    </p>
+  }
+
+  @if (invalid().size > 0) {
+    <p class="error" role="alert">
+      {{ 'Some numbers could not be read. Fix the fields marked in red.' | t }}
+    </p>
+  }
+  @if (hasFailed()) {
+    <p class="error" role="alert">{{ "Couldn't save the analysis. Try again." | t }}</p>
+  }
+  <div class="actions">
+    <button class="ui-button-ghost" type="button" (click)="dismiss.emit()">
+      {{ 'Cancel' | t }}
+    </button>
+    <button class="ui-button-primary" type="submit" [disabled]="form().date === ''">
+      {{ 'Save analysis' | t }}
+    </button>
+  </div>
+</form>

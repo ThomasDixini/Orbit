@@ -1,0 +1,107 @@
+<article
+  class="detail ui-enter"
+  [attr.aria-label]="'Analysis of {name} on {date}' | t: { name: investmentName(), date: title() }"
+>
+  <div class="head">
+    <h3 class="title">
+      {{ 'Analysis of {name} on {date}' | t: { name: investmentName(), date: title() } }}
+    </h3>
+    @if (recommendation()) {
+      <span class="badge" [attr.data-recommendation]="analysis().recommendation">
+        {{ recommendation() | t }}
+      </span>
+    }
+    <button class="ui-button-ghost close" type="button" (click)="dismiss.emit()">
+      {{ 'Close' | t }}
+    </button>
+  </div>
+
+  @if (derived().length > 0) {
+    <dl class="numbers">
+      @for (item of derived(); track item.label) {
+        <div>
+          <dt>{{ item.label | t }}</dt>
+          <dd class="ui-tabular">{{ item.value }}</dd>
+        </div>
+      }
+    </dl>
+  }
+
+  @for (section of sections(); track section.id) {
+    <section class="block" [attr.aria-label]="section.title | t">
+      <h4 class="block-title">{{ section.title | t }}</h4>
+      @if (section.numbers.length > 0) {
+        <dl class="numbers">
+          @for (item of section.numbers; track item.label) {
+            <div>
+              <dt>{{ item.label | t }}</dt>
+              <dd class="ui-tabular">{{ item.value }}</dd>
+            </div>
+          }
+        </dl>
+      }
+      @for (item of section.texts; track item.label) {
+        <p class="text-label">{{ item.label | t }}</p>
+        <p class="text">{{ item.text }}</p>
+      }
+    </section>
+  } @empty {
+    <p class="ui-muted">{{ 'Nothing was filled in this analysis yet.' | t }}</p>
+  }
+
+  @if (analysis().peers.length > 0) {
+    <section class="block" [attr.aria-label]="'Comparison with peers' | t">
+      <h4 class="block-title">{{ 'Comparison with peers' | t }}</h4>
+      <div class="table-wrap">
+        <table class="peers">
+          <thead>
+            <tr>
+              <th scope="col">{{ 'Indicator' | t }}</th>
+              <th scope="col" class="number">{{ investmentName() }}</th>
+              @for (peer of analysis().peers; track $index) {
+                <th scope="col" class="number">{{ peer.name | t }}</th>
+              }
+            </tr>
+          </thead>
+          <tbody>
+            @for (field of peerMetrics; track field.key) {
+              <tr>
+                <th scope="row">{{ field.label | t }}</th>
+                <td class="number ui-tabular">{{ companyPeerText(field) }}</td>
+                @for (peer of analysis().peers; track $index) {
+                  <td class="number ui-tabular">{{ metricText(peer.metrics, field) }}</td>
+                }
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </section>
+  }
+
+  @for (scenario of scenarios(); track scenario.id) {
+    <section class="block" [attr.aria-label]="scenario.title | t">
+      <h4 class="block-title">{{ scenario.title | t }}</h4>
+      @if (scenario.numbers.length > 0 || scenario.ret) {
+        <dl class="numbers">
+          @for (item of scenario.numbers; track item.label) {
+            <div>
+              <dt>{{ item.label | t }}</dt>
+              <dd class="ui-tabular">{{ item.value }}</dd>
+            </div>
+          }
+          @if (scenario.ret) {
+            <div>
+              <dt>{{ 'Return potential' | t }}</dt>
+              <dd class="ui-tabular">{{ scenario.ret }}</dd>
+            </div>
+          }
+        </dl>
+      }
+      @for (item of scenario.texts; track item.label) {
+        <p class="text-label">{{ item.label | t }}</p>
+        <p class="text">{{ item.text }}</p>
+      }
+    </section>
+  }
+</article>

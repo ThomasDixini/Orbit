@@ -1,0 +1,117 @@
+:host {
+  display: block;
+}
+
+.comparison {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  border-radius: var(--radius-control);
+  border: var(--border-hairline) solid var(--color-border);
+  background: var(--color-surface-glass);
+  min-width: 0;
+}
+
+.head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.title {
+  margin: 0;
+}
+
+.close {
+  margin-left: auto;
+}
+
+.pickers {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px 16px;
+}
+
+.block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 8px;
+  border-top: var(--border-hairline) solid var(--color-border);
+  min-width: 0;
+}
+
+.block-title {
+  margin: 0;
+}
+
+.table-wrap {
+  overflow-x: auto;
+}
+
+.numbers {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.numbers th,
+.numbers td {
+  padding: 4px 8px;
+  text-align: left;
+  border-bottom: var(--border-hairline) solid var(--color-border);
+  overflow-wrap: anywhere;
+}
+
+.numbers th[scope='row'] {
+  width: 34%;
+  font-weight: var(--font-weight-regular, 400);
+}
+
+.numbers .number {
+  text-align: right;
+}
+
+.change {
+  font-weight: var(--font-weight-medium);
+}
+
+.text-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.text-label {
+  margin: 0;
+  font-weight: var(--font-weight-medium);
+}
+
+.changed {
+  margin-left: 8px;
+  padding: 0 6px;
+  border-radius: 999px;
+  border: var(--border-hairline) solid var(--color-border);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+}
+
+.texts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 8px 16px;
+}
+
+.when {
+  margin: 0;
+  font-size: var(--font-size-xs);
+}
+
+/* Line breaks are kept and nothing is read as HTML. */
+.text {
+  margin: 0;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}

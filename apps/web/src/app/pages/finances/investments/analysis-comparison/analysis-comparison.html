@@ -1,0 +1,104 @@
+<article
+  class="comparison ui-enter"
+  [attr.aria-label]="'Comparison of the analyses of {name}' | t: { name: investmentName() }"
+>
+  <div class="head">
+    <h3 class="title">
+      {{ 'Comparison of the analyses of {name}' | t: { name: investmentName() } }}
+    </h3>
+    <button class="ui-button-ghost close" type="button" (click)="dismiss.emit()">
+      {{ 'Close' | t }}
+    </button>
+  </div>
+
+  <div class="pickers">
+    <label class="ui-field">
+      {{ 'Compare' | t }}
+      <select class="ui-input" name="before" (change)="pickBefore($event)">
+        @for (analysis of analyses(); track analysis.id) {
+          <option [value]="analysis.id" [selected]="analysis.id === before().id">
+            {{ dateLabel(analysis) }}
+          </option>
+        }
+      </select>
+    </label>
+    <label class="ui-field">
+      {{ 'With' | t }}
+      <select class="ui-input" name="after" (change)="pickAfter($event)">
+        @for (analysis of analyses(); track analysis.id) {
+          <option [value]="analysis.id" [selected]="analysis.id === after().id">
+            {{ dateLabel(analysis) }}
+          </option>
+        }
+      </select>
+    </label>
+  </div>
+
+  <div class="table-wrap">
+    <table class="numbers">
+      <thead>
+        <tr>
+          <th scope="col">
+            <span class="ui-visually-hidden">{{ 'Field' | t }}</span>
+          </th>
+          <th scope="col" class="number">{{ olderLabel() }}</th>
+          <th scope="col" class="number">{{ newerLabel() }}</th>
+          <th scope="col" class="number">{{ 'Change' | t }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <th scope="row">{{ 'Recommendation' | t }}</th>
+          <td class="number">{{ recommendations().older | t }}</td>
+          <td class="number">{{ recommendations().newer | t }}</td>
+          <td></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  @for (section of sections(); track section.id) {
+    <section class="block" [attr.aria-label]="section.title | t">
+      <h4 class="block-title">{{ section.title | t }}</h4>
+      @if (section.metrics.length > 0) {
+        <div class="table-wrap">
+          <table class="numbers">
+            <tbody>
+              @for (row of section.metrics; track row.key) {
+                <tr class="metric" [attr.data-key]="row.key">
+                  <th scope="row">{{ row.label | t }}</th>
+                  <td class="number ui-tabular">{{ valueText(row, row.before) }}</td>
+                  <td class="number ui-tabular">{{ valueText(row, row.after) }}</td>
+                  <!-- No green or red: a higher debt or P/E is not good news, a higher ROE is. -->
+                  <td class="number ui-tabular change">{{ changeText(row) }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+      @for (row of section.texts; track row.key) {
+        <div class="text-row" [attr.data-key]="row.key">
+          <p class="text-label">
+            {{ row.label | t }}
+            @if (row.changed) {
+              <span class="changed">{{ 'Changed' | t }}</span>
+            }
+          </p>
+          <div class="texts">
+            <div>
+              <p class="ui-muted when">{{ olderLabel() }}</p>
+              <p class="text">{{ row.before || '—' }}</p>
+            </div>
+            <div>
+              <p class="ui-muted when">{{ newerLabel() }}</p>
+              <p class="text">{{ row.after || '—' }}</p>
+            </div>
+          </div>
+        </div>
+      }
+    </section>
+  } @empty {
+    <p class="ui-muted">{{ 'Neither analysis has anything filled in yet.' | t }}</p>
+  }
+</article>

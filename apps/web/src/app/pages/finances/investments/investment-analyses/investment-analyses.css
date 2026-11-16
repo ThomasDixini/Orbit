@@ -1,0 +1,92 @@
+:host {
+  display: block;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px;
+  min-width: 0;
+}
+
+.header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.header-actions,
+.entry-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.entry-actions {
+  justify-content: flex-end;
+}
+
+.title {
+  margin: 0;
+}
+
+.picker {
+  max-width: 320px;
+}
+
+.none {
+  margin: 0;
+}
+
+.timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.entry {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  padding: 0 0 12px 12px;
+  border-left: 2px solid var(--color-border);
+  border-bottom: var(--border-hairline) solid var(--color-border);
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+  margin: 0;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}
+
+.date {
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text);
+}
+
+.badge {
+  padding: 0 8px;
+  border-radius: 999px;
+  border: var(--border-hairline) solid var(--color-border);
+  font-weight: var(--font-weight-medium);
+}
+
+/* Line breaks are kept and nothing is read as HTML. */
+.thesis {
+  margin: 0;
+  max-height: 6em;
+  overflow-y: auto;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}

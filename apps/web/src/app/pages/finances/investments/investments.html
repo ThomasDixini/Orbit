@@ -384,8 +384,10 @@
         <p class="ui-muted empty">{{ 'Nothing recorded yet.' | t }}</p>
       }
     </section>
-  } @else if (isLoaded()) {
+  } @else if (section() === 'analysis' && isLoaded()) {
     <app-period-rates [today]="today" />
     <app-investment-notes [lines]="lines()" [today]="today" />
+  } @else if (isLoaded()) {
+    <app-investment-analyses [lines]="lines()" [today]="today" />
   }
 </div>

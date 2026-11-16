@@ -61,10 +61,13 @@ public sealed class SqliteInvestmentRepository(SqliteConnectionFactory connectio
     public async Task DeleteAsync(string investmentId, CancellationToken cancellationToken)
     {
         await using var lease = await connections.LeaseAsync(cancellationToken);
-        // The notes go with the investment; they hold a foreign key to it.
-        await SqliteCommands.ExecuteAsync(
-            lease.Connection, "DELETE FROM investment_notes WHERE user_id = $user AND investment_id = $id",
-            cancellationToken, ("$id", investmentId), ("$user", connections.UserId));
+        // The notes and analyses go with the investment; they hold a foreign key to it.
+        foreach (var table in new[] { "investment_notes", "investment_analyses" })
+        {
+            await SqliteCommands.ExecuteAsync(
+                lease.Connection, $"DELETE FROM {table} WHERE user_id = $user AND investment_id = $id",
+                cancellationToken, ("$id", investmentId), ("$user", connections.UserId));
+        }
         await SqliteCommands.ExecuteAsync(
             lease.Connection, "DELETE FROM investments WHERE user_id = $user AND id = $id", cancellationToken,
             ("$id", investmentId), ("$user", connections.UserId));

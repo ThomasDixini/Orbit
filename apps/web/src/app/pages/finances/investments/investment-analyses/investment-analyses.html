@@ -1,0 +1,114 @@
+<section class="ui-card card" [attr.aria-label]="'Fundamental analysis' | t">
+  <div class="header">
+    <h2 class="title">{{ 'Fundamental analysis' | t }}</h2>
+    @if (investments().length > 0 && isLoaded() && formPanel() === undefined) {
+      <div class="header-actions">
+        @if (analyses().length >= 2) {
+          <button class="ui-button-ghost" type="button" (click)="openCompare()">
+            {{ 'Compare analyses' | t }}
+          </button>
+        }
+        <button class="ui-button-primary" type="button" (click)="openNew()">
+          {{ 'New analysis' | t }}
+        </button>
+      </div>
+    }
+  </div>
+
+  @if (investments().length === 0) {
+    <p class="ui-muted none">{{ 'Add an investment to analyse it.' | t }}</p>
+  } @else {
+    <label class="ui-field picker">
+      {{ 'Investment' | t }}
+      <select class="ui-input" name="analysed-investment" (change)="pickInvestment($event)">
+        @for (item of investments(); track item.id) {
+          <option [value]="item.id" [selected]="item.id === investmentId()">{{ item.name }}</option>
+        }
+      </select>
+    </label>
+
+    @if (formPanel(); as form) {
+      <app-analysis-form
+        [draft]="form.draft"
+        [previous]="reviewedAnalysis()"
+        [isEditing]="form.editingId !== undefined"
+        [hasFailed]="hasActionFailed()"
+        (save)="save($event)"
+        (dismiss)="close()"
+      />
+    }
+
+    @if (hasLoadFailed()) {
+      <app-load-failed message="Couldn't load your analyses." (retry)="reload()" />
+    } @else if (isLoaded() && analyses().length === 0) {
+      <p class="ui-muted none">
+        {{
+          'No analysis of {name} yet. The next one starts as a copy of the latest, so you only type what changed.'
+            | t: { name: investmentName() }
+        }}
+      </p>
+    } @else {
+      <ol class="timeline" [attr.aria-label]="'Analyses of {name}' | t: { name: investmentName() }">
+        @for (analysis of analyses(); track analysis.id) {
+          <li class="entry">
+            <p class="meta">
+              <span class="date">{{ dateLabel(analysis) }}</span>
+              @if (recommendation(analysis)) {
+                <span class="badge" [attr.data-recommendation]="analysis.recommendation">
+                  {{ recommendation(analysis) | t }}
+                </span>
+              }
+              @if (priceLine(analysis)) {
+                <span class="ui-tabular">{{ priceLine(analysis) }}</span>
+              }
+            </p>
+            @if (thesis(analysis)) {
+              <p class="thesis">{{ thesis(analysis) }}</p>
+            }
+            <div class="entry-actions">
+              <button
+                class="ui-button-ghost"
+                type="button"
+                [attr.aria-label]="'View analysis of {date}' | t: { date: dateLabel(analysis) }"
+                (click)="openView(analysis)"
+              >
+                {{ 'View' | t }}
+              </button>
+              <button
+                class="ui-button-ghost"
+                type="button"
+                [attr.aria-label]="'Edit analysis of {date}' | t: { date: dateLabel(analysis) }"
+                (click)="openEdit(analysis)"
+              >
+                {{ 'Edit' | t }}
+              </button>
+              <button
+                class="ui-button-ghost delete"
+                type="button"
+                [attr.aria-label]="'Delete analysis of {date}' | t: { date: dateLabel(analysis) }"
+                (click)="remove(analysis)"
+              >
+                {{ 'Delete' | t }}
+              </button>
+            </div>
+          </li>
+        }
+      </ol>
+    }
+
+    @if (viewed(); as analysis) {
+      <app-analysis-detail
+        [analysis]="analysis"
+        [investmentName]="investmentName()"
+        (dismiss)="close()"
+      />
+    }
+    @if (panel().kind === 'compare' && analyses().length >= 2) {
+      <app-analysis-comparison
+        [analyses]="analyses()"
+        [investmentName]="investmentName()"
+        (dismiss)="close()"
+      />
+    }
+  }
+</section>

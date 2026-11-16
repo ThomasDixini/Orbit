@@ -102,6 +102,35 @@ test('a typed rate is listed for its month, kept after a reload and can be delet
   expect(await investments.horizontalOverflow()).toBe(0);
 });
 
+test('two fundamental analyses of an investment are kept apart and compared', async ({ page }) => {
+  const name = uniqueName(test.info(), 'TOTS');
+  await page.clock.setFixedTime(ownMonth(test.info(), FIRST_SLOT + 5));
+  await investments.goto();
+  await investments.addInvestment(name, '30,00');
+  await investments.trade(name, 'Buy', '1', '30,00');
+  await expect(investments.holding(name).getByRole('cell').first()).toHaveText('1');
+
+  await investments.addAnalysis(name, '2026-01-02', {
+    'company.thesis': 'ERP leader',
+    'company.roe': '18',
+    'company.marketRisks': 'A new entrant',
+  });
+  await investments.addAnalysis(name, '2026-06-01', { 'company.roe': '21' });
+
+  await expect(investments.analyses()).toHaveCount(2);
+  await page.reload();
+  await investments.openFundamentals();
+  await investments.pickAnalysed(name);
+  await expect(investments.analyses()).toHaveCount(2);
+  await expect(investments.analyses().first()).toContainText('ERP leader');
+  await page.getByRole('button', { name: 'Compare analyses' }).click();
+  const roe = page.locator('tr.metric[data-key="roe"]');
+  await expect(roe).toContainText('18%');
+  await expect(roe).toContainText('21%');
+  await expect(roe).toContainText('+3 p.p.');
+  expect(await investments.horizontalOverflow()).toBe(0);
+});
+
 test('an investment keeps its risk rating and the notes written about it', async ({ page }) => {
   const name = uniqueName(test.info(), 'BBAS');
   const note = `${name} has a solid balance sheet`;
