@@ -29,7 +29,7 @@ internal static class SqliteSchema
         "categories", "goals", "goal_progress", "routines", "routine_blocks", "routine_rotation",
         "routine_rotation_steps", "tasks", "task_completions", "block_outcomes",
         "finance_categories", "accounts", "transactions", "card_payments", "bills", "sinking_funds", "investments",
-        "investment_trades", "investment_incomes", "investment_notes", "period_rates", "income_split", "income_split_parts",
+        "investment_trades", "investment_incomes", "investment_notes", "investment_analyses", "period_rates", "income_split", "income_split_parts",
         "income_split_categories", "notes",
     ];
 
@@ -265,6 +265,16 @@ internal static class SqliteSchema
             FOREIGN KEY (user_id, investment_id) REFERENCES investments (user_id, id)
         );
         CREATE INDEX IF NOT EXISTS ix_investment_notes_investment ON investment_notes (user_id, investment_id, date);
+        CREATE TABLE IF NOT EXISTS investment_analyses (
+            user_id TEXT NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+            id TEXT NOT NULL,
+            investment_id TEXT NOT NULL,
+            date TEXT NOT NULL,
+            content TEXT NOT NULL,
+            PRIMARY KEY (user_id, id),
+            FOREIGN KEY (user_id, investment_id) REFERENCES investments (user_id, id)
+        );
+        CREATE INDEX IF NOT EXISTS ix_investment_analyses_investment ON investment_analyses (user_id, investment_id, date);
         CREATE TABLE IF NOT EXISTS period_rates (
             user_id TEXT NOT NULL REFERENCES users (id) ON DELETE CASCADE,
             kind TEXT NOT NULL,
