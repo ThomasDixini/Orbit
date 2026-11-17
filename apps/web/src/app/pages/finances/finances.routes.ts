@@ -6,6 +6,7 @@ import { Investments } from './investments/investments';
 import { NetWorth } from './net-worth/net-worth';
 import { Overview } from './overview/overview';
 import { IncomeSplitPage } from './income-split/income-split';
+import { SpendingHistoryPage } from './spending-history/spending-history';
 import { Transactions } from './transactions/transactions';
 
 /** Pages of the Finances module, lazy-loaded under `/finances`; the module root opens the Overview. */
@@ -18,6 +19,11 @@ export const FINANCES_ROUTES: Routes = [
       { path: 'overview', component: Overview, title: 'Overview · Finances' },
       { path: 'income-split', component: IncomeSplitPage, title: 'Income split · Finances' },
       { path: 'transactions', component: Transactions, title: 'Transactions · Finances' },
+      {
+        path: 'spending-history',
+        component: SpendingHistoryPage,
+        title: 'Spending history · Finances',
+      },
       { path: 'accounts', component: Accounts, title: 'Banks & Cards · Finances' },
       { path: 'investments', component: Investments, title: 'Investments · Finances' },
       { path: 'net-worth', component: NetWorth, title: 'Net worth · Finances' },

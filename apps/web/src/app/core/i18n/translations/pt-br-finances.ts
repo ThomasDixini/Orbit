@@ -363,4 +363,34 @@ export const PT_BR_FINANCES: Readonly<Record<string, string>> = {
   'Save rate': 'Salvar taxa',
   'Edit {kind} of {month}': 'Editar {kind} de {month}',
   'Delete {kind} of {month}': 'Excluir {kind} de {month}',
+
+  // Spending history
+  'What each category took, month by month: what is fixed, what is unusual and what is rare.':
+    'O que cada categoria levou, mês a mês: o que é fixo, o que é incomum e o que é raro.',
+  "Couldn't load your spending history.": 'Não foi possível carregar seu histórico de gastos.',
+  'Spending by category and month': 'Gastos por categoria e mês',
+  'Spending by category · month by month': 'Gastos por categoria · mês a mês',
+  '(month in progress)': '(mês em andamento)',
+  Average: 'Média',
+  Pattern: 'Padrão',
+  Times: 'Vezes',
+  Fixed: 'Fixo',
+  Variable: 'Variável',
+  Occasional: 'Ocasional',
+  Rare: 'Raro',
+  'Not enough history': 'Pouco histórico',
+  'Comes nearly every month, for about the same amount.':
+    'Aparece quase todo mês, com valor parecido.',
+  'Comes nearly every month, but the amount moves a lot.':
+    'Aparece quase todo mês, mas o valor varia bastante.',
+  'Comes in some months, not in others.': 'Aparece em alguns meses e em outros não.',
+  'Came in very few months.': 'Apareceu em pouquíssimos meses.',
+  'Too few closed months to tell.': 'Poucos meses fechados para saber.',
+  'Well above the usual for this category': 'Bem acima do normal desta categoria',
+  'Highlighted months are well above what the category usually takes. The month in progress is left out of the averages and patterns.':
+    'Os meses destacados estão bem acima do que a categoria costuma levar. O mês em andamento fica de fora das médias e dos padrões.',
+  'Nothing spent in this period.': 'Nada gasto neste período.',
+  'What the category is made of': 'O que compõe a categoria',
+  'What {category} is made of': 'O que compõe {category}',
+  'Choose a category to see what it is made of.': 'Escolha uma categoria para ver o que a compõe.',
 };

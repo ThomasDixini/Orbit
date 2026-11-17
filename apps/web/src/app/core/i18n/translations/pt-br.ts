@@ -65,6 +65,7 @@ export const PT_BR: Readonly<Record<string, string>> = {
   Overview: 'Visão geral',
   'Income split': 'Divisão da renda',
   Transactions: 'Transações',
+  'Spending history': 'Histórico de gastos',
   'Banks & Cards': 'Bancos e Cartões',
   'To pay & receive': 'A pagar e receber',
   Investments: 'Investimentos',
