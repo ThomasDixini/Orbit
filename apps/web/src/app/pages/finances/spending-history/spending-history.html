@@ -1,0 +1,128 @@
+<div class="page">
+  <app-page-heading
+    eyebrow="Finances"
+    eyebrowIcon="finances"
+    heading="Spending history"
+    description="What each category took, month by month: what is fixed, what is unusual and what is rare."
+  />
+
+  @if (hasLoadFailed()) {
+    <app-load-failed message="Couldn't load your spending history." (retry)="reload()" />
+  }
+
+  <app-period-filter [period]="period()" [today]="today" (periodChange)="changePeriod($event)" />
+
+  <section class="ui-card card" [attr.aria-label]="'Spending by category and month' | t">
+    <h2 class="card-title">{{ 'Spending by category · month by month' | t }}</h2>
+    @if (rows().length > 0) {
+      <div class="table-wrap">
+        <table class="history">
+          <thead>
+            <tr>
+              <th scope="col">{{ 'Category' | t }}</th>
+              @for (column of columns(); track column.month) {
+                <th scope="col" class="number" [class.running]="column.isRunning">
+                  {{ column.label }}
+                  @if (column.isRunning) {
+                    <span class="ui-visually-hidden">{{ '(month in progress)' | t }}</span>
+                  }
+                </th>
+              }
+              <th scope="col" class="number">{{ 'Average' | t }}</th>
+              <th scope="col">{{ 'Pattern' | t }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of rows(); track row.categoryId) {
+              <tr [class.selected]="row.categoryId === selectedId()">
+                <th scope="row">
+                  <button
+                    class="name"
+                    type="button"
+                    [attr.aria-pressed]="row.categoryId === selectedId()"
+                    (click)="select(row.categoryId)"
+                  >
+                    {{ row.name | t }}
+                  </button>
+                </th>
+                @for (cell of row.cells; track $index) {
+                  <td
+                    class="number ui-tabular"
+                    [class.unusual]="cell.isUnusual"
+                    [attr.title]="
+                      cell.isUnusual ? ('Well above the usual for this category' | t) : null
+                    "
+                  >
+                    {{ cell.text }}
+                  </td>
+                }
+                <td class="number ui-tabular">{{ row.average }}</td>
+                <td>
+                  <span class="ui-tag" [attr.title]="patternHint(row.pattern) | t">{{
+                    patternLabel(row.pattern) | t
+                  }}</span>
+                </td>
+              </tr>
+            }
+          </tbody>
+          <tfoot>
+            <tr>
+              <th scope="row">{{ 'Total' | t }}</th>
+              @for (total of totals(); track $index) {
+                <td class="number ui-tabular">{{ total }}</td>
+              }
+              <td></td>
+              <td></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+      <p class="ui-muted note">
+        {{
+          'Highlighted months are well above what the category usually takes. The month in progress is left out of the averages and patterns.'
+            | t
+        }}
+      </p>
+    } @else if (isLoaded()) {
+      <p class="ui-muted empty">{{ 'Nothing spent in this period.' | t }}</p>
+    }
+  </section>
+
+  @if (selected(); as category) {
+    <section class="ui-card card" [attr.aria-label]="'What the category is made of' | t">
+      <h2 class="card-title">
+        {{ 'What {category} is made of' | t: { category: category.name | t } }}
+      </h2>
+      <div class="table-wrap">
+        <table class="history">
+          <thead>
+            <tr>
+              <th scope="col">{{ 'Description' | t }}</th>
+              @for (column of columns(); track column.month) {
+                <th scope="col" class="number" [class.running]="column.isRunning">
+                  {{ column.label }}
+                </th>
+              }
+              <th scope="col" class="number">{{ 'Total' | t }}</th>
+              <th scope="col" class="number">{{ 'Times' | t }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (line of detail(); track line.description) {
+              <tr>
+                <th scope="row">{{ line.description }}</th>
+                @for (cell of line.cells; track $index) {
+                  <td class="number ui-tabular">{{ cell }}</td>
+                }
+                <td class="number ui-tabular">{{ line.total }}</td>
+                <td class="number ui-tabular">{{ line.count }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </section>
+  } @else if (rows().length > 0) {
+    <p class="ui-muted hint">{{ 'Choose a category to see what it is made of.' | t }}</p>
+  }
+</div>

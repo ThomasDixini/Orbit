@@ -1,0 +1,108 @@
+:host {
+  display: block;
+}
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.card {
+  padding: 20px 24px;
+}
+
+.card-title {
+  margin: 0 0 12px;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-regular);
+  color: var(--color-text-faint);
+}
+
+.table-wrap {
+  overflow-x: auto;
+}
+
+.history {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-size-sm);
+}
+
+.history th,
+.history td {
+  padding: 8px 10px;
+  text-align: left;
+  font-weight: var(--font-weight-regular);
+  border-top: var(--border-hairline) solid var(--color-border-subtle);
+  white-space: nowrap;
+}
+
+.history thead th {
+  border-top: 0;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-faint);
+}
+
+.history tfoot th,
+.history tfoot td {
+  font-weight: var(--font-weight-medium);
+}
+
+.history th[scope='row'] {
+  position: sticky;
+  left: 0;
+  background: var(--color-surface);
+}
+
+.history .number {
+  text-align: right;
+}
+
+.history .running {
+  font-style: italic;
+}
+
+.history .unusual {
+  color: var(--color-expense);
+  font-weight: var(--font-weight-medium);
+  background: color-mix(in srgb, var(--color-expense) 14%, transparent);
+}
+
+.history tr.selected th,
+.history tr.selected td {
+  background: color-mix(in srgb, var(--color-mint) 8%, var(--color-surface));
+}
+
+.name {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.name:hover,
+.name:focus-visible {
+  color: var(--color-mint);
+  text-decoration: underline;
+}
+
+.note,
+.hint,
+.empty {
+  margin: 12px 0 0;
+  font-size: var(--font-size-xs);
+}
+
+.empty {
+  font-size: 14px;
+}
+
+@media (max-width: 479px) {
+  .card {
+    padding: 16px;
+  }
+}

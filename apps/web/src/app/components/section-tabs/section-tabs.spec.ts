@@ -30,6 +30,7 @@ describe('SectionTabs', () => {
       ['Overview', '/finances/overview'],
       ['Income split', '/finances/income-split'],
       ['Transactions', '/finances/transactions'],
+      ['Spending history', '/finances/spending-history'],
       ['Banks & Cards', '/finances/accounts'],
       ['To pay & receive', '/finances/bills'],
       ['Investments', '/finances/investments'],
