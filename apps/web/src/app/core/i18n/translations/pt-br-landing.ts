@@ -15,6 +15,7 @@ export const PT_BR_LANDING: Readonly<Record<string, string>> = {
   'Check your details: the server did not accept them.':
     'Confira seus dados: o servidor não os aceitou.',
   'Sign out': 'Sair',
+  'Refresh data': 'Atualizar dados',
   'All set!': 'Tudo certo!',
   'You are signed in to your account.': 'Você entrou na sua conta.',
   'No account yet?': 'Ainda não tem conta?',

@@ -19,6 +19,7 @@ import {
 import { Routine, blockMinutesWithin, weekdaysLabel, weeklyMinutesByCategory } from './routine';
 import { RoutineRotationStore } from './routine-rotation-store';
 import { weekShare } from './routine-rotation';
+import { DataRefresh } from '../refresh/data-refresh';
 import { RoutinesGateway } from './routines-gateway';
 
 /** A routine block seen from its category: which block and when it happens. */
@@ -80,6 +81,16 @@ export class RoutinesStore {
 
   constructor() {
     this.loadMissing();
+    inject(DataRefresh).onRefresh(() => this.refresh());
+  }
+
+  /**
+   * Reads the categories, goals and routines again; what is on screen stays until the answers arrive.
+   * @example store.refresh()
+   */
+  refresh(): void {
+    this.loadFailed.set(false);
+    this.loadMissing(true);
   }
 
   /**
@@ -91,19 +102,19 @@ export class RoutinesStore {
     this.loadMissing();
   }
 
-  private loadMissing(): void {
-    if (!this.categoriesLoaded()) {
+  private loadMissing(isForced = false): void {
+    if (isForced || !this.categoriesLoaded()) {
       this.categoriesGateway
         .list()
         .subscribe(this.loadInto(this.categoryList, this.categoriesLoaded));
     }
-    if (!this.goalsLoaded()) {
+    if (isForced || !this.goalsLoaded()) {
       this.goalsDay = this.today();
       this.goalsGateway
         .list(this.goalsDay)
         .subscribe(this.loadInto(this.goalList, this.goalsLoaded));
     }
-    if (!this.routinesLoaded()) {
+    if (isForced || !this.routinesLoaded()) {
       this.routinesGateway.list().subscribe(this.loadInto(this.routineList, this.routinesLoaded));
     }
   }

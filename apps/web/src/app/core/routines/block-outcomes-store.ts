@@ -5,6 +5,7 @@ import { formatClock } from '../calendar/time-of-day';
 import { BlockOutcomesGateway } from './block-outcomes-gateway';
 import { BlockOutcome, BlockOutcomeKind } from './day-plan';
 import { Positioned, positionOf, restoredAt } from '../lists/list-positions';
+import { DataRefresh } from '../refresh/data-refresh';
 import { RoutinesStore } from './routines-store';
 
 /**
@@ -24,6 +25,15 @@ export class BlockOutcomesStore {
   readonly outcomes = this.outcomeList.asReadonly();
 
   constructor() {
+    this.load(this.day());
+    inject(DataRefresh).onRefresh(() => this.refresh());
+  }
+
+  /**
+   * Reads the outcomes of the day on screen again.
+   * @example store.refresh()
+   */
+  refresh(): void {
     this.load(this.day());
   }
 

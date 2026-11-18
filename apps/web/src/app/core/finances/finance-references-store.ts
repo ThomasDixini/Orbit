@@ -1,6 +1,7 @@
 import { ErrorHandler, Injectable, WritableSignal, computed, inject, signal } from '@angular/core';
 import { Observable, Observer } from 'rxjs';
 import { IdGenerator } from '../ids/id-generator';
+import { DataRefresh } from '../refresh/data-refresh';
 import { Positioned, positionOf, restoredAt, sameId } from '../lists/list-positions';
 import { Account, AccountDraft, FinanceCategory } from './finance-references';
 import { FinanceReferencesGateway } from './transactions-gateway';
@@ -36,6 +37,17 @@ export class FinanceReferencesStore {
 
   constructor() {
     this.loadMissing();
+    inject(DataRefresh).onRefresh(() => this.refresh());
+  }
+
+  /**
+   * Reads the categories and accounts again; what is on screen stays until the answer arrives.
+   * @example store.refresh()
+   */
+  refresh(): void {
+    this.loadFailed.set(false);
+    this.gateway.categories().subscribe(this.loadInto(this.categoryList, this.categoriesLoaded));
+    this.gateway.accounts().subscribe(this.loadInto(this.accountList, this.accountsLoaded));
   }
 
   /**

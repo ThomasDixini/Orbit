@@ -6,6 +6,7 @@ import { IdGenerator } from '../ids/id-generator';
 import { CategoryCreations } from './category-creations';
 import { Positioned, positionOf, restoredAt, sameId } from '../lists/list-positions';
 import { NotTodayTask, Task, TaskDraft, occursOn, tasksNotToday } from './task';
+import { DataRefresh } from '../refresh/data-refresh';
 import { TasksGateway } from './tasks-gateway';
 
 /** A task on today's list and whether it is done today. */
@@ -48,6 +49,15 @@ export class TasksStore {
   );
 
   constructor() {
+    this.refresh();
+    inject(DataRefresh).onRefresh(() => this.refresh());
+  }
+
+  /**
+   * Reads the tasks and today's done marks again; what is on screen stays until the answers arrive.
+   * @example store.refresh()
+   */
+  refresh(): void {
     this.gateway.list().subscribe({
       next: (tasks) => this.taskList.set(tasks),
       error: (error: unknown) => this.errorHandler.handleError(error),
