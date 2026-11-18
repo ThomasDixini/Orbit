@@ -38,7 +38,9 @@ const HEADER = ['data', 'valor', 'identificador', 'descrição'];
 const DATE_PATTERN = /^(\d{2})\/(\d{2})\/(\d{4})$/;
 const AMOUNT_PATTERN = /^(-?)(\d{1,8})(?:\.(\d{1,2}))?$/;
 const ID_PATTERN = /^[A-Za-z0-9-]{1,64}$/;
-const INTERNAL_PATTERN = /^(resgate|aplicação) rdb|^(compra|venda) de (ações|fundos?)\b/i;
+/** Money moving between the account and the person's own investments (RDB, Treasury, shares, FIIs, NuInvest). */
+const INTERNAL_PATTERN =
+  /^(resgate|aplicação) rdb|^(compra|venda) de (ações|fundos?|fii)\b|^(resgate|aplicação) - tesouro|^(devolução - )?aplicação em investimento|^transferência de saldo nuinvest/i;
 const INVOICE_PATTERN = /^pagamento de fatura/i;
 const CENTS_PER_REAL = 100;
 
@@ -64,12 +66,25 @@ export function parseStatement(csv: string): ParsedStatement {
   }
   const rows: StatementRow[] = [];
   const problems: string[] = [];
+  const idCounts = new Map<string, number>();
   for (const line of lines.slice(1)) {
     const result = readRow(splitCsvLine(line.text), line.number);
     if (typeof result === 'string') problems.push(result);
-    else rows.push(result);
+    else rows.push(withUniqueId(result, idCounts));
   }
   return { rows, problems };
+}
+
+/**
+ * The bank repeats an identifier on a line and its reversal (a Pix and its refund, a share order and its
+ * leftover), but an id is a transaction's key. The repeats get `-2`, `-3`, ... so none is lost, and
+ * the same file always gives the same ids.
+ * @example withUniqueId(row, counts) // second line with id 'abc' becomes 'abc-2'
+ */
+function withUniqueId(row: StatementRow, idCounts: Map<string, number>): StatementRow {
+  const occurrence = (idCounts.get(row.id) ?? 0) + 1;
+  idCounts.set(row.id, occurrence);
+  return occurrence === 1 ? row : { ...row, id: `${row.id}-${occurrence}` };
 }
 
 /**

@@ -61,6 +61,41 @@ describe('parseStatement', () => {
     ]);
   });
 
+  it('counts investment lines as the own money moving, not as spending', () => {
+    const { rows } = parseStatement(
+      [
+        HEADER,
+        '08/08/2025,-254.59,a,Compra de FII - VINO11',
+        '07/08/2025,-5271.83,b,Aplicação - Tesouro Selic 2031',
+        '08/11/2025,-1247.53,c,Aplicação em investimento',
+        '10/11/2025,11.68,d,Devolução - Aplicação em investimento',
+        '09/04/2025,0.02,e,Transferência de saldo NuInvest',
+        '10/11/2025,-75.80,f,Transferência enviada pelo Pix - ANA',
+      ].join('\n'),
+    );
+
+    expect(rows.map((row) => row.kind)).toEqual([
+      'internal',
+      'internal',
+      'internal',
+      'internal',
+      'internal',
+      'regular',
+    ]);
+  });
+
+  it('keeps both lines when the bank repeats an identifier, with the same ids on every read', () => {
+    const csv = [
+      HEADER,
+      '15/06/2025,-10.00,abc-1,Transferência enviada pelo Pix - ANA',
+      '15/06/2025,10.00,abc-1,Estorno - Transferência enviada pelo Pix - ANA',
+      '15/06/2025,-5.00,xyz,Padaria',
+    ].join('\n');
+
+    expect(parseStatement(csv).rows.map((row) => row.id)).toEqual(['abc-1', 'abc-1-2', 'xyz']);
+    expect(parseStatement(csv).rows).toEqual(parseStatement(csv).rows);
+  });
+
   it('only takes a line that leaves the account for the payment of an invoice', () => {
     const { rows } = parseStatement(
       [
