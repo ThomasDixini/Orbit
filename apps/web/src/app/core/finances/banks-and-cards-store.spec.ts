@@ -13,7 +13,12 @@ import {
   SAMPLE_PAYMENT,
   SAMPLE_STATEMENTS,
 } from './fake-account-statements-gateway';
-import { FakeFinanceReferencesGateway, FakeTransactionsGateway } from './fake-finances-gateways';
+import {
+  FakeFinanceReferencesGateway,
+  FakeTransactionsGateway,
+  SAMPLE_OCTOBER,
+} from './fake-finances-gateways';
+import { Transaction } from './transaction';
 import { FinanceReferencesGateway, TransactionsGateway } from './transactions-gateway';
 
 /** Saturday, October 31, 2026. */
@@ -49,7 +54,7 @@ class ControlledStatementsGateway extends FakeAccountStatementsGateway {
 
 function createStore(
   gateway: FakeAccountStatementsGateway = new FakeAccountStatementsGateway(),
-  transactions = new FakeTransactionsGateway(),
+  transactions: TransactionsGateway = new FakeTransactionsGateway(),
 ): { store: BanksAndCardsStore; errors: RecordingErrorHandler } {
   const errors = new RecordingErrorHandler();
   TestBed.configureTestingModule({
@@ -168,3 +173,138 @@ describe('BanksAndCardsStore balances', () => {
     expect(store.statements().get('checking-account')?.balanceCents).toBe(1);
   });
 });
+
+/** Month reads that stay open until a test answers them, to play out slow replies. */
+class ManualTransactionsGateway extends TransactionsGateway {
+  readonly pending = new Map<string, Subject<readonly Transaction[]>>();
+
+  override listMonth(month: string): Observable<readonly Transaction[]> {
+    const reply = new Subject<readonly Transaction[]>();
+    this.pending.set(month, reply);
+    return reply;
+  }
+
+  override save(): Observable<Transaction> {
+    throw new Error('not used');
+  }
+
+  override delete(): Observable<void> {
+    throw new Error('not used');
+  }
+}
+
+const AUGUST_LUNCH: Transaction = {
+  id: 'august-lunch',
+  date: '2026-08-12',
+  description: 'Lunch',
+  categoryId: 'food',
+  accountId: 'checking-account',
+  amountCents: -4200,
+};
+
+const AUGUST_PAYMENT = { ...SAMPLE_PAYMENT, id: 'august-invoice', date: '2026-08-10' };
+
+function createStoreWithAugust(): {
+  store: BanksAndCardsStore;
+  transactions: FakeTransactionsGateway;
+  errors: RecordingErrorHandler;
+} {
+  const transactions = new FakeTransactionsGateway(
+    new Map([
+      ['2026-10', SAMPLE_OCTOBER],
+      ['2026-08', [AUGUST_LUNCH]],
+    ]),
+  );
+  const gateway = new FakeAccountStatementsGateway(
+    new Map([
+      ['2026-10', [SAMPLE_PAYMENT]],
+      ['2026-08', [AUGUST_PAYMENT]],
+    ]),
+  );
+  return { ...createStore(gateway, transactions), transactions };
+}
+
+describe('BanksAndCardsStore month shown', () => {
+  it('starts on the current month', () => {
+    const { store } = createStore();
+
+    expect([store.month(), store.isMonthLoading()]).toEqual(['2026-10', false]);
+  });
+
+  it('shows another month with its transactions and card payments, keeping what the cards need', () => {
+    const { store, transactions } = createStoreWithAugust();
+
+    store.showMonth('2026-08');
+
+    expect([
+      store.month(),
+      transactions.askedMonths.slice(3),
+      store.payments().map((payment) => payment.id),
+      store.transactions().some((transaction) => transaction.id === 'august-lunch'),
+      store.transactions().some((transaction) => transaction.id === 'groceries'),
+      store.isMonthLoading(),
+    ]).toEqual(['2026-08', ['2026-08'], ['august-invoice'], true, true, false]);
+  });
+
+  it('does not read a month again once it was read', () => {
+    const { store, transactions } = createStoreWithAugust();
+
+    store.showMonth('2026-08');
+    store.showMonth('2026-09');
+    store.showMonth('2026-08');
+
+    expect(transactions.askedMonths).toEqual(['2026-09', '2026-10', '2026-11', '2026-08']);
+  });
+
+  it('lists a payment only when it is dated in the month shown', () => {
+    const { store } = createStoreWithAugust();
+    store.showMonth('2026-08');
+
+    store.payInvoice({ ...PAY_OCTOBER_INVOICE, date: '2026-10-31' });
+    store.payInvoice({ ...PAY_OCTOBER_INVOICE, date: '2026-08-20' });
+
+    expect(store.payments().map((payment) => payment.date)).toEqual(['2026-08-20', '2026-08-10']);
+  });
+
+  it('drops the answer of a month that is no longer shown', () => {
+    const transactions = new ManualTransactionsGateway();
+    const { store } = createStore(new FakeAccountStatementsGateway(), transactions);
+    for (const month of ['2026-09', '2026-10', '2026-11']) answer(transactions, month, []);
+
+    store.showMonth('2026-08');
+    const slow = transactions.pending.get('2026-08');
+    store.showMonth('2026-07');
+    answer(transactions, '2026-07', [{ ...AUGUST_LUNCH, id: 'july-lunch', date: '2026-07-03' }]);
+    slow?.next([AUGUST_LUNCH]);
+    slow?.complete();
+
+    expect(store.transactions().map((transaction) => transaction.id)).toEqual(['july-lunch']);
+  });
+
+  it('reports a failed month, offers to try again and reads it then', () => {
+    const { store, errors } = createStoreWithAugust();
+    const gateway = TestBed.inject(AccountStatementsGateway) as FakeAccountStatementsGateway;
+    gateway.failure = new Error('offline');
+
+    store.showMonth('2026-08');
+    const failed = [store.hasLoadFailed(), store.isMonthLoading(), errors.errors.length];
+    gateway.failure = undefined;
+    store.reload();
+
+    expect([failed, store.hasLoadFailed(), store.isLoaded()]).toEqual([
+      [true, false, 1],
+      false,
+      true,
+    ]);
+  });
+});
+
+function answer(
+  transactions: ManualTransactionsGateway,
+  month: string,
+  list: readonly Transaction[],
+): void {
+  const reply = transactions.pending.get(month);
+  reply?.next(list);
+  reply?.complete();
+}

@@ -46,10 +46,16 @@ export class AccountDetail {
   readonly categoryNames = input.required<ReadonlyMap<string, string>>();
   /** The month bank accounts list, spelled out (e.g. "October"). */
   readonly monthName = input.required<string>();
+  /** Whether the month listed is the current one, which cannot be moved past. */
+  readonly isCurrentMonth = input(true);
+  /** Whether the month chosen is still being read. */
+  readonly isLoadingMonth = input(false);
   /** Whether the card can be paid: there is a bank account to pay from. */
   readonly canPay = input(true);
   readonly edit = output();
   readonly pay = output();
+  readonly previousMonth = output();
+  readonly nextMonth = output();
   readonly removePayment = output<string>();
 
   private readonly locale = inject(LOCALE_ID);
@@ -98,10 +104,19 @@ export class AccountDetail {
   private bankStats(): AccountStat[] {
     const balance = this.statement()?.balanceCents;
     const flows = moneyFlows(this.movements());
+    const isCurrent = this.isCurrentMonth();
     return [
       { label: 'Balance', value: this.pendingOr(balance), mark: 'accent' },
-      { label: 'In this month', value: this.money(flows.inCents), mark: 'income' },
-      { label: 'Out this month', value: this.money(flows.outCents), mark: 'expense' },
+      {
+        label: isCurrent ? 'In this month' : `Received in ${this.monthName()}`,
+        value: this.money(flows.inCents),
+        mark: 'income',
+      },
+      {
+        label: isCurrent ? 'Out this month' : `Spent in ${this.monthName()}`,
+        value: this.money(flows.outCents),
+        mark: 'expense',
+      },
     ];
   }
 

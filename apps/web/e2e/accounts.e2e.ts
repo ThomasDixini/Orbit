@@ -12,7 +12,7 @@ import {
  * Slots 0–3 belong to the Transactions tests: a purchase recorded here in one of their months would
  * change the totals they check.
  */
-const FIRST_SLOT = 10;
+const FIRST_SLOT = 10; // 10–13
 
 let accounts: AccountsPage;
 
@@ -81,6 +81,40 @@ test('paying a card invoice moves the money from the bank account', async ({ pag
 
   await expect(accounts.stat('Available limit')).toHaveText('R$5,000.00');
   await expect(accounts.tile(bankName)).toContainText('R$713.60');
+});
+
+test('going back a month lists what that month had, and coming back lists this one again', async ({
+  page,
+  request,
+}) => {
+  const moment = ownMonth(test.info(), FIRST_SLOT + 3);
+  const lastMonth = new Date(moment.getFullYear(), moment.getMonth() - 1, 15, 10);
+  const name = uniqueName(test.info(), 'Bank');
+  const description = uniqueName(test.info(), 'Rent');
+  const accountId = await createAccount(request, {
+    name,
+    kind: 'bankAccount',
+    openingBalanceCents: 100000,
+  });
+  await createTransaction(request, {
+    date: isoDayOf(lastMonth, 15),
+    description,
+    categoryId: 'food',
+    accountId,
+    amountCents: -9000,
+  });
+  await page.clock.setFixedTime(moment);
+  await accounts.goto();
+  await accounts.tile(name).click();
+  await expect(accounts.detail).not.toContainText(description);
+
+  await accounts.detail.getByRole('button', { name: 'Previous month' }).click();
+  await expect(accounts.detail).toContainText(description);
+  await expect(accounts.detail.getByRole('button', { name: 'Next month' })).toBeEnabled();
+
+  await accounts.detail.getByRole('button', { name: 'Next month' }).click();
+  await expect(accounts.detail).not.toContainText(description);
+  await expect(accounts.detail.getByRole('button', { name: 'Next month' })).toBeDisabled();
 });
 
 test('the page fits a phone screen without sideways scrolling', async ({ page }) => {
