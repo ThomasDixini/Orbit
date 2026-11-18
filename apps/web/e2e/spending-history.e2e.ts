@@ -48,6 +48,11 @@ test('a category spent this month shows its amount, and choosing it lists what i
   await expect(page.getByRole('region', { name: 'What the category is made of' })).toContainText(
     description,
   );
+  // The category column stays in view while the months scroll, so it must hide what passes under it.
+  const ground = await row
+    .getByRole('rowheader')
+    .evaluate((cell) => getComputedStyle(cell).backgroundColor);
+  expect(ground).toMatch(/^rgb\(/);
   const overflow = await page.evaluate(
     () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
   );

@@ -49,10 +49,17 @@
   font-weight: var(--font-weight-medium);
 }
 
-.history th[scope='row'] {
+/*
+ * The first column stays in view while the months scroll under it, so it needs a solid ground: the glass
+ * of the card is see-through and the amounts would show through the names.
+ */
+.history th[scope='row'],
+.history thead th:first-child {
   position: sticky;
   left: 0;
-  background: var(--color-surface);
+  z-index: 1;
+  background-color: var(--color-bg);
+  background-image: linear-gradient(var(--color-surface-glass), var(--color-surface-glass));
 }
 
 .history .number {
@@ -69,9 +76,17 @@
   background: color-mix(in srgb, var(--color-expense) 14%, transparent);
 }
 
-.history tr.selected th,
 .history tr.selected td {
-  background: color-mix(in srgb, var(--color-mint) 8%, var(--color-surface));
+  background: color-mix(in srgb, var(--color-mint) 8%, transparent);
+}
+
+.history tr.selected th[scope='row'] {
+  background-image:
+    linear-gradient(
+      color-mix(in srgb, var(--color-mint) 8%, transparent),
+      color-mix(in srgb, var(--color-mint) 8%, transparent)
+    ),
+    linear-gradient(var(--color-surface-glass), var(--color-surface-glass));
 }
 
 .name {
