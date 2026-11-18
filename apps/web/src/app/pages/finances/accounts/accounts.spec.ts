@@ -263,11 +263,79 @@ describe('Banks & Cards page month switch', () => {
     ]);
   });
 
-  it('shows no month switch on a card, which lists its open invoice', () => {
+  it('switches invoices, not months, on a card', () => {
     const fixture = renderWithSeptember();
 
     click(fixture, '.tile', 'Credit card');
 
-    expect(element(fixture).querySelector('.month-nav')).toBeNull();
+    expect([
+      element(fixture).querySelector('button[aria-label="Previous invoice"]') === null,
+      element(fixture).querySelector('button[aria-label="Previous month"]') === null,
+    ]).toEqual([false, true]);
+  });
+});
+
+const SEPTEMBER_DINNER: Transaction = {
+  id: 'september-dinner',
+  date: '2026-09-12',
+  description: 'Dinner',
+  categoryId: 'food',
+  accountId: 'credit-card',
+  amountCents: -9000,
+};
+
+function renderCardWithSeptember(): ComponentFixture<Accounts> {
+  const fixture = render(
+    new FakeAccountStatementsGateway(),
+    new FakeFinanceReferencesGateway(),
+    new FakeTransactionsGateway(
+      new Map([
+        ['2026-10', SAMPLE_OCTOBER],
+        ['2026-09', [SEPTEMBER_DINNER]],
+      ]),
+    ),
+  );
+  click(fixture, '.tile', 'Credit card');
+  return fixture;
+}
+
+describe('Banks & Cards page invoice switch', () => {
+  it('goes back an invoice and lists its purchases with the total it came to', () => {
+    const fixture = renderCardWithSeptember();
+
+    clickByLabel(fixture, 'Previous invoice');
+
+    expect([
+      texts(fixture, '.column-title')[0],
+      texts(fixture, '.row .description'),
+      texts(fixture, '.stat-label'),
+      texts(fixture, '.stat-value'),
+      element(fixture).querySelector('.limit'),
+    ]).toEqual([
+      'Invoice closed on Oct 3',
+      ['Dinner'],
+      ['Invoice total', 'Closed on', 'Due on'],
+      ['R$90.00', 'Oct 3', 'Oct 10'],
+      null,
+    ]);
+  });
+
+  it('cannot go past the open invoice, and comes back to it', () => {
+    const fixture = renderCardWithSeptember();
+    const nextIsDisabled = (): boolean =>
+      element(fixture).querySelector<HTMLButtonElement>('button[aria-label="Next invoice"]')!
+        .disabled;
+    const states = [nextIsDisabled()];
+
+    clickByLabel(fixture, 'Previous invoice');
+    states.push(nextIsDisabled());
+    clickByLabel(fixture, 'Next invoice');
+    states.push(nextIsDisabled());
+
+    expect([
+      states,
+      texts(fixture, '.column-title')[0],
+      texts(fixture, '.row .description'),
+    ]).toEqual([[true, false, true], 'Invoice items', ['Groceries']]);
   });
 });

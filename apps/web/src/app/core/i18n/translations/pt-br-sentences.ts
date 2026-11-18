@@ -100,6 +100,7 @@ export const PT_BR_SENTENCES: Readonly<Record<string, string>> = {
   '{amount} is still due from the invoice that closed on {closedOn} (due {dueOn}).':
     '{amount} ainda é devido da fatura que fechou em {closedOn} (vence em {dueOn}).',
   'Invoice items': 'Itens da fatura',
+  'Invoice closed on {date}': 'Fatura fechada em {date}',
   'Movements in {month}': 'Movimentações em {month}',
   'Invoice spending by category': 'Gastos da fatura por categoria',
   'Outflows by category': 'Saídas por categoria',

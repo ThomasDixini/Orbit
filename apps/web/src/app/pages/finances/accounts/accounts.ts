@@ -12,6 +12,7 @@ import {
 import { CardPaymentDraft, suggestedPaymentCents } from '../../../core/finances/account-statement';
 import { BanksAndCardsStore } from '../../../core/finances/banks-and-cards-store';
 import { Account, AccountDraft, namesById } from '../../../core/finances/finance-references';
+import { InvoicePeriod, invoicesBack } from '../../../core/finances/invoice-cycle';
 import { formatBalance, formatMoney } from '../../../core/finances/money';
 import { monthOfDay, shiftMonth } from '../../../core/finances/transaction-month';
 import { AccountDetail } from './account-detail/account-detail';
@@ -77,6 +78,11 @@ export class Accounts {
     const format = isThisYear ? 'MMMM' : 'MMMM y';
     return formatDate(parseIsoDate(`${this.month()}-01`), format, this.locale);
   });
+  /** How many invoices before the open one the cards list (0 is the open invoice). */
+  protected readonly invoicesBack = this.store.invoicesBack;
+  protected readonly isCurrentInvoice = computed(() => this.invoicesBack() === 0);
+  /** The invoice the selected card lists; none for a bank account. */
+  protected readonly shownInvoice = computed(() => this.invoiceOf(this.selected()));
   protected readonly movements = computed(() => this.movementsOf(this.selected()));
   protected readonly suggestedPayment = computed(() => {
     const card = this.selectedStatement()?.card;
@@ -90,9 +96,16 @@ export class Accounts {
     if (this.accountForm() === 'edit') this.accountForm.set('closed');
   }
 
-  /** Moves the bank accounts' movements one month back (-1) or forward (1). */
-  protected showMonth(step: -1 | 1): void {
-    this.store.showMonth(shiftMonth(this.month(), step));
+  /**
+   * Moves what the selected account lists one step back (-1) or forward (1): a bank account's month,
+   * or a card's invoice (which cannot go past the open one).
+   */
+  protected showStep(step: -1 | 1): void {
+    if (this.selected()?.kind === 'creditCard') {
+      this.store.showInvoicesBack(Math.max(0, this.invoicesBack() - step));
+    } else {
+      this.store.showMonth(shiftMonth(this.month(), step));
+    }
   }
 
   protected openAccountForm(mode: 'new' | 'edit'): void {
@@ -152,10 +165,17 @@ export class Accounts {
       const cardNames = namesById(this.accounts());
       return bankMovements(transactions, this.store.payments(), account.id, span, cardNames);
     }
-    const invoice = this.statements().get(account.id)?.card?.openInvoice;
+    const invoice = this.invoiceOf(account);
     return invoice === undefined
       ? []
       : invoiceMovements(transactions, account.id, invoice, this.today);
+  }
+
+  private invoiceOf(account: Account | undefined): InvoicePeriod | undefined {
+    const open =
+      account === undefined ? undefined : this.statements().get(account.id)?.card?.openInvoice;
+    if (open === undefined || account?.card === undefined) return open;
+    return invoicesBack(open, account.card, this.invoicesBack());
   }
 
   private describeTotals(): string {

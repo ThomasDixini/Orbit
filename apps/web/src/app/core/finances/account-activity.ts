@@ -1,5 +1,6 @@
-import { CardPayment, Invoice } from './account-statement';
+import { CardPayment } from './account-statement';
 import { Account, AccountKind } from './finance-references';
+import { InvoicePeriod } from './invoice-cycle';
 import { Transaction } from './transaction';
 import { monthOfDay } from './transaction-month';
 
@@ -58,13 +59,14 @@ export function bankMovements(
 }
 
 /**
- * The purchases and refunds of a card's invoice made up to today, newest first.
+ * The purchases and refunds of a card's invoice (the open one or an earlier one) made up to today,
+ * newest first.
  * @example invoiceMovements(transactions, 'credit-card', statement.card.openInvoice, '2026-10-31')
  */
 export function invoiceMovements(
   transactions: readonly Transaction[],
   cardId: string,
-  invoice: Invoice,
+  invoice: InvoicePeriod,
   today: string,
 ): AccountMovement[] {
   const inInvoice = (date: string): boolean =>

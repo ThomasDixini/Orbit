@@ -44,8 +44,11 @@ export class BanksAndCardsStore {
   readonly today = isoDate(inject(Clock).now());
   private readonly currentMonth = monthOfDay(this.today);
   private readonly shownMonth = signal(this.currentMonth);
+  private readonly shownInvoicesBack = signal(0);
   /** The `YYYY-MM` month whose movements bank accounts show. */
   readonly month = this.shownMonth.asReadonly();
+  /** How many invoices before the open one the cards show (0 is the open invoice). */
+  readonly invoicesBack = this.shownInvoicesBack.asReadonly();
   /** Whether the month chosen is still being read. */
   readonly isMonthLoading = this.monthLoading.asReadonly();
   readonly accounts = this.references.accounts;
@@ -86,6 +89,19 @@ export class BanksAndCardsStore {
     this.shownMonth.set(month);
     this.paymentList.set([]);
     this.monthLoading.set(true);
+    this.loadActivity();
+  }
+
+  /**
+   * Shows an invoice `count` invoices before the open one in the cards (0 goes back to the open one),
+   * reading the months around it that are not kept yet.
+   * @example store.showInvoicesBack(2)
+   */
+  showInvoicesBack(count: number): void {
+    if (count === this.shownInvoicesBack()) return;
+    this.shownInvoicesBack.set(count);
+    const isMissing = this.monthsNeeded().some((month) => !this.transactionsByMonth().has(month));
+    if (isMissing) this.monthLoading.set(true);
     this.loadActivity();
   }
 
@@ -157,14 +173,18 @@ export class BanksAndCardsStore {
     });
   }
 
-  /** The months around today, which a card's open invoice needs, and the one the banks show. */
+  /**
+   * The months around today, which a card's open invoice needs, those around the invoice the cards
+   * show (it can start a month before it closes), and the one the banks show.
+   */
   private monthsNeeded(): string[] {
-    const around = [
-      shiftMonth(this.currentMonth, -1),
-      this.currentMonth,
-      shiftMonth(this.currentMonth, 1),
+    const invoiceMonth = shiftMonth(this.currentMonth, -this.shownInvoicesBack());
+    const months = [
+      ...monthsAround(this.currentMonth),
+      ...monthsAround(invoiceMonth),
+      this.shownMonth(),
     ];
-    return around.includes(this.shownMonth()) ? around : [...around, this.shownMonth()];
+    return [...new Set(months)];
   }
 
   private loadActivity(): void {
@@ -206,4 +226,8 @@ export class BanksAndCardsStore {
     this.loadFailed.set(true);
     this.errorHandler.handleError(error);
   }
+}
+
+function monthsAround(month: string): string[] {
+  return [shiftMonth(month, -1), month, shiftMonth(month, 1)];
 }
