@@ -1,5 +1,5 @@
 import { ErrorHandler, Injectable, computed, inject, signal } from '@angular/core';
-import { forkJoin } from 'rxjs';
+import { Observable, forkJoin, of } from 'rxjs';
 import { Clock } from '../calendar/clock';
 import { isoDate } from '../calendar/date-label';
 import { IdGenerator } from '../ids/id-generator';
@@ -14,9 +14,10 @@ import { TransactionsGateway } from './transactions-gateway';
 
 /**
  * What the Banks & Cards page shows: where each account stands today, the transactions around this
- * month (a card's open invoice can start last month or close next month) and this month's card
- * payments. Provided by the page, so each visit loads fresh balances. Balances are worked out by the
- * API, so they are asked for again once a change is stored.
+ * month (a card's open invoice can start last month or close next month), and the month shown by the
+ * bank accounts (this one until another is chosen) with its card payments. Months already read are
+ * kept, so going back and forth does not ask again. Provided by the page, so each visit loads fresh
+ * balances. Balances are worked out by the API, so they are asked for again once a change is stored.
  */
 @Injectable()
 export class BanksAndCardsStore {
@@ -26,21 +27,30 @@ export class BanksAndCardsStore {
   private readonly ids = inject(IdGenerator);
   private readonly errorHandler = inject(ErrorHandler);
   private readonly statementList = signal<readonly AccountStatement[]>([]);
-  private readonly transactionList = signal<readonly Transaction[]>([]);
+  private readonly transactionsByMonth = signal<ReadonlyMap<string, readonly Transaction[]>>(
+    new Map(),
+  );
   private readonly paymentList = signal<readonly CardPayment[]>([]);
   private readonly statementsLoaded = signal(false);
   private readonly activityLoaded = signal(false);
+  private readonly monthLoading = signal(false);
   private readonly loadFailed = signal(false);
   /** Counts statement requests, so an answer overtaken by a newer one is dropped. */
   private statementsRequest = 0;
+  /** Counts activity requests, so the answer for a month no longer shown is dropped. */
+  private activityRequest = 0;
 
   /** Today, `YYYY-MM-DD`: balances and lists count what is dated up to it. */
   readonly today = isoDate(inject(Clock).now());
+  private readonly currentMonth = monthOfDay(this.today);
+  private readonly shownMonth = signal(this.currentMonth);
   /** The `YYYY-MM` month whose movements bank accounts show. */
-  readonly month = monthOfDay(this.today);
+  readonly month = this.shownMonth.asReadonly();
+  /** Whether the month chosen is still being read. */
+  readonly isMonthLoading = this.monthLoading.asReadonly();
   readonly accounts = this.references.accounts;
   readonly categories = this.references.categories;
-  readonly transactions = this.transactionList.asReadonly();
+  readonly transactions = computed(() => [...this.transactionsByMonth().values()].flat());
   readonly payments = this.paymentList.asReadonly();
   readonly statements = computed(
     () => new Map(this.statementList().map((statement) => [statement.accountId, statement])),
@@ -66,6 +76,19 @@ export class BanksAndCardsStore {
     if (!this.activityLoaded()) this.loadActivity();
   }
 
+  /**
+   * Shows another `YYYY-MM` month in the bank accounts: its transactions and card payments replace
+   * the ones listed once they arrive.
+   * @example store.showMonth('2026-09')
+   */
+  showMonth(month: string): void {
+    if (month === this.shownMonth()) return;
+    this.shownMonth.set(month);
+    this.paymentList.set([]);
+    this.monthLoading.set(true);
+    this.loadActivity();
+  }
+
   /** @example store.addAccount({ name: 'Nubank', kind: 'bankAccount', openingBalanceCents: 0 }) */
   addAccount(draft: AccountDraft): Account {
     return this.references.addAccount(draft, () => this.loadStatements());
@@ -88,7 +111,7 @@ export class BanksAndCardsStore {
    */
   payInvoice(draft: CardPaymentDraft): CardPayment {
     const payment: CardPayment = { ...draft, id: this.ids.next() };
-    if (monthOfDay(payment.date) === this.month)
+    if (monthOfDay(payment.date) === this.shownMonth())
       this.paymentList.update((list) => [payment, ...list]);
     this.gateway.savePayment(payment).subscribe({
       next: () => this.loadStatements(),
@@ -134,19 +157,49 @@ export class BanksAndCardsStore {
     });
   }
 
+  /** The months around today, which a card's open invoice needs, and the one the banks show. */
+  private monthsNeeded(): string[] {
+    const around = [
+      shiftMonth(this.currentMonth, -1),
+      this.currentMonth,
+      shiftMonth(this.currentMonth, 1),
+    ];
+    return around.includes(this.shownMonth()) ? around : [...around, this.shownMonth()];
+  }
+
   private loadActivity(): void {
-    const months = [shiftMonth(this.month, -1), this.month, shiftMonth(this.month, 1)];
+    const request = ++this.activityRequest;
+    const missing = this.monthsNeeded().filter((month) => !this.transactionsByMonth().has(month));
     forkJoin({
-      transactions: forkJoin(months.map((month) => this.transactionsGateway.listMonth(month))),
-      payments: this.gateway.paymentsInMonth(this.month),
+      transactions:
+        missing.length === 0 ? of<(readonly Transaction[])[]>([]) : this.readMonths(missing),
+      payments: this.gateway.paymentsInMonth(this.shownMonth()),
     }).subscribe({
       next: ({ transactions, payments }) => {
-        this.transactionList.set(transactions.flat());
+        if (request !== this.activityRequest) return;
+        this.transactionsByMonth.update(
+          (kept) =>
+            new Map([
+              ...kept,
+              ...missing.map((month, index) => [month, transactions[index]] as const),
+            ]),
+        );
         this.paymentList.set(payments);
         this.activityLoaded.set(true);
+        this.monthLoading.set(false);
       },
-      error: (error: unknown) => this.failedToLoad(error),
+      error: (error: unknown) => {
+        if (request !== this.activityRequest) return;
+        // Nothing to show for the month chosen: drop the flag so "try again" asks anew.
+        this.activityLoaded.set(false);
+        this.monthLoading.set(false);
+        this.failedToLoad(error);
+      },
     });
+  }
+
+  private readMonths(months: readonly string[]): Observable<(readonly Transaction[])[]> {
+    return forkJoin(months.map((month) => this.transactionsGateway.listMonth(month)));
   }
 
   private failedToLoad(error: unknown): void {

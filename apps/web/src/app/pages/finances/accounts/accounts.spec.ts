@@ -11,7 +11,9 @@ import {
 import {
   FakeFinanceReferencesGateway,
   FakeTransactionsGateway,
+  SAMPLE_OCTOBER,
 } from '../../../core/finances/fake-finances-gateways';
+import { Transaction } from '../../../core/finances/transaction';
 import {
   FinanceReferencesGateway,
   TransactionsGateway,
@@ -33,12 +35,13 @@ class SilentErrorHandler extends ErrorHandler {
 function render(
   statements = new FakeAccountStatementsGateway(),
   references = new FakeFinanceReferencesGateway(),
+  transactions = new FakeTransactionsGateway(),
 ): ComponentFixture<Accounts> {
   TestBed.configureTestingModule({
     providers: [
       provideRouter([]),
       { provide: AccountStatementsGateway, useValue: statements },
-      { provide: TransactionsGateway, useValue: new FakeTransactionsGateway() },
+      { provide: TransactionsGateway, useValue: transactions },
       { provide: FinanceReferencesGateway, useValue: references },
       { provide: Clock, useValue: new FixedClock(HALLOWEEN) },
       { provide: IdGenerator, useValue: new SequentialIdGenerator() },
@@ -192,5 +195,79 @@ describe('Banks & Cards page', () => {
     const fixture = render(statements);
 
     expect(texts(fixture, 'app-load-failed p')).toEqual(["Couldn't load your accounts."]);
+  });
+});
+
+const SEPTEMBER_LUNCH: Transaction = {
+  id: 'september-lunch',
+  date: '2026-09-12',
+  description: 'Lunch',
+  categoryId: 'food',
+  accountId: 'checking-account',
+  amountCents: -4200,
+};
+
+function renderWithSeptember(): ComponentFixture<Accounts> {
+  const transactions = new FakeTransactionsGateway(
+    new Map([
+      ['2026-10', SAMPLE_OCTOBER],
+      ['2026-09', [SEPTEMBER_LUNCH]],
+    ]),
+  );
+  return render(
+    new FakeAccountStatementsGateway(),
+    new FakeFinanceReferencesGateway(),
+    transactions,
+  );
+}
+
+function clickByLabel(fixture: ComponentFixture<Accounts>, label: string): void {
+  element(fixture).querySelector<HTMLButtonElement>(`button[aria-label="${label}"]`)!.click();
+  fixture.detectChanges();
+}
+
+describe('Banks & Cards page month switch', () => {
+  it('goes back a month and lists what that month had, with its own totals', () => {
+    const fixture = renderWithSeptember();
+
+    clickByLabel(fixture, 'Previous month');
+
+    expect([
+      texts(fixture, '.column-title')[0],
+      texts(fixture, '.row .description'),
+      texts(fixture, '.stat-label'),
+      texts(fixture, '.stat-value').slice(1),
+    ]).toEqual([
+      'Movements in September',
+      ['Lunch'],
+      ['Balance', 'Received in September', 'Spent in September'],
+      ['R$0.00', 'R$42.00'],
+    ]);
+  });
+
+  it('cannot go past the current month, and comes back to it', () => {
+    const fixture = renderWithSeptember();
+    const nextIsDisabled = (): boolean =>
+      element(fixture).querySelector<HTMLButtonElement>('button[aria-label="Next month"]')!
+        .disabled;
+    const states = [nextIsDisabled()];
+
+    clickByLabel(fixture, 'Previous month');
+    states.push(nextIsDisabled());
+    clickByLabel(fixture, 'Next month');
+    states.push(nextIsDisabled());
+
+    expect([states, texts(fixture, '.column-title')[0]]).toEqual([
+      [true, false, true],
+      'Movements in October',
+    ]);
+  });
+
+  it('shows no month switch on a card, which lists its open invoice', () => {
+    const fixture = renderWithSeptember();
+
+    click(fixture, '.tile', 'Credit card');
+
+    expect(element(fixture).querySelector('.month-nav')).toBeNull();
   });
 });

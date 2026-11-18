@@ -142,9 +142,26 @@
   min-width: 0;
 }
 
+.column-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
 .column-title {
   font-size: var(--font-size-md);
   font-weight: var(--font-weight-medium);
+}
+
+.month-nav {
+  display: flex;
+  gap: 8px;
+}
+
+.month-nav .ui-icon-button:disabled {
+  opacity: 0.35;
+  cursor: default;
 }
 
 .empty {

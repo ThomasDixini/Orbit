@@ -13,6 +13,7 @@ import { CardPaymentDraft, suggestedPaymentCents } from '../../../core/finances/
 import { BanksAndCardsStore } from '../../../core/finances/banks-and-cards-store';
 import { Account, AccountDraft, namesById } from '../../../core/finances/finance-references';
 import { formatBalance, formatMoney } from '../../../core/finances/money';
+import { monthOfDay, shiftMonth } from '../../../core/finances/transaction-month';
 import { AccountDetail } from './account-detail/account-detail';
 import { AccountForm } from './account-form/account-form';
 import { AccountTiles } from './account-tiles/account-tiles';
@@ -66,9 +67,16 @@ export class Accounts {
     this.accounts().filter((account) => account.kind === 'bankAccount'),
   );
   protected readonly categoryNames = computed(() => namesById(this.store.categories()));
-  protected readonly monthName = computed(() =>
-    formatDate(parseIsoDate(this.today), 'MMMM', this.locale),
-  );
+  /** The `YYYY-MM` month the bank accounts list. */
+  protected readonly month = this.store.month;
+  protected readonly isMonthLoading = this.store.isMonthLoading;
+  protected readonly isCurrentMonth = computed(() => this.month() === monthOfDay(this.today));
+  /** The month spelled out, with its year when it is not this year's. */
+  protected readonly monthName = computed(() => {
+    const isThisYear = this.month().slice(0, 4) === this.today.slice(0, 4);
+    const format = isThisYear ? 'MMMM' : 'MMMM y';
+    return formatDate(parseIsoDate(`${this.month()}-01`), format, this.locale);
+  });
   protected readonly movements = computed(() => this.movementsOf(this.selected()));
   protected readonly suggestedPayment = computed(() => {
     const card = this.selectedStatement()?.card;
@@ -80,6 +88,11 @@ export class Accounts {
     this.chosenId.set(accountId);
     this.isPaying.set(false);
     if (this.accountForm() === 'edit') this.accountForm.set('closed');
+  }
+
+  /** Moves the bank accounts' movements one month back (-1) or forward (1). */
+  protected showMonth(step: -1 | 1): void {
+    this.store.showMonth(shiftMonth(this.month(), step));
   }
 
   protected openAccountForm(mode: 'new' | 'edit'): void {
@@ -135,7 +148,7 @@ export class Accounts {
     if (account === undefined) return [];
     const transactions = this.store.transactions();
     if (account.kind === 'bankAccount') {
-      const span = { month: this.store.month, today: this.today };
+      const span = { month: this.month(), today: this.today };
       const cardNames = namesById(this.accounts());
       return bankMovements(transactions, this.store.payments(), account.id, span, cardNames);
     }
