@@ -1,0 +1,53 @@
+:host {
+  position: fixed;
+  inset: 0 0 auto;
+  z-index: 60;
+  pointer-events: none;
+}
+
+/* Hidden for the first moment: an answer that comes back at once should not flash a bar. */
+.bar {
+  height: 3px;
+  overflow: hidden;
+  background: rgba(var(--color-mint-rgb), 0.14);
+  opacity: 0;
+  animation: show 0.2s ease-out 0.2s forwards;
+}
+
+.runner {
+  display: block;
+  width: 40%;
+  height: 100%;
+  border-radius: 0 3px 3px 0;
+  background: linear-gradient(90deg, transparent, var(--color-mint), var(--color-violet));
+  animation: run 1.1s ease-in-out infinite;
+}
+
+@keyframes show {
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes run {
+  from {
+    translate: -100% 0;
+  }
+
+  to {
+    translate: 250% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .runner {
+    width: 100%;
+    animation: pulse 1.6s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    50% {
+      opacity: 0.4;
+    }
+  }
+}
