@@ -57,7 +57,7 @@ describe('closedInvestmentIds', () => {
     expect(closedInvestmentIds(PORTFOLIO).has('held')).toBe(false);
   });
 
-  it('counts one whose proventos are all that is left of it', () => {
+  it('does not count one whose proventos are all that is left of it', () => {
     const portfolio = {
       ...PORTFOLIO,
       incomes: [
@@ -71,6 +71,6 @@ describe('closedInvestmentIds', () => {
       ],
     };
 
-    expect(closedInvestmentIds(portfolio).has('new')).toBe(true);
+    expect(closedInvestmentIds(portfolio).has('new')).toBe(false);
   });
 });

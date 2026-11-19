@@ -140,16 +140,15 @@ function growthBetween(startPercent: number, endPercent: number): number {
 }
 
 /**
- * The investments that were held and are not any more: they have trades, proventos or statement lines, and
- * nothing left. They leave the list of assets but stay in the histories and the charts.
+ * The investments that were held and are not any more: they have trades or statement lines, and nothing
+ * left (proventos alone do not count: the investment may only have had its purchases deleted). They leave the list of assets but stay in the histories and the charts.
  * @example closedInvestmentIds(portfolio).has('cdb') // true after the last unit was sold
  */
 export function closedInvestmentIds(
-  portfolio: Pick<Portfolio, 'lines' | 'trades' | 'incomes' | 'balanceEntries'>,
+  portfolio: Pick<Portfolio, 'lines' | 'trades' | 'balanceEntries'>,
 ): Set<string> {
   const withActivity = new Set([
     ...portfolio.trades.map((trade) => trade.investmentId),
-    ...portfolio.incomes.map((income) => income.investmentId),
     ...(portfolio.balanceEntries ?? []).map((entry) => entry.investmentId),
   ]);
   return new Set(
