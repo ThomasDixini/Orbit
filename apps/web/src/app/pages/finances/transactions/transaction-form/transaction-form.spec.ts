@@ -4,8 +4,9 @@ import {
   SAMPLE_FINANCE_CATEGORIES,
   SAMPLE_OCTOBER,
 } from '../../../../core/finances/fake-finances-gateways';
+import { Bill, BillDraft } from '../../../../core/finances/bills';
 import { Transaction, TransactionDraft } from '../../../../core/finances/transaction';
-import { TransactionForm } from './transaction-form';
+import { BillLink, TransactionForm } from './transaction-form';
 
 const [GROCERIES, , SALARY] = SAMPLE_OCTOBER;
 
@@ -142,5 +143,123 @@ describe('TransactionForm', () => {
       .dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
 
     expect(dismissed.length).toBe(1);
+  });
+});
+
+const RENT: Bill = {
+  id: 'rent',
+  kind: 'payable',
+  description: 'Rent',
+  categoryId: 'food',
+  amountCents: 150_000,
+  dueDate: '2026-11-05',
+};
+const FREELANCE: Bill = {
+  id: 'freelance',
+  kind: 'receivable',
+  description: 'Freelance job',
+  categoryId: 'salary',
+  amountCents: 80_000,
+  dueDate: '2026-11-05',
+};
+
+function createFormWithBills(): {
+  fixture: ComponentFixture<TransactionForm>;
+  installments: BillDraft[];
+  links: BillLink[];
+} {
+  const harness = createForm();
+  harness.fixture.componentRef.setInput('openBills', [RENT, FREELANCE]);
+  const installments: BillDraft[] = [];
+  const links: BillLink[] = [];
+  harness.fixture.componentInstance.saveInstallments.subscribe((draft) => installments.push(draft));
+  harness.fixture.componentInstance.settleBill.subscribe((link) => links.push(link));
+  harness.fixture.detectChanges();
+  return { fixture: harness.fixture, installments, links };
+}
+
+describe('TransactionForm: installments', () => {
+  it('asks for bills to pay, with the total and the count, and a first due day a month after', () => {
+    const { fixture, installments } = createFormWithBills();
+    clickButton(fixture, 'In installments');
+    fillExpense(fixture, '500');
+    fill(fixture, 'input[name="count"]', '6');
+
+    submitButton(fixture).click();
+
+    expect(installments).toEqual([
+      {
+        kind: 'payable',
+        description: 'Groceries',
+        categoryId: 'food',
+        amountCents: 50_000,
+        dueDate: '2026-11-30',
+        repeat: { kind: 'installments', count: 6, amountIsTotal: true },
+      },
+    ]);
+  });
+
+  it('asks for bills to receive when the type is income', () => {
+    const { fixture, installments } = createFormWithBills();
+    clickButton(fixture, 'In installments');
+    clickButton(fixture, 'Income');
+    fillExpense(fixture, '300');
+
+    submitButton(fixture).click();
+
+    expect(installments[0].kind).toBe('receivable');
+  });
+
+  it('cannot save with a count the API would refuse', () => {
+    const { fixture } = createFormWithBills();
+    clickButton(fixture, 'In installments');
+    fillExpense(fixture, '500');
+    fill(fixture, 'input[name="count"]', '1');
+
+    expect(submitButton(fixture).disabled).toBe(true);
+  });
+
+  it('is not offered while editing', () => {
+    const { fixture } = createForm(GROCERIES);
+
+    expect(element(fixture).textContent).not.toContain('In installments');
+  });
+});
+
+describe('TransactionForm: linking a bill', () => {
+  it('lists only the open bills that move money the same way as the type', () => {
+    const { fixture } = createFormWithBills();
+
+    const expenseOptions = [...element(fixture).querySelectorAll('select[name="bill"] option')];
+    clickButton(fixture, 'Income');
+    const incomeOptions = [...element(fixture).querySelectorAll('select[name="bill"] option')];
+
+    expect(
+      [expenseOptions, incomeOptions].map((options) =>
+        options.map((option) => option.textContent?.trim()),
+      ),
+    ).toEqual([
+      ['No bill', 'Rent · 2026-11-05'],
+      ['No bill', 'Freelance job · 2026-11-05'],
+    ]);
+  });
+
+  it('takes the bill amount, description and category, and settles it on the day and account', () => {
+    const { fixture, links } = createFormWithBills();
+
+    fill(fixture, 'select[name="bill"]', 'rent');
+    const amount = element(fixture).querySelector<HTMLInputElement>('input[name="amount"]')!;
+    submitButton(fixture).click();
+
+    expect([amount.value, amount.disabled, links]).toEqual([
+      '1500.00',
+      true,
+      [
+        {
+          billId: 'rent',
+          settlement: { date: '2026-10-31', accountId: 'credit-card' },
+        },
+      ],
+    ]);
   });
 });

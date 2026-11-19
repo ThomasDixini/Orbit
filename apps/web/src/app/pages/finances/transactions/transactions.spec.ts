@@ -3,6 +3,8 @@ import { Observable, of } from 'rxjs';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { Clock } from '../../../core/calendar/clock';
+import { FakeBillsGateway } from '../../../core/finances/fake-bills-gateway';
+import { BillsGateway } from '../../../core/finances/bills-gateway';
 import { Account, FinanceCategory } from '../../../core/finances/finance-references';
 import { FixedClock } from '../../../core/calendar/fixed-clock';
 import {
@@ -41,12 +43,14 @@ class EmptyReferencesGateway extends FakeFinanceReferencesGateway {
 function render(
   gateway = new FakeTransactionsGateway(),
   references: FinanceReferencesGateway = new FakeFinanceReferencesGateway(),
+  bills = new FakeBillsGateway(),
 ): ComponentFixture<Transactions> {
   TestBed.configureTestingModule({
     providers: [
       provideRouter([]),
       { provide: TransactionsGateway, useValue: gateway },
       { provide: FinanceReferencesGateway, useValue: references },
+      { provide: BillsGateway, useValue: bills },
       { provide: Clock, useValue: new FixedClock(HALLOWEEN) },
       { provide: IdGenerator, useValue: new SequentialIdGenerator() },
       { provide: ErrorHandler, useClass: SilentErrorHandler },
@@ -192,6 +196,51 @@ describe('Transactions page', () => {
     expect(texts(fixture, '[role="status"]')).toEqual(['Saved to November 2026.']);
   });
 
+  it('adds a purchase in installments as bills to pay, one per month', () => {
+    const bills = new FakeBillsGateway();
+    const fixture = render(
+      new FakeTransactionsGateway(),
+      new FakeFinanceReferencesGateway(),
+      bills,
+    );
+    click(fixture, 'button', 'New transaction');
+    click(fixture, 'button', 'In installments');
+    fillForm(fixture);
+
+    click(fixture, 'button[type="submit"]', 'Add installments');
+
+    expect([bills.saved[0].draft, texts(fixture, '[role="status"]')]).toEqual([
+      {
+        kind: 'payable',
+        description: 'Fuel',
+        categoryId: 'food',
+        amountCents: 21000,
+        dueDate: '2026-10-31',
+        repeat: { kind: 'installments', count: 6, amountIsTotal: true },
+      },
+      ['6 installments added to To pay & receive.'],
+    ]);
+  });
+
+  it('settles the bill a transaction was linked to, with the amount of the bill', () => {
+    const bills = new FakeBillsGateway();
+    const fixture = render(
+      new FakeTransactionsGateway(),
+      new FakeFinanceReferencesGateway(),
+      bills,
+    );
+    click(fixture, 'button', 'New transaction');
+    setField(element(fixture).querySelector('select[name="bill"]')!, 'rent', 'change');
+    fixture.detectChanges();
+
+    click(fixture, 'button[type="submit"]', 'Settle the bill');
+
+    expect([
+      bills.settled.map((item) => [item.billId, item.settlement.date]),
+      texts(fixture, 'form'),
+    ]).toEqual([[['rent', '2026-10-31']], []]);
+  });
+
   it('deletes the transaction opened from its row', () => {
     const gateway = new FakeTransactionsGateway();
     const fixture = render(gateway);
@@ -224,7 +273,7 @@ function fillForm(fixture: ComponentFixture<Transactions>, date = '2026-10-31'):
   const form = element(fixture).querySelector('form')!;
   setField(form.querySelector('input[name="amount"]')!, '210', 'input');
   setField(form.querySelector('input[maxlength="80"]')!, 'Fuel', 'input');
-  setField(form.querySelector('select')!, 'food', 'change');
+  setField(form.querySelector('select[name="category"]')!, 'food', 'change');
   setField(form.querySelector('input[type="date"]')!, date, 'change');
   fixture.detectChanges();
 }
