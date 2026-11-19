@@ -1,5 +1,8 @@
 namespace Orbit.Api.Domain.Investments;
 
+/// <summary>What the CDI rose in one month, in percent, compounded from its daily rates.</summary>
+public sealed record MonthlyCdi(string Month, decimal Percent);
+
 /// <summary>The CDI rate of one business day, as a percentage (0.0545 is 0.0545% for the day).</summary>
 public sealed record CdiRate(DateOnly Date, decimal DailyPercent);
 
@@ -14,6 +17,23 @@ public sealed class CdiIndex
     public CdiIndex(IEnumerable<CdiRate> rates)
     {
         _rates = rates.OrderBy(rate => rate.Date).ToList();
+    }
+
+    /// <summary>
+    /// What the CDI rose in each month from the one of <paramref name="first"/> up to the one of
+    /// <paramref name="last"/>; a month with no daily rate known yet rises zero.
+    /// </summary>
+    /// <example><code>cdi.MonthlyPercents(new DateOnly(2026, 9, 1), new DateOnly(2026, 11, 3))[0].Month; // "2026-09"</code></example>
+    public IReadOnlyList<MonthlyCdi> MonthlyPercents(DateOnly first, DateOnly last)
+    {
+        var months = new List<MonthlyCdi>();
+        for (var start = new DateOnly(first.Year, first.Month, 1); start <= last; start = start.AddMonths(1))
+        {
+            var end = start.AddMonths(1).AddDays(-1);
+            var factor = FactorBetween(start.AddDays(-1), end < last ? end : last);
+            months.Add(new MonthlyCdi($"{start.Year:0000}-{start.Month:00}", Math.Round((factor - 1) * 100, 4)));
+        }
+        return months;
     }
 
     /// <summary>The last day a rate is known for; absent when there are none.</summary>

@@ -1,4 +1,5 @@
 import {
+  cdiSeries,
   PeriodRate,
   basisPointsText,
   parseBasisPoints,
@@ -93,5 +94,28 @@ describe('sortedRates', () => {
       '2026-10 ipca',
       '2026-09 selic',
     ]);
+  });
+});
+
+describe('cdiSeries', () => {
+  it('accumulates the monthly CDI from the first month it is known for', () => {
+    const series = cdiSeries(
+      [
+        { month: '2026-09', percent: 1 },
+        { month: '2026-10', percent: 1 },
+      ],
+      ['2026-08', '2026-09', '2026-10', '2026-11'],
+    );
+
+    expect(series.values.map((value) => value?.toFixed(4))).toEqual([
+      undefined,
+      '1.0000',
+      '2.0100',
+      undefined,
+    ]);
+  });
+
+  it('has no values when the CDI is not known', () => {
+    expect(cdiSeries([], ['2026-10']).values).toEqual([undefined]);
   });
 });

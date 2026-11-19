@@ -178,6 +178,20 @@
       <p class="ui-muted cdi-note">{{ note | t }}</p>
     }
 
+    <div class="compare" role="group" [attr.aria-label]="'Compare the return with' | t">
+      <span class="ui-muted">{{ 'Compare the return with' | t }}</span>
+      @for (option of comparisonOptions; track option.value) {
+        <button
+          class="ui-chip"
+          type="button"
+          [attr.aria-pressed]="compared().has(option.value)"
+          (click)="toggleComparison(option.value)"
+        >
+          {{ option.label | t }}
+        </button>
+      }
+    </div>
+
     <section class="charts" [attr.aria-label]="'Charts' | t">
       <app-line-chart
         [title]="'Value over time' | t"

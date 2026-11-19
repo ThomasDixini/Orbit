@@ -34,7 +34,13 @@ import {
 } from '../../../core/finances/investments-analytics';
 import { appreciationMonths } from '../../../core/finances/monthly-appreciation';
 import { InvestmentsStore } from '../../../core/finances/investments-store';
-import { rateSeries } from '../../../core/finances/period-rates';
+import {
+  COMPARISON_OPTIONS,
+  ComparisonId,
+  RateSeries,
+  cdiSeries,
+  rateSeries,
+} from '../../../core/finances/period-rates';
 import { PeriodRatesStore } from '../../../core/finances/period-rates-store';
 import { Period, periodMonths, periodRange } from '../../../core/finances/period';
 import { PeriodFilter } from '../../../components/period-filter/period-filter';
@@ -186,6 +192,11 @@ export class Investments {
   protected readonly monthLabels = computed(() => this.months().map((key) => this.monthName(key)));
   protected readonly valueSeries = computed(() => this.describeValueSeries());
   protected readonly returnSeries = computed(() => this.describeReturnSeries());
+  protected readonly comparisonOptions = COMPARISON_OPTIONS;
+  /** What the return chart is compared with; the CDI the money would have earned and the typed rates at first. */
+  protected readonly compared = signal<ReadonlySet<ComparisonId>>(
+    new Set<ComparisonId>(['moneyInCdi', 'selic', 'ipca']),
+  );
   protected readonly monthlyGains = computed(() => this.describeMonthlyGains());
   /** The month picked on the gains chart, `YYYY-MM`; it is forgotten once the period no longer holds it. */
   private readonly pickedMonth = signal<string | undefined>(undefined);
@@ -237,6 +248,14 @@ export class Investments {
 
   protected pickKind(kind: InvestmentKind | undefined): void {
     this.filters.update((current) => ({ ...current, kind, investmentId: undefined }));
+  }
+
+  protected toggleComparison(id: ComparisonId): void {
+    this.compared.update((current) => {
+      const next = new Set(current);
+      if (!next.delete(id)) next.add(id);
+      return next;
+    });
   }
 
   protected pickPeriod(period: Period): void {
@@ -510,13 +529,31 @@ export class Investments {
 
   private describeReturnSeries(): ChartSeries[] {
     const history = this.selectedHistory();
+    const chosen = this.compared();
+    const yourMoneyInCdi: ChartSeries[] = chosen.has('moneyInCdi')
+      ? [
+          {
+            name: 'CDI on your money',
+            values: history.map((point) => point?.cdiPercent),
+            dashed: true,
+          },
+        ]
+      : [];
     return [
       { name: 'Your investments', values: history.map((point) => point?.returnPercent) },
-      { name: 'CDI', values: history.map((point) => point?.cdiPercent), dashed: true },
-      ...rateSeries(this.periodRates.rates(), this.months()).map((series) => ({
-        ...series,
-        dashed: true,
-      })),
+      ...yourMoneyInCdi,
+      ...this.rateLines(chosen).map((series) => ({ ...series, dashed: true })),
+    ];
+  }
+
+  // The CDI, Selic and IPCA lines the person picked, each accumulated from the first month of the chart.
+  private rateLines(chosen: ReadonlySet<ComparisonId>): RateSeries[] {
+    const cdi = cdiSeries(this.store.portfolio()?.cdiMonthly ?? [], this.months());
+    const typed = rateSeries(this.periodRates.rates(), this.months());
+    const lines = chosen.has('cdi') && cdi.values.some((value) => value !== undefined) ? [cdi] : [];
+    return [
+      ...lines,
+      ...typed.filter((series) => chosen.has(series.name.toLowerCase() as ComparisonId)),
     ];
   }
 

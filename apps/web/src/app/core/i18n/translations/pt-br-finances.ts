@@ -188,6 +188,13 @@ export const PT_BR_FINANCES: Readonly<Record<string, string>> = {
   'Paid from': 'Paga com',
   'Record payment': 'Registrar pagamento',
 
+  // Rates to compare with
+  'Compare the return with': 'Comparar a rentabilidade com',
+  'CDI on your money': 'CDI sobre o seu dinheiro',
+  CDI: 'CDI',
+  Selic: 'Selic',
+  IPCA: 'IPCA',
+
   // Monthly appreciation
   'Monthly appreciation': 'Valorização mensal',
   'All investments': 'Todos os investimentos',

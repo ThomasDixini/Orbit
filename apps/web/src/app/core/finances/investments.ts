@@ -127,6 +127,8 @@ export interface Portfolio {
   /** Month-end history sent by the API, valued at the real closing prices; empty before the first trade. */
   readonly history?: readonly MonthlyPoint[];
   /** The same month-end history of each investment on its own, by id, so a class or one investment can be charted. */
+  /** What the CDI rose in each month, from the first one of the portfolio, in percent; absent when unknown. */
+  readonly cdiMonthly?: readonly { readonly month: string; readonly percent: number }[];
   readonly investmentHistories?: Readonly<Record<string, readonly MonthlyPoint[]>>;
   readonly trades: readonly Trade[];
   readonly incomes: readonly Income[];

@@ -135,3 +135,41 @@ export function sortedRates(rates: readonly PeriodRate[]): readonly PeriodRate[]
       order.indexOf(first.kind) - order.indexOf(second.kind),
   );
 }
+
+/** What the return chart can be compared with: the CDI the money would have earned, or a rate itself. */
+export type ComparisonId = 'moneyInCdi' | 'cdi' | 'selic' | 'ipca';
+
+export const COMPARISON_OPTIONS: readonly { value: ComparisonId; label: string }[] = [
+  { value: 'moneyInCdi', label: 'CDI on your money' },
+  { value: 'cdi', label: 'CDI' },
+  { value: 'selic', label: 'Selic' },
+  { value: 'ipca', label: 'IPCA' },
+];
+
+/**
+ * The CDI itself, accumulated month by month from the first month of the chart: the same kind of line as the
+ * Selic and the IPCA, so the three can be compared. The line starts at the first month the CDI is known for
+ * (the portfolio may be younger than the period) and ends at the first one missing after that.
+ * @example cdiSeries([{ month: '2026-10', percent: 1 }], ['2026-10', '2026-11']) // { name: 'CDI', values: [1, undefined] }
+ */
+export function cdiSeries(
+  monthly: readonly { readonly month: string; readonly percent: number }[],
+  months: readonly string[],
+): RateSeries {
+  const byMonth = new Map(monthly.map((item) => [item.month, item.percent]));
+  let factor = 1;
+  let started = false;
+  let ended = false;
+  const values = months.map((month) => {
+    const percent = byMonth.get(month);
+    if (percent === undefined) {
+      ended = started;
+      return undefined;
+    }
+    if (ended) return undefined;
+    started = true;
+    factor *= 1 + percent / 100;
+    return (factor - 1) * 100;
+  });
+  return { name: 'CDI', values };
+}

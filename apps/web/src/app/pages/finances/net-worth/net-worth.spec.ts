@@ -25,7 +25,19 @@ class SilentErrorHandler extends ErrorHandler {
   }
 }
 
-/** A store that already knows three month-ends, since nothing keeps them yet. */
+/** A store with no month-end at all, as when nothing has been recorded yet. */
+class StoreWithoutHistory extends NetWorthStore {
+  override readonly history = computed<readonly NetWorthPoint[]>(() => []);
+}
+
+function renderWithoutHistory(): ComponentFixture<NetWorth> {
+  TestBed.overrideComponent(NetWorth, {
+    set: { providers: [{ provide: NetWorthStore, useClass: StoreWithoutHistory }] },
+  });
+  return render();
+}
+
+/** A store that already knows three month-ends. */
 class StoreWithHistory extends NetWorthStore {
   override readonly history = computed<readonly NetWorthPoint[]>(() => [
     { month: '2026-08', cents: 1_000_000 },
@@ -57,7 +69,7 @@ function texts(fixture: ComponentFixture<NetWorth>, selector: string): string[] 
 
 describe('Net worth page', () => {
   it('shows the net worth of today and leaves the history figures blank', () => {
-    const fixture = render();
+    const fixture = renderWithoutHistory();
 
     expect([texts(fixture, '.stat .label'), texts(fixture, '.stat .value')]).toEqual([
       ['Net worth today', 'Growth in period', 'Average per month', 'Best month'],
@@ -77,7 +89,7 @@ describe('Net worth page', () => {
   });
 
   it('says there is no history yet, in the chart and in the table', () => {
-    const fixture = render();
+    const fixture = renderWithoutHistory();
 
     expect([texts(fixture, 'app-line-chart .empty'), texts(fixture, '.history-empty')]).toEqual([
       ['No history yet.'],
@@ -171,5 +183,17 @@ describe('Net worth page', () => {
     ]);
     expect(texts(fixture, '.history-empty')).toEqual([]);
     expect(texts(fixture, 'table tbody tr')).toHaveLength(2);
+  });
+});
+
+describe('Net worth page: history from the balances of each month', () => {
+  it('draws the evolution from what the accounts held at the end of each month and the portfolio', () => {
+    const fixture = render();
+
+    expect([
+      texts(fixture, 'app-line-chart .empty'),
+      texts(fixture, '.history-empty'),
+      (fixture.nativeElement as HTMLElement).querySelectorAll('app-line-chart path.line').length,
+    ]).toEqual([[], [], 1]);
   });
 });

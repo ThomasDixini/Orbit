@@ -387,3 +387,43 @@ describe('Investments page: monthly appreciation', () => {
     expect(texts(fixture, 'app-monthly-appreciation')).toEqual([]);
   });
 });
+
+describe('Investments page: what the return is compared with', () => {
+  const WITH_CDI: Portfolio = {
+    ...SAMPLE_PORTFOLIO,
+    history: [
+      { month: '2026-09', valueCents: 1000, appliedCents: 1000, returnPercent: 0, cdiPercent: 0 },
+      { month: '2026-10', valueCents: 1100, appliedCents: 1000, returnPercent: 10, cdiPercent: 1 },
+    ],
+    cdiMonthly: [
+      { month: '2026-09', percent: 1 },
+      { month: '2026-10', percent: 1 },
+    ],
+  };
+
+  function legends(fixture: ComponentFixture<Investments>): string[] {
+    return texts(fixture, 'app-line-chart:nth-of-type(2) .legend li');
+  }
+
+  it('starts with the CDI on your money and offers the CDI itself, the Selic and the IPCA', async () => {
+    const { fixture } = await render(WITH_CDI);
+
+    expect([legends(fixture), texts(fixture, '.compare .ui-chip')]).toEqual([
+      ['Your investments', 'CDI on your money'],
+      ['CDI on your money', 'CDI', 'Selic', 'IPCA'],
+    ]);
+  });
+
+  it('draws the CDI itself once picked, and drops a line that is switched off', async () => {
+    const { fixture } = await render(WITH_CDI);
+
+    await clickButton(fixture, 'CDI');
+    const withCdi = legends(fixture);
+    await clickButton(fixture, 'CDI on your money');
+
+    expect([withCdi, legends(fixture)]).toEqual([
+      ['Your investments', 'CDI on your money', 'CDI'],
+      ['Your investments', 'CDI'],
+    ]);
+  });
+});
