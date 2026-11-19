@@ -5,12 +5,12 @@ import { AccountStatement, CardPayment } from '../account-statement';
 import { Bill, BillDraft, BillsAgenda, CardInvoiceDue } from '../bills';
 import { Account, FinanceCategory } from '../finance-references';
 import { IncomeSplit } from '../income-split';
-import { Income, Investment, Portfolio, Trade } from '../investments';
+import { BalanceEntry, Income, Investment, Portfolio, Trade } from '../investments';
 import { NetWorthPoint } from '../net-worth';
 import { Transaction } from '../transaction';
 import { addDays, addMonths, dayOfMonth, monthEnd } from './demo-dates';
 import { DemoData, buildDemoData, priceOnDay } from './demo-data';
-import { portfolioAt } from './demo-portfolio';
+import { portfolioAt, withBalanceEntries } from './demo-portfolio';
 import { statementsAt } from './demo-statements';
 
 /** How many days back a settled bill still shows in the agenda. */
@@ -36,6 +36,7 @@ export class DemoFinances {
   investments: Investment[];
   trades: Trade[];
   incomes: Income[];
+  balanceEntries: BalanceEntry[] = [];
   private readonly seed: DemoData;
 
   constructor() {
@@ -70,13 +71,14 @@ export class DemoFinances {
   }
 
   portfolio(asOf: string): Portfolio {
-    return portfolioAt({
+    const portfolio = portfolioAt({
       investments: this.investments,
       trades: this.trades,
       incomes: this.incomes,
       priceOn: (investmentId, day) => priceOnDay(this.seed, investmentId, day),
       asOf,
     });
+    return withBalanceEntries(portfolio, this.investments, this.balanceEntries, asOf);
   }
 
   /** The open bills, the ones settled in the last 30 days, and the card invoices left to pay. */

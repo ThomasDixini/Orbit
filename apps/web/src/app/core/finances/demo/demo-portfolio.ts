@@ -1,4 +1,5 @@
 import {
+  BalanceEntry,
   Income,
   Investment,
   MonthlyPoint,
@@ -7,6 +8,8 @@ import {
   Trade,
   tradeTotalCents,
 } from '../investments';
+import { balanceEffectCents } from '../balance-statement';
+import { isBalanceTracked } from '../investments';
 import { monthKeys } from '../period';
 import { daysBetweenDays, monthEnd } from './demo-dates';
 
@@ -106,6 +109,60 @@ function lineOf(
 }
 
 /** Units and cost by the average price: a sale takes out the units at what they cost on average. */
+/**
+ * Adds the balance-tracked investments to a portfolio worked out from trades: each is worth its balance
+ * and costs the money put in and not yet taken out, so its gain is the yield minus what was taken out.
+ * @example withBalanceEntries(portfolio, investments, entries, '2026-11-04').lines
+ */
+export function withBalanceEntries(
+  portfolio: Portfolio,
+  investments: readonly Investment[],
+  entries: readonly BalanceEntry[],
+  asOf: string,
+): Portfolio {
+  const tracked = investments.filter(isBalanceTracked);
+  if (tracked.length === 0) return { ...portfolio, balanceEntries: entries };
+  const lines = portfolio.lines.map((line) =>
+    isBalanceTracked(line.investment) ? balanceLineOf(line.investment, entries, asOf) : line,
+  );
+  return {
+    ...portfolio,
+    lines,
+    totals: {
+      ...portfolio.totals,
+      costCents: sum(lines.map((line) => line.costCents)),
+      valueCents: sum(lines.map((line) => line.valueCents ?? line.costCents)),
+    },
+    balanceEntries: entries,
+  };
+}
+
+function balanceLineOf(
+  investment: Investment,
+  entries: readonly BalanceEntry[],
+  asOf: string,
+): PortfolioLine {
+  const own = entries.filter((entry) => entry.investmentId === investment.id && entry.date <= asOf);
+  const balance = Math.max(0, sum(own.map(balanceEffectCents)));
+  const principal = Math.max(
+    0,
+    sum(
+      own.map((entry) => {
+        if (entry.kind === 'opening' || entry.kind === 'deposit') return entry.amountCents;
+        return entry.kind === 'withdrawal' ? -entry.amountCents : 0;
+      }),
+    ),
+  );
+  return {
+    investment,
+    quantityThousandths: balance > 0 ? THOUSANDTHS : 0,
+    costCents: principal,
+    valueCents: balance,
+    gainCents: balance > 0 ? balance - principal : undefined,
+    incomeCents: 0,
+  };
+}
+
 function holdingOf(trades: readonly Trade[]): Holding {
   const holding: Holding = { quantityThousandths: 0, costCents: 0 };
   for (const trade of [...trades].sort((first, second) => first.date.localeCompare(second.date))) {

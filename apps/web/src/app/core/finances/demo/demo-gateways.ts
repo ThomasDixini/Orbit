@@ -8,6 +8,8 @@ import { Account, FinanceCategory } from '../finance-references';
 import { IncomeSplit } from '../income-split';
 import { IncomeSplitGateway } from '../income-split-gateway';
 import {
+  BalanceEntry,
+  BalanceEntryDraft,
   Income,
   IncomeDraft,
   Investment,
@@ -185,7 +187,7 @@ export class DemoInvestmentsGateway extends InvestmentsGateway {
   }
 
   override deleteInvestment(investmentId: string): Observable<void> {
-    const isUsed = [...this.demo.trades, ...this.demo.incomes].some(
+    const isUsed = [...this.demo.trades, ...this.demo.incomes, ...this.demo.balanceEntries].some(
       (item) => item.investmentId === investmentId,
     );
     if (isUsed)
@@ -213,6 +215,17 @@ export class DemoInvestmentsGateway extends InvestmentsGateway {
 
   override deleteIncome(incomeId: string): Observable<void> {
     this.demo.incomes = this.demo.incomes.filter((item) => item.id !== incomeId);
+    return of(undefined);
+  }
+
+  override saveBalanceEntry(entryId: string, draft: BalanceEntryDraft): Observable<BalanceEntry> {
+    const entry: BalanceEntry = { id: entryId, ...draft };
+    this.demo.balanceEntries = upsert(this.demo.balanceEntries, entry);
+    return of(entry);
+  }
+
+  override deleteBalanceEntry(entryId: string): Observable<void> {
+    this.demo.balanceEntries = this.demo.balanceEntries.filter((item) => item.id !== entryId);
     return of(undefined);
   }
 }

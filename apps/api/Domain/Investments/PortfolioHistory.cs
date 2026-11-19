@@ -6,7 +6,8 @@ public sealed record MonthlyPoint(string Month, long ValueCents, long AppliedCen
 /// <summary>
 /// The portfolio month by month since the first trade. Each month is valued at the closing prices of its
 /// end; the month of <c>asOf</c> uses the latest price typed for the investment when there is one, so the
-/// last point agrees with the portfolio. An investment with no price for a month is valued at what it cost.
+/// last point agrees with the portfolio. An investment with no price for a month is valued at what it cost. A
+/// balance-tracked investment is worth its balance at the end of each month.
 /// </summary>
 public static class PortfolioHistory
 {
@@ -22,27 +23,33 @@ public static class PortfolioHistory
         IReadOnlyList<InvestmentIncome> incomes,
         IReadOnlyList<MonthEndPrice> prices,
         CdiIndex cdi,
-        DateOnly asOf)
+        DateOnly asOf,
+        IReadOnlyList<BalanceEntry>? balanceEntries = null)
     {
         if (trades.Count == 0) return [];
+        var entries = balanceEntries ?? [];
         var points = new List<MonthlyPoint>();
         var first = StartOfMonth(trades.Min(trade => trade.Date));
         for (var month = first; month <= asOf; month = month.AddMonths(1))
         {
-            points.Add(PointAt(month, investments, trades, incomes, prices, cdi, asOf));
+            points.Add(PointAt(month, investments, trades, incomes, prices, cdi, asOf, entries));
         }
         return points;
     }
 
     private static MonthlyPoint PointAt(
         DateOnly month, IReadOnlyList<Investment> investments, IReadOnlyList<InvestmentTrade> trades,
-        IReadOnlyList<InvestmentIncome> incomes, IReadOnlyList<MonthEndPrice> prices, CdiIndex cdi, DateOnly asOf)
+        IReadOnlyList<InvestmentIncome> incomes, IReadOnlyList<MonthEndPrice> prices, CdiIndex cdi, DateOnly asOf,
+        IReadOnlyList<BalanceEntry> entries)
     {
         var end = Earliest(month.AddMonths(1).AddDays(-1), asOf);
         var key = MonthKey(month);
         var tradesUpTo = trades.Where(trade => trade.Date <= end).ToList();
         var incomesUpTo = incomes.Where(income => income.Date <= end).ToList();
-        var value = investments.Sum(investment => ValueOf(investment, tradesUpTo, prices, key, key == MonthKey(asOf)));
+        var value = investments.Sum(investment =>
+            investment.Tracking == InvestmentTracking.Balance
+                ? Math.Max(0, BalanceLedger.BalanceAt(entries, investment.Id, end))
+                : ValueOf(investment, tradesUpTo, prices, key, key == MonthKey(asOf)));
         var applied = tradesUpTo.Sum(SignedCents);
         var received = incomesUpTo.Sum(income => income.AmountCents);
         var cdiGain = CdiGain(tradesUpTo, incomesUpTo, cdi, end);

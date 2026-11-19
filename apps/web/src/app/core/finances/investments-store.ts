@@ -4,7 +4,14 @@ import { Clock } from '../calendar/clock';
 import { isoDate } from '../calendar/date-label';
 import { IdGenerator } from '../ids/id-generator';
 import { ImportBatch } from './investment-import';
-import { IncomeDraft, InvestmentDraft, Portfolio, TradeDraft, movements } from './investments';
+import {
+  BalanceEntryDraft,
+  IncomeDraft,
+  InvestmentDraft,
+  Portfolio,
+  TradeDraft,
+  movements,
+} from './investments';
 import { InvestmentsGateway } from './investments-gateway';
 
 /** How many proventos of an import are sent at the same time. */
@@ -84,6 +91,16 @@ export class InvestmentsStore {
   /** @example await store.deleteIncome('dividend-petr4') */
   deleteIncome(incomeId: string): Promise<boolean> {
     return this.write(this.gateway.deleteIncome(incomeId));
+  }
+
+  /** @example await store.addBalanceEntry({ investmentId: 'rdb', date: '2026-11-03', kind: 'deposit', amountCents: 88400 }) */
+  addBalanceEntry(draft: BalanceEntryDraft): Promise<boolean> {
+    return this.write(this.gateway.saveBalanceEntry(this.ids.next(), draft));
+  }
+
+  /** @example await store.deleteBalanceEntry('deposit-rdb') */
+  deleteBalanceEntry(entryId: string): Promise<boolean> {
+    return this.write(this.gateway.deleteBalanceEntry(entryId));
   }
 
   /**

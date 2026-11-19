@@ -1,0 +1,73 @@
+:host {
+  display: block;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.card-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.card-title {
+  margin: 0;
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-medium);
+}
+
+.picker {
+  min-width: 220px;
+}
+
+.table-wrap {
+  overflow-x: auto;
+}
+
+.statement {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-size-sm);
+}
+
+.statement th,
+.statement td {
+  padding: 10px 10px;
+  text-align: left;
+  font-weight: var(--font-weight-regular);
+  border-top: var(--border-hairline) solid var(--color-border-subtle);
+  white-space: nowrap;
+}
+
+.statement thead th {
+  border-top: 0;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-faint);
+}
+
+.statement .number {
+  text-align: right;
+}
+
+.statement .strong {
+  font-weight: var(--font-weight-medium);
+}
+
+.gain {
+  color: var(--color-income);
+}
+
+.loss {
+  color: var(--color-expense);
+}
+
+.note,
+.empty {
+  margin: 0;
+}

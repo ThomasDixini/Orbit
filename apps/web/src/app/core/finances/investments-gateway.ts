@@ -1,5 +1,7 @@
 import { Observable } from 'rxjs';
 import {
+  BalanceEntry,
+  BalanceEntryDraft,
   Income,
   IncomeDraft,
   Investment,
@@ -30,4 +32,9 @@ export abstract class InvestmentsGateway {
   abstract saveIncome(incomeId: string, draft: IncomeDraft): Observable<Income>;
 
   abstract deleteIncome(incomeId: string): Observable<void>;
+
+  /** Only an investment followed by its balance takes entries; any other is refused. */
+  abstract saveBalanceEntry(entryId: string, draft: BalanceEntryDraft): Observable<BalanceEntry>;
+
+  abstract deleteBalanceEntry(entryId: string): Observable<void>;
 }

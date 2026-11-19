@@ -18,13 +18,18 @@ public sealed class Investment
     /// <summary>The user's own risk rating; absent until chosen.</summary>
     public InvestmentRisk? Risk { get; }
 
-    private Investment(string id, string name, InvestmentKind kind, PricePoint? price, InvestmentRisk? risk)
+    /// <summary>Whether it is followed by purchases and sales at a price, or by its balance like a statement.</summary>
+    public InvestmentTracking Tracking { get; }
+
+    private Investment(
+        string id, string name, InvestmentKind kind, PricePoint? price, InvestmentRisk? risk, InvestmentTracking tracking)
     {
         Id = id;
         Name = name;
         Kind = kind;
         Price = price;
         Risk = risk;
+        Tracking = tracking;
     }
 
     /// <summary>
@@ -32,14 +37,16 @@ public sealed class Investment
     /// </summary>
     /// <example><code>Investment.Create("petr4", "PETR4", InvestmentKind.Stock, PricePoint.Create(3845, day)).Name; // "PETR4"</code></example>
     public static Investment Create(
-        string id, string name, InvestmentKind kind, PricePoint? price, InvestmentRisk? risk = null)
+        string id, string name, InvestmentKind kind, PricePoint? price, InvestmentRisk? risk = null,
+        InvestmentTracking tracking = InvestmentTracking.Trades)
     {
         return new Investment(
             EntityId.Require(id, "investment id"),
             RequiredText.Require(name, MaxNameLength, "investment name"),
             RequireKind(kind),
             price,
-            RequireRisk(risk));
+            RequireRisk(risk),
+            RequireTracking(tracking));
     }
 
     /// <summary>
@@ -47,8 +54,15 @@ public sealed class Investment
     /// </summary>
     /// <example><code>Investment.Restore("petr4", "PETR4", InvestmentKind.Stock, null);</code></example>
     internal static Investment Restore(
-        string id, string name, InvestmentKind kind, PricePoint? price, InvestmentRisk? risk = null) =>
-        new(id, name, kind, price, risk);
+        string id, string name, InvestmentKind kind, PricePoint? price, InvestmentRisk? risk = null,
+        InvestmentTracking tracking = InvestmentTracking.Trades) =>
+        new(id, name, kind, price, risk, tracking);
+
+    private static InvestmentTracking RequireTracking(InvestmentTracking tracking)
+    {
+        if (Enum.IsDefined(tracking)) return tracking;
+        throw new DomainRuleException($"Expected the investment tracking to be a known one, received {(int)tracking}");
+    }
 
     private static InvestmentRisk? RequireRisk(InvestmentRisk? risk)
     {

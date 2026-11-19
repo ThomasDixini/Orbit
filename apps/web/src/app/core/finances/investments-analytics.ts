@@ -2,6 +2,7 @@ import {
   Income,
   InvestmentKind,
   MonthlyPoint,
+  Portfolio,
   PortfolioLine,
   Trade,
   tradeTotalCents,
@@ -136,4 +137,24 @@ export function periodPerformance(
 
 function growthBetween(startPercent: number, endPercent: number): number {
   return ((1 + endPercent / PERCENT) / (1 + startPercent / PERCENT) - 1) * PERCENT;
+}
+
+/**
+ * The investments that were held and are not any more: they have trades, proventos or statement lines, and
+ * nothing left. They leave the list of assets but stay in the histories and the charts.
+ * @example closedInvestmentIds(portfolio).has('cdb') // true after the last unit was sold
+ */
+export function closedInvestmentIds(
+  portfolio: Pick<Portfolio, 'lines' | 'trades' | 'incomes' | 'balanceEntries'>,
+): Set<string> {
+  const withActivity = new Set([
+    ...portfolio.trades.map((trade) => trade.investmentId),
+    ...portfolio.incomes.map((income) => income.investmentId),
+    ...(portfolio.balanceEntries ?? []).map((entry) => entry.investmentId),
+  ]);
+  return new Set(
+    portfolio.lines
+      .filter((line) => line.quantityThousandths === 0 && withActivity.has(line.investment.id))
+      .map((line) => line.investment.id),
+  );
 }

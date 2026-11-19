@@ -11,17 +11,32 @@ public sealed record PriceBody(long Cents, DateOnly On)
 
 /// <summary>Body of <c>PUT /investments/{investmentId}</c>; the id comes from the route. Leaving the price out clears it.</summary>
 public sealed record SaveInvestmentRequest(
-    string Name, InvestmentKind Kind, PriceBody? Price = null, InvestmentRisk? Risk = null)
+    string Name, InvestmentKind Kind, PriceBody? Price = null, InvestmentRisk? Risk = null,
+    InvestmentTracking Tracking = InvestmentTracking.Trades)
 {
     public SaveInvestmentCommand ToCommand(string investmentId) =>
-        new(investmentId, Name, Kind, Price?.Cents, Price?.On, Risk);
+        new(investmentId, Name, Kind, Price?.Cents, Price?.On, Risk, Tracking);
 }
 
 public sealed record InvestmentResponse(
-    string Id, string Name, InvestmentKind Kind, PriceBody? Price, InvestmentRisk? Risk)
+    string Id, string Name, InvestmentKind Kind, PriceBody? Price, InvestmentRisk? Risk, InvestmentTracking Tracking)
 {
     public static InvestmentResponse From(Investment investment) =>
-        new(investment.Id, investment.Name, investment.Kind, PriceBody.From(investment.Price), investment.Risk);
+        new(investment.Id, investment.Name, investment.Kind, PriceBody.From(investment.Price), investment.Risk,
+            investment.Tracking);
+}
+
+/// <summary>Body of <c>PUT /investment-balance-entries/{entryId}</c>; the id comes from the route.</summary>
+public sealed record SaveBalanceEntryRequest(string InvestmentId, DateOnly Date, BalanceEntryKind Kind, long AmountCents)
+{
+    public SaveBalanceEntryCommand ToCommand(string entryId) => new(entryId, InvestmentId, Date, Kind, AmountCents);
+}
+
+public sealed record BalanceEntryResponse(
+    string Id, string InvestmentId, DateOnly Date, BalanceEntryKind Kind, long AmountCents)
+{
+    public static BalanceEntryResponse From(BalanceEntry entry) =>
+        new(entry.Id, entry.InvestmentId, entry.Date, entry.Kind, entry.AmountCents);
 }
 
 /// <summary>Body of <c>PUT /investment-trades/{tradeId}</c>; the id comes from the route.</summary>
@@ -71,7 +86,8 @@ public sealed record PerformanceResponse(
 
 public sealed record PortfolioResponse(
     IReadOnlyList<PortfolioLineResponse> Lines, PortfolioTotals Totals, PerformanceResponse? Performance,
-    IReadOnlyList<TradeResponse> Trades, IReadOnlyList<IncomeResponse> Incomes, IReadOnlyList<MonthlyPoint> History)
+    IReadOnlyList<TradeResponse> Trades, IReadOnlyList<IncomeResponse> Incomes, IReadOnlyList<MonthlyPoint> History,
+    IReadOnlyList<BalanceEntryResponse> BalanceEntries)
 {
     public static PortfolioResponse From(PortfolioSnapshot snapshot) =>
         new(snapshot.Portfolio.Lines.Select(PortfolioLineResponse.From).ToList(),
@@ -79,7 +95,8 @@ public sealed record PortfolioResponse(
             PerformanceResponse.From(snapshot.Portfolio.Performance),
             snapshot.Trades.Select(TradeResponse.From).ToList(),
             snapshot.Incomes.Select(IncomeResponse.From).ToList(),
-            snapshot.History);
+            snapshot.History,
+            snapshot.BalanceEntries.Select(BalanceEntryResponse.From).ToList());
 }
 
 /// <summary>HTTP routes for investments, their trades and proventos, and the portfolio they make up.</summary>
@@ -87,7 +104,8 @@ public static class InvestmentEndpoints
 {
     /// <summary>
     /// Maps <c>GET /investments?date=YYYY-MM-DD</c>, <c>PUT</c>/<c>DELETE /investments/{investmentId}</c>,
-    /// <c>PUT</c>/<c>DELETE /investment-trades/{tradeId}</c> and <c>PUT</c>/<c>DELETE /investment-incomes/{incomeId}</c>.
+    /// <c>PUT</c>/<c>DELETE /investment-trades/{tradeId}</c>, <c>PUT</c>/<c>DELETE /investment-incomes/{incomeId}</c>
+    /// and <c>PUT</c>/<c>DELETE /investment-balance-entries/{entryId}</c>.
     /// </summary>
     /// <example><code>app.MapInvestmentEndpoints();</code></example>
     public static IEndpointRouteBuilder MapInvestmentEndpoints(this IEndpointRouteBuilder routes)
@@ -99,6 +117,8 @@ public static class InvestmentEndpoints
         routes.MapDelete("/investment-trades/{tradeId}", DeleteTradeAsync);
         routes.MapPut("/investment-incomes/{incomeId}", SaveIncomeAsync);
         routes.MapDelete("/investment-incomes/{incomeId}", DeleteIncomeAsync);
+        routes.MapPut("/investment-balance-entries/{entryId}", SaveBalanceEntryAsync);
+        routes.MapDelete("/investment-balance-entries/{entryId}", DeleteBalanceEntryAsync);
         return routes;
     }
 
@@ -143,6 +163,21 @@ public static class InvestmentEndpoints
     {
         var saved = await saveIncome.ExecuteAsync(request.ToCommand(incomeId), cancellationToken);
         return Results.Ok(IncomeResponse.From(saved));
+    }
+
+    private static async Task<IResult> SaveBalanceEntryAsync(
+        string entryId, SaveBalanceEntryRequest request, SaveBalanceEntry saveBalanceEntry,
+        CancellationToken cancellationToken)
+    {
+        var saved = await saveBalanceEntry.ExecuteAsync(request.ToCommand(entryId), cancellationToken);
+        return Results.Ok(BalanceEntryResponse.From(saved));
+    }
+
+    private static async Task<IResult> DeleteBalanceEntryAsync(
+        string entryId, DeleteBalanceEntry deleteBalanceEntry, CancellationToken cancellationToken)
+    {
+        await deleteBalanceEntry.ExecuteAsync(entryId, cancellationToken);
+        return Results.NoContent();
     }
 
     private static async Task<IResult> DeleteIncomeAsync(
