@@ -32,6 +32,7 @@ import {
   lineValueCents,
   periodPerformance,
 } from '../../../core/finances/investments-analytics';
+import { appreciationMonths } from '../../../core/finances/monthly-appreciation';
 import { InvestmentsStore } from '../../../core/finances/investments-store';
 import { rateSeries } from '../../../core/finances/period-rates';
 import { PeriodRatesStore } from '../../../core/finances/period-rates-store';
@@ -197,6 +198,13 @@ export class Investments {
   protected readonly incomeNote = computed(() => this.describeIncomeNote());
   protected readonly formatAxisMoney = (reais: number): string => this.compact(reais);
   protected readonly formatAxisPercent = (percent: number): string => `${Math.round(percent)}%`;
+  protected readonly formatReais = (reais: number): string =>
+    formatMoney(Math.round(reais * 100), this.locale);
+  protected readonly formatPercentDetail = (percent: number): string =>
+    formatPercent(percent, this.locale);
+  protected readonly formatCents = (cents: number): string => formatMoney(cents, this.locale);
+  protected readonly formatSignedCents = (cents: number): string =>
+    formatSignedMoney(cents, this.locale);
   protected readonly formatCentsAxis = (cents: number): string => this.compact(cents / 100);
 
   private readonly months = computed(() => periodMonths(this.filters().period, this.today));
@@ -459,16 +467,32 @@ export class Investments {
    * A source without per-investment histories (the demo) leaves a narrowed view blank.
    */
   private selectedHistory(): (MonthlyPoint | undefined)[] {
+    return this.historyOver(this.months());
+  }
+
+  private historyOver(months: readonly string[]): (MonthlyPoint | undefined)[] {
     const { kind, investmentId } = this.filters();
     const portfolio = this.store.portfolio();
     if (kind === undefined && investmentId === undefined) {
       const history = portfolio?.history ?? [];
-      return this.months().map((month) => history.find((point) => point.month === month));
+      return months.map((month) => history.find((point) => point.month === month));
     }
     const histories = portfolio?.investmentHistories;
-    if (histories === undefined) return this.months().map(() => undefined);
+    if (histories === undefined) return months.map(() => undefined);
     const own = [...this.selectedIds()].map((id) => histories[id]);
-    return combineHistories(own, this.months());
+    return combineHistories(own, months);
+  }
+
+  /** Every month the history of the selection covers, oldest first, not only the ones of the period. */
+  private historyMonths(): string[] {
+    const { kind, investmentId } = this.filters();
+    const portfolio = this.store.portfolio();
+    const histories =
+      kind === undefined && investmentId === undefined
+        ? [portfolio?.history ?? []]
+        : [...this.selectedIds()].map((id) => portfolio?.investmentHistories?.[id] ?? []);
+    const keys = new Set(histories.flatMap((history) => history.map((point) => point.month)));
+    return [...keys].sort((first, second) => first.localeCompare(second));
   }
 
   private describeValueSeries(): ChartSeries[] {
@@ -525,14 +549,16 @@ export class Investments {
     return new Intl.DateTimeFormat(this.locale, { month: 'long', year: 'numeric' }).format(date);
   }
 
+  // Worked out over the whole history, so the first month of the period is compared with the one before
+  // it (outside the period) and the first month ever opens at zero, instead of both showing no gain.
   private describeMonthlyGains(): number[] {
-    const history = this.selectedHistory();
-    return history.map((point, index) => {
-      const previous = history[index - 1];
-      if (point === undefined || previous === undefined) return 0;
-      const gain = point.valueCents - point.appliedCents;
-      return gain - (previous.valueCents - previous.appliedCents);
-    });
+    const points = this.historyOver(this.historyMonths()).filter(
+      (point): point is MonthlyPoint => point !== undefined,
+    );
+    const gains = new Map(
+      appreciationMonths(points, []).map((month) => [month.month, month.appreciationCents]),
+    );
+    return this.months().map((month) => gains.get(month) ?? 0);
   }
 
   private describeCdiNote(): string | undefined {

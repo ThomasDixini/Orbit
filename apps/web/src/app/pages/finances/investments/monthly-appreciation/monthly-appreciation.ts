@@ -59,6 +59,8 @@ export class MonthlyAppreciation {
     this.chartMonths().map((month) => this.shortMonth(month)),
   );
   protected readonly series = computed(() => this.describeSeries());
+  protected readonly formatDetail = (percent: number): string =>
+    formatPercent(percent, this.locale);
   protected readonly formatAxis = (percent: number): string => `${Math.round(percent)}%`;
 
   protected pick(event: Event): void {

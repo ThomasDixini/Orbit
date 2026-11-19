@@ -4,7 +4,7 @@
     <ul class="legend">
       @for (line of lines(); track line.name) {
         <li>
-          <span class="swatch" [class.dashed]="line.dashed" [class.second]="line.index > 0"></span>
+          <span class="swatch" [class.dashed]="line.dashed" [attr.data-series]="line.index"></span>
           {{ line.name | t }}
         </li>
       }
@@ -25,9 +25,11 @@
         </text>
       }
       @for (column of columns(); track $index) {
-        <text class="axis" [attr.x]="column.x" [attr.y]="height - 6" text-anchor="middle">
-          {{ column.label | t }}
-        </text>
+        @if ($index % labelEvery() === 0) {
+          <text class="axis" [attr.x]="column.x" [attr.y]="height - 6" text-anchor="middle">
+            {{ column.label | t }}
+          </text>
+        }
       }
       @for (line of lines(); track line.name) {
         @if (line.index === 0 && line.areaPath) {
@@ -35,10 +37,63 @@
         }
         <path
           class="line"
-          [class.second]="line.index > 0"
+          [attr.data-series]="line.index"
           [class.dashed]="line.dashed"
+          [class.faded]="hovered() !== undefined"
           [attr.d]="line.path"
         />
+      }
+      @if (hoveredX() !== undefined) {
+        <line
+          class="guide"
+          [attr.x1]="hoveredX()"
+          [attr.x2]="hoveredX()"
+          y1="10"
+          [attr.y2]="bottom"
+        />
+        @for (marker of markers(); track marker.index) {
+          <circle
+            class="marker"
+            r="3.5"
+            [attr.data-series]="marker.index"
+            [attr.cx]="marker.x"
+            [attr.cy]="marker.y"
+          />
+        }
+      }
+      @for (column of columns(); track $index) {
+        <rect
+          class="zone"
+          aria-hidden="true"
+          [attr.x]="column.x - zoneWidth() / 2"
+          y="0"
+          [attr.width]="zoneWidth()"
+          [attr.height]="height"
+          (mouseenter)="hovered.set($index)"
+          (mouseleave)="hovered.set(undefined)"
+        />
+      }
+      @if (tooltip(); as box) {
+        <g class="tooltip" aria-hidden="true">
+          <rect
+            class="tooltip-box"
+            rx="4"
+            [attr.x]="box.x"
+            [attr.y]="box.y"
+            [attr.width]="box.width"
+            [attr.height]="box.height"
+          />
+          @for (line of box.lines; track $index) {
+            <text
+              class="tooltip-text"
+              [class.strong]="$index === 0"
+              [attr.x]="line.x"
+              [attr.y]="line.y"
+            >
+              {{ line.text }}
+            </text>
+          }
+        </g>
       }
     </svg>
   } @else {

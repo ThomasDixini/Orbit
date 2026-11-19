@@ -3,7 +3,12 @@
   @if (views().length > 0) {
     <div class="bar" role="img" [attr.aria-label]="'Share of each kind of investment' | t">
       @for (view of views(); track view.kind) {
-        <span class="segment" [attr.data-kind]="view.kind" [style.flex-grow]="view.percent"></span>
+        <span
+          class="segment"
+          [attr.data-kind]="view.kind"
+          [style.flex-grow]="view.percent"
+          [attr.title]="(view.label | t) + ': ' + view.percentText + ' · ' + view.valueText"
+        ></span>
       }
     </div>
     <ul class="legend">

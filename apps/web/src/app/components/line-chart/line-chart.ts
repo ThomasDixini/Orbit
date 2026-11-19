@@ -1,5 +1,6 @@
-import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, input, signal } from '@angular/core';
 import { TranslatePipe } from '../../core/i18n/translate.pipe';
+import { TooltipBox, labelStep, tooltipBox } from '../chart-tooltip';
 
 /** One line of the chart; a missing value leaves a gap. */
 export interface ChartSeries {
@@ -44,7 +45,10 @@ export class LineChart {
   readonly title = input.required<string>();
   readonly labels = input.required<readonly string[]>();
   readonly series = input.required<readonly ChartSeries[]>();
+  /** Short numbers for the axis. */
   readonly format = input.required<(value: number) => string>();
+  /** Full numbers for the tooltip; the axis format is used when not given. */
+  readonly detailFormat = input<((value: number) => string) | undefined>(undefined);
   readonly emptyText = input.required<string>();
 
   protected readonly width = WIDTH;
@@ -64,6 +68,48 @@ export class LineChart {
   protected readonly columns = computed(() =>
     this.labels().map((label, index) => ({ label, x: this.xOf(index) })),
   );
+  protected readonly labelEvery = computed(() =>
+    labelStep(this.labels(), WIDTH - PAD_LEFT - PAD_RIGHT, Math.max(this.labels().length - 1, 1)),
+  );
+  /** The distance between two months: how wide the area that answers to the mouse is. */
+  protected readonly zoneWidth = computed(
+    () => (WIDTH - PAD_LEFT - PAD_RIGHT) / Math.max(this.labels().length - 1, 1),
+  );
+  /** The month under the mouse. */
+  protected readonly hovered = signal<number | undefined>(undefined);
+  protected readonly hoveredX = computed(() => {
+    const index = this.hovered();
+    return index === undefined ? undefined : this.xOf(index);
+  });
+  protected readonly markers = computed(() => this.buildMarkers());
+  protected readonly tooltip = computed<TooltipBox | undefined>(() => this.buildTooltip());
+
+  private buildMarkers(): { x: number; y: number; index: number }[] {
+    const position = this.hovered();
+    if (position === undefined) return [];
+    return this.series().flatMap((line, index) => {
+      const value = line.values[position];
+      return value === undefined ? [] : [{ x: this.xOf(position), y: this.yOf(value), index }];
+    });
+  }
+
+  private buildTooltip(): TooltipBox | undefined {
+    const position = this.hovered();
+    if (position === undefined) return undefined;
+    const format = this.detailFormat() ?? this.format();
+    const known = this.series().flatMap((line) => {
+      const value = line.values[position];
+      return value === undefined ? [] : [{ text: `${line.name}: ${format(value)}`, value }];
+    });
+    if (known.length === 0) return undefined;
+    const top = Math.min(...known.map((entry) => this.yOf(entry.value)));
+    return tooltipBox(
+      this.xOf(position),
+      top,
+      [this.labels()[position] ?? '', ...known.map((entry) => entry.text)],
+      HEIGHT,
+    );
+  }
 
   private valueBounds(): { min: number; max: number } {
     const values = this.series()

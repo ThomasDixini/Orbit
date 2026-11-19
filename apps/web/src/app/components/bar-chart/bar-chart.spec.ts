@@ -63,3 +63,64 @@ describe('BarChart', () => {
     ]);
   });
 });
+
+describe('BarChart: hover', () => {
+  it('shows the label and the full value of the bar under the mouse and highlights it', () => {
+    const fixture = TestBed.createComponent(BarChart);
+    fixture.componentRef.setInput('title', 'Gains');
+    fixture.componentRef.setInput('labels', ['Sep', 'Oct', 'Nov']);
+    fixture.componentRef.setInput('values', [100, -50, 200]);
+    fixture.componentRef.setInput('format', (value: number) => String(value));
+    fixture.componentRef.setInput('detailFormat', (value: number) => `R$ ${value},00`);
+    fixture.componentRef.setInput('emptyText', 'Nothing');
+    fixture.detectChanges();
+    const zones = (fixture.nativeElement as HTMLElement).querySelectorAll('.zone');
+
+    zones[2].dispatchEvent(new Event('mouseenter'));
+    fixture.detectChanges();
+
+    const element = fixture.nativeElement as HTMLElement;
+    expect([
+      [...element.querySelectorAll('.tooltip-text')].map((text) => text.textContent?.trim()),
+      [...element.querySelectorAll('.bar')].map((bar) => bar.classList.contains('hovered')),
+    ]).toEqual([
+      ['Nov', 'R$ 200,00'],
+      [false, false, true],
+    ]);
+  });
+
+  it('takes the tooltip away when the mouse leaves', () => {
+    const fixture = TestBed.createComponent(BarChart);
+    fixture.componentRef.setInput('title', 'Gains');
+    fixture.componentRef.setInput('labels', ['Sep']);
+    fixture.componentRef.setInput('values', [100]);
+    fixture.componentRef.setInput('format', (value: number) => String(value));
+    fixture.componentRef.setInput('emptyText', 'Nothing');
+    fixture.detectChanges();
+    const zone = (fixture.nativeElement as HTMLElement).querySelector('.zone')!;
+
+    zone.dispatchEvent(new Event('mouseenter'));
+    zone.dispatchEvent(new Event('mouseleave'));
+    fixture.detectChanges();
+
+    expect((fixture.nativeElement as HTMLElement).querySelector('.tooltip')).toBeNull();
+  });
+
+  it('shows only some of the labels when there are too many months', () => {
+    const fixture = TestBed.createComponent(BarChart);
+    const labels = Array.from({ length: 24 }, (_, index) => `jan. de ${index + 10}`);
+    fixture.componentRef.setInput('title', 'Gains');
+    fixture.componentRef.setInput('labels', labels);
+    fixture.componentRef.setInput(
+      'values',
+      labels.map(() => 10),
+    );
+    fixture.componentRef.setInput('format', (value: number) => String(value));
+    fixture.componentRef.setInput('emptyText', 'Nothing');
+    fixture.detectChanges();
+
+    const shown = (fixture.nativeElement as HTMLElement).querySelectorAll('text.axis').length;
+
+    expect(shown).toBeLessThan(24 + 5);
+  });
+});

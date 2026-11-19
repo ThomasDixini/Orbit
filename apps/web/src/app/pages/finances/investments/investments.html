@@ -184,6 +184,7 @@
         [labels]="monthLabels()"
         [series]="valueSeries()"
         [format]="formatAxisMoney"
+        [detailFormat]="formatReais"
         emptyText="No history yet."
       />
       <app-line-chart
@@ -191,6 +192,7 @@
         [labels]="monthLabels()"
         [series]="returnSeries()"
         [format]="formatAxisPercent"
+        [detailFormat]="formatPercentDetail"
         emptyText="No history yet."
       />
       <app-bar-chart
@@ -200,6 +202,7 @@
         [labels]="monthLabels()"
         [values]="monthlyGains()"
         [format]="formatCentsAxis"
+        [detailFormat]="formatSignedCents"
         emptyText="No history yet."
         [selectable]="true"
         [selectedIndex]="selectedMonthIndex()"
@@ -239,6 +242,7 @@
         [labels]="monthLabels()"
         [values]="monthlyIncome()"
         [format]="formatCentsAxis"
+        [detailFormat]="formatCents"
         emptyText="No proventos in this period."
       />
     </section>

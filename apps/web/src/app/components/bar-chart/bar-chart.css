@@ -101,3 +101,39 @@ svg {
   stroke: var(--color-focus);
   stroke-width: 1.5;
 }
+
+.bar {
+  transition: opacity 120ms ease;
+}
+
+.bar.hovered {
+  filter: brightness(1.35);
+}
+
+.zone {
+  fill: transparent;
+}
+
+.zone:hover {
+  fill: rgba(255, 255, 255, 0.05);
+}
+
+.tooltip {
+  pointer-events: none;
+}
+
+.tooltip-box {
+  fill: var(--color-option-bg);
+  stroke: var(--color-border-strong);
+  stroke-width: 1;
+}
+
+.tooltip-text {
+  fill: var(--color-text-muted);
+  font-size: 9px;
+}
+
+.tooltip-text.strong {
+  fill: var(--color-text);
+  font-weight: var(--font-weight-medium);
+}
