@@ -180,7 +180,7 @@
 
     <div class="compare" role="group" [attr.aria-label]="'Compare the return with' | t">
       <span class="ui-muted">{{ 'Compare the return with' | t }}</span>
-      @for (option of comparisonOptions; track option.value) {
+      @for (option of comparisonOptions(); track option.value) {
         <button
           class="ui-chip"
           type="button"

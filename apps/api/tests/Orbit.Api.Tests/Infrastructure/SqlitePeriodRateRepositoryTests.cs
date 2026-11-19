@@ -56,7 +56,7 @@ public sealed class SqlitePeriodRateRepositoryTests : IAsyncLifetime, IDisposabl
         await _rates.SaveAsync(Rate(PeriodRateKind.Selic, "2026-10", 1300), CancellationToken.None);
         await _rates.SaveAsync(Rate(PeriodRateKind.Ipca, "2026-10", 52), CancellationToken.None);
 
-        await _rates.DeleteAsync(PeriodRateKind.Selic, "2026-10", CancellationToken.None);
+        await _rates.DeleteAsync(PeriodRateKind.Selic, null, "2026-10", CancellationToken.None);
 
         (await _rates.ListAsync(CancellationToken.None)).Select(rate => rate.Kind).ShouldBe([PeriodRateKind.Ipca]);
     }
@@ -68,9 +68,20 @@ public sealed class SqlitePeriodRateRepositoryTests : IAsyncLifetime, IDisposabl
         await _rates.SaveAsync(Rate(PeriodRateKind.Selic, "2026-10", 1300), CancellationToken.None);
         await theirs.SaveAsync(Rate(PeriodRateKind.Selic, "2026-10", 999), CancellationToken.None);
 
-        await _rates.DeleteAsync(PeriodRateKind.Selic, "2026-10", CancellationToken.None);
+        await _rates.DeleteAsync(PeriodRateKind.Selic, null, "2026-10", CancellationToken.None);
 
         (await _rates.ListAsync(CancellationToken.None)).ShouldBeEmpty();
         (await theirs.ListAsync(CancellationToken.None)).Select(rate => rate.BasisPoints).ShouldBe([999]);
+    }
+    [Fact]
+    public async Task Custom_RatesKeepTheirNamesAndAreDeletedByName()
+    {
+        await _rates.SaveAsync(PeriodRate.Create(PeriodRateKind.Custom, "2026-10", 60, "Poupança"), CancellationToken.None);
+        await _rates.SaveAsync(PeriodRate.Create(PeriodRateKind.Custom, "2026-10", 80, "Fundo X"), CancellationToken.None);
+
+        await _rates.DeleteAsync(PeriodRateKind.Custom, "Fundo X", "2026-10", CancellationToken.None);
+
+        (await _rates.ListAsync(CancellationToken.None)).Select(rate => (rate.Name, rate.BasisPoints))
+            .ShouldBe([("Poupança", 60)]);
     }
 }

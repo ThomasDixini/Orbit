@@ -2,7 +2,10 @@
   <div class="header">
     <h2 class="title">{{ 'Period rates' | t }}</h2>
     <p class="ui-muted hint">
-      {{ 'The Selic and the IPCA you type here are drawn on the return chart.' | t }}
+      {{
+        'The rates you type here can be picked to compare with the return chart, as can rates of your own, like the Poupança.'
+          | t
+      }}
     </p>
   </div>
 
@@ -18,6 +21,28 @@
           }
         </select>
       </label>
+
+      @if (isCustom()) {
+        <label class="ui-field">
+          {{ 'Name of the rate' | t }}
+          <input
+            class="ui-input"
+            name="rate-name"
+            type="text"
+            list="custom-rate-names"
+            autocomplete="off"
+            [attr.maxlength]="maxNameLength"
+            [placeholder]="'E.g. Poupança' | t"
+            [value]="name()"
+            (input)="name.set(valueOf($event))"
+          />
+          <datalist id="custom-rate-names">
+            @for (known of customNames(); track known) {
+              <option [value]="known"></option>
+            }
+          </datalist>
+        </label>
+      }
 
       <label class="ui-field">
         {{ 'Month' | t }}
@@ -67,7 +92,7 @@
     <p class="ui-muted none">{{ 'No rates yet. Type the Selic or the IPCA of a month.' | t }}</p>
   } @else {
     <ul class="list">
-      @for (rate of rates(); track rate.kind + rate.month) {
+      @for (rate of rates(); track rate.kind + (rate.name ?? '') + rate.month) {
         <li class="rate">
           <span class="month">{{ monthLabel(rate) }}</span>
           <span class="kind">{{ kindLabel(rate) | t }}</span>

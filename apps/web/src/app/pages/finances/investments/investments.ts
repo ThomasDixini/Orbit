@@ -35,10 +35,10 @@ import {
 import { appreciationMonths } from '../../../core/finances/monthly-appreciation';
 import { InvestmentsStore } from '../../../core/finances/investments-store';
 import {
-  COMPARISON_OPTIONS,
   ComparisonId,
   RateSeries,
   cdiSeries,
+  comparisonOptions,
   rateSeries,
 } from '../../../core/finances/period-rates';
 import { PeriodRatesStore } from '../../../core/finances/period-rates-store';
@@ -192,7 +192,9 @@ export class Investments {
   protected readonly monthLabels = computed(() => this.months().map((key) => this.monthName(key)));
   protected readonly valueSeries = computed(() => this.describeValueSeries());
   protected readonly returnSeries = computed(() => this.describeReturnSeries());
-  protected readonly comparisonOptions = COMPARISON_OPTIONS;
+  protected readonly comparisonOptions = computed(() =>
+    comparisonOptions(this.periodRates.rates()),
+  );
   /** What the return chart is compared with; the CDI the money would have earned and the typed rates at first. */
   protected readonly compared = signal<ReadonlySet<ComparisonId>>(
     new Set<ComparisonId>(['moneyInCdi', 'selic', 'ipca']),
@@ -551,10 +553,7 @@ export class Investments {
     const cdi = cdiSeries(this.store.portfolio()?.cdiMonthly ?? [], this.months());
     const typed = rateSeries(this.periodRates.rates(), this.months());
     const lines = chosen.has('cdi') && cdi.values.some((value) => value !== undefined) ? [cdi] : [];
-    return [
-      ...lines,
-      ...typed.filter((series) => chosen.has(series.name.toLowerCase() as ComparisonId)),
-    ];
+    return [...lines, ...typed.filter((series) => chosen.has(series.id))];
   }
 
   private describeMonthDetail():

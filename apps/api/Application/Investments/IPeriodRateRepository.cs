@@ -11,6 +11,6 @@ public interface IPeriodRateRepository
     /// <summary>Stores the rate, replacing the stored one of the same kind and month.</summary>
     Task SaveAsync(PeriodRate rate, CancellationToken cancellationToken);
 
-    /// <summary>Removes the rate of this kind and month; one that is not there is ignored.</summary>
-    Task DeleteAsync(PeriodRateKind kind, string month, CancellationToken cancellationToken);
+    /// <summary>Removes the rate of this kind (and name, for a custom one) and month; one that is not there is ignored.</summary>
+    Task DeleteAsync(PeriodRateKind kind, string? name, string month, CancellationToken cancellationToken);
 }

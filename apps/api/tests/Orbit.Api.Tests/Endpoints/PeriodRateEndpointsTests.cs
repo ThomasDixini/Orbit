@@ -61,4 +61,24 @@ public sealed class PeriodRateEndpointsTests : IDisposable
 
         response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
     }
+
+    [Fact]
+    public async Task Custom_RateIsSavedWithItsNameAndDeletedByName()
+    {
+        (await _client.PutAsJsonAsync("/period-rates/custom/2026-10", new { basisPoints = 60, name = "Poupança" }))
+            .EnsureSuccessStatusCode();
+
+        var listed = await _client.GetFromJsonAsync<List<PeriodRateResponse>>("/period-rates", Json);
+        var deleted = await _client.DeleteAsync("/period-rates/custom/2026-10?name=Poupan%C3%A7a");
+
+        listed!.Select(rate => (rate.Kind, rate.Name)).ShouldBe([(PeriodRateKind.Custom, "Poupança")]);
+        deleted.StatusCode.ShouldBe(HttpStatusCode.NoContent);
+        (await _client.GetFromJsonAsync<List<PeriodRateResponse>>("/period-rates", Json))!.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task Custom_RateWithoutANameIsBadRequest()
+    {
+        (await Put("custom", "2026-10", 60)).StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+    }
 }

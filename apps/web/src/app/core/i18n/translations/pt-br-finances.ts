@@ -188,6 +188,14 @@ export const PT_BR_FINANCES: Readonly<Record<string, string>> = {
   'Paid from': 'Paga com',
   'Record payment': 'Registrar pagamento',
 
+  // Custom rates
+  'My own rate (per month)': 'Minha própria taxa (por mês)',
+  'My own rate': 'Minha taxa',
+  'Name of the rate': 'Nome da taxa',
+  'E.g. Poupança': 'Ex.: Poupança',
+  'The rates you type here can be picked to compare with the return chart, as can rates of your own, like the Poupança.':
+    'As taxas que você digita aqui podem ser escolhidas para comparar no gráfico de rentabilidade, assim como taxas suas, como a Poupança.',
+
   // Rates to compare with
   'Compare the return with': 'Comparar a rentabilidade com',
   'CDI on your money': 'CDI sobre o seu dinheiro',
@@ -369,8 +377,6 @@ export const PT_BR_FINANCES: Readonly<Record<string, string>> = {
 
   // Period rates
   'Period rates': 'Taxas por período',
-  'The Selic and the IPCA you type here are drawn on the return chart.':
-    'A Selic e o IPCA que você digita aqui aparecem no gráfico de rentabilidade.',
   'New rate': 'Nova taxa',
   Rate: 'Taxa',
   'Value (%)': 'Valor (%)',

@@ -63,4 +63,16 @@ public class PeriodRateUseCaseTests
         await Should.ThrowAsync<DomainRuleException>(
             () => new DeletePeriodRate(_rates).ExecuteAsync(PeriodRateKind.Selic, "oct", CancellationToken.None));
     }
+
+    [Fact]
+    public async Task Custom_RatesWithDifferentNamesAreKeptApartAndDeletedByName()
+    {
+        var save = new SavePeriodRate(_rates);
+        await save.ExecuteAsync(new SavePeriodRateCommand(PeriodRateKind.Custom, "2026-10", 60, "Poupança"), CancellationToken.None);
+        await save.ExecuteAsync(new SavePeriodRateCommand(PeriodRateKind.Custom, "2026-10", 80, "Fundo X"), CancellationToken.None);
+
+        await new DeletePeriodRate(_rates).ExecuteAsync(PeriodRateKind.Custom, "2026-10", CancellationToken.None, "Fundo X");
+
+        (await _rates.ListAsync(CancellationToken.None)).Select(rate => rate.Name).ShouldBe(["Poupança"]);
+    }
 }
