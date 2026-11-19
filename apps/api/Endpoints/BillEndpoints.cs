@@ -4,9 +4,9 @@ using Orbit.Api.Domain.Finances;
 namespace Orbit.Api.Endpoints;
 
 /// <summary>How a new bill repeats; sent only when it is created.</summary>
-public sealed record BillRecurrenceBody(BillRecurrence Kind, int Count)
+public sealed record BillRecurrenceBody(BillRecurrence Kind, int Count, bool AmountIsTotal = false)
 {
-    public BillRecurrenceCommand ToCommand() => new(Kind, Count);
+    public BillRecurrenceCommand ToCommand() => new(Kind, Count, AmountIsTotal);
 }
 
 /// <summary>Body of <c>PUT /bills/{billId}</c>; the id comes from the route.</summary>

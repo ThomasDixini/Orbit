@@ -56,6 +56,26 @@ public class BillUseCaseTests
     }
 
     [Fact]
+    public async Task Save_SplitsATotalIntoInstallmentsThatAddUpToIt()
+    {
+        var saved = await SaveBill.ExecuteAsync(
+            Rent(
+                recurrence: new BillRecurrenceCommand(BillRecurrence.Installments, 6, AmountIsTotal: true),
+                amountCents: 50_000),
+            CancellationToken.None);
+
+        saved.Select(bill => bill.AmountCents).ShouldBe([8_334L, 8_334L, 8_333L, 8_333L, 8_333L, 8_333L]);
+    }
+
+    [Fact]
+    public async Task Save_ATotalOnlyBelongsToInstallments()
+    {
+        await Should.ThrowAsync<DomainRuleException>(() => SaveBill.ExecuteAsync(
+            Rent(recurrence: new BillRecurrenceCommand(BillRecurrence.Monthly, 3, AmountIsTotal: true)),
+            CancellationToken.None));
+    }
+
+    [Fact]
     public async Task Save_RepeatingARecurringCreationLeavesOneSeries()
     {
         var command = Rent(recurrence: new BillRecurrenceCommand(BillRecurrence.Monthly, 3));

@@ -7,6 +7,7 @@ import {
   input,
   linkedSignal,
   output,
+  signal,
 } from '@angular/core';
 import { fieldValue } from '../../../../core/forms/field-value';
 import { Account, FinanceCategory } from '../../../../core/finances/finance-references';
@@ -19,11 +20,34 @@ import {
   signedCents,
   typeOf,
 } from '../../../../core/finances/transaction';
+import {
+  Bill,
+  BillDraft,
+  BillSettlement,
+  MAX_REPEAT_COUNT,
+  MIN_REPEAT_COUNT,
+} from '../../../../core/finances/bills';
+import {
+  billKindOf,
+  installmentBills,
+  isValidInstallmentCount,
+  monthAfter,
+} from '../../../../core/finances/installment-purchase';
 import { TranslatePipe } from '../../../../core/i18n/translate.pipe';
+
+/** The bill a new transaction pays or receives, and when and through which account. */
+export interface BillLink {
+  readonly billId: string;
+  readonly settlement: BillSettlement;
+}
+
+type EntryMode = 'single' | 'installments';
 
 /**
  * Inline form above the transactions list: expense or income, amount, description, category,
  * account and day. Records a new transaction, or edits (and deletes) the one given in `transaction`.
+ * A new one can also be paid in installments (it becomes one bill to pay or receive per month) or be
+ * linked to an open bill, which it then settles.
  */
 @Component({
   selector: 'app-transaction-form',
@@ -40,7 +64,11 @@ export class TransactionForm {
   readonly defaultAccountId = input<string>();
   /** The transaction being edited; leave unset to record a new one. */
   readonly transaction = input<Transaction | undefined>(undefined);
+  /** The open bills a new transaction can be linked to. */
+  readonly openBills = input<readonly Bill[]>([]);
   readonly save = output<TransactionDraft>();
+  readonly saveInstallments = output<BillDraft>();
+  readonly settleBill = output<BillLink>();
   readonly dismiss = output();
   readonly remove = output();
 
@@ -55,6 +83,12 @@ export class TransactionForm {
   }
 
   protected readonly typeOptions = TRANSACTION_TYPE_OPTIONS;
+  protected readonly minCount = MIN_REPEAT_COUNT;
+  protected readonly maxCount = MAX_REPEAT_COUNT;
+  protected readonly mode = signal<EntryMode>('single');
+  protected readonly installmentCount = signal('6');
+  protected readonly firstDueDate = linkedSignal(() => monthAfter(this.date()));
+  protected readonly billId = signal('');
   protected readonly isEditing = computed(() => this.transaction() !== undefined);
   // Linked to the transaction so the fields refill when the form is pointed at another one.
   protected readonly type = linkedSignal<TransactionType>(() => {
@@ -79,19 +113,90 @@ export class TransactionForm {
       ? 'Enter an amount above zero, like 286.40.'
       : undefined,
   );
-  protected readonly canSave = computed(
-    () =>
+  protected readonly isInstallments = computed(() => this.mode() === 'installments');
+  protected readonly linkableBills = computed(() =>
+    this.openBills().filter((bill) => bill.kind === billKindOf(this.type())),
+  );
+  protected readonly linkedBill = computed(() =>
+    this.linkableBills().find((bill) => bill.id === this.billId()),
+  );
+  protected readonly countError = computed(() =>
+    this.isInstallments() && !isValidInstallmentCount(this.installmentCount())
+      ? `Enter a whole number from ${MIN_REPEAT_COUNT} to ${MAX_REPEAT_COUNT}.`
+      : undefined,
+  );
+  protected readonly canSave = computed(() => this.hasDetails() && this.hasPlace());
+  protected readonly submitLabel = computed(() => {
+    if (this.isEditing()) return 'Save transaction';
+    if (this.isInstallments()) return 'Add installments';
+    return this.linkedBill() === undefined ? 'Add transaction' : 'Settle the bill';
+  });
+
+  private hasDetails(): boolean {
+    return (
+      this.countError() === undefined &&
       isValidAmount(this.amountCents()) &&
       this.description().trim() !== '' &&
-      this.categoryId() !== '' &&
-      this.accountId() !== '' &&
-      this.date() !== '',
-  );
+      this.categoryId() !== ''
+    );
+  }
+
+  // Installments are bills, which have no account until they are paid; the rest needs one and a day.
+  private hasPlace(): boolean {
+    if (this.isInstallments()) return this.firstDueDate() !== '';
+    return this.accountId() !== '' && this.date() !== '';
+  }
+
+  protected pickType(type: TransactionType): void {
+    this.type.set(type);
+    this.billId.set('');
+  }
+
+  protected pickMode(mode: EntryMode): void {
+    this.mode.set(mode);
+    this.billId.set('');
+  }
+
+  /** Takes the amount, description and category from the bill, which is what gets paid or received. */
+  protected pickBill(billId: string): void {
+    this.billId.set(billId);
+    const bill = this.linkedBill();
+    if (bill === undefined) return;
+    this.amount.set(amountText(bill.amountCents));
+    this.description.set(bill.description);
+    this.categoryId.set(bill.categoryId);
+  }
 
   protected submit(event: SubmitEvent): void {
     event.preventDefault();
     const cents = this.amountCents();
     if (!this.canSave() || !isValidAmount(cents)) return;
+    if (this.isInstallments()) this.emitInstallments(cents);
+    else if (this.linkedBill() !== undefined) this.emitLink();
+    else this.emitTransaction(cents);
+  }
+
+  private emitInstallments(totalCents: number): void {
+    this.saveInstallments.emit(
+      installmentBills({
+        type: this.type(),
+        description: this.description().trim(),
+        categoryId: this.categoryId(),
+        totalCents,
+        count: Number(this.installmentCount()),
+        firstDueDate: this.firstDueDate(),
+      }),
+    );
+  }
+
+  private emitLink(): void {
+    this.settleBill.emit({
+      billId: this.billId(),
+      settlement: { date: this.date(), accountId: this.accountId() },
+    });
+  }
+
+  private emitTransaction(cents: number): void {
     this.save.emit({
       date: this.date(),
       description: this.description().trim(),

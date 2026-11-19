@@ -3,7 +3,7 @@ using Orbit.Api.Domain.Finances;
 namespace Orbit.Api.Application.Finances;
 
 /// <summary>How a new bill repeats: the kind of recurrence and the total number of occurrences.</summary>
-public sealed record BillRecurrenceCommand(BillRecurrence Kind, int Count);
+public sealed record BillRecurrenceCommand(BillRecurrence Kind, int Count, bool AmountIsTotal = false);
 
 public sealed record SaveBillCommand(
     string Id, BillKind Kind, string Description, string CategoryId, long AmountCents,
@@ -38,7 +38,7 @@ public sealed class SaveBill(IBillRepository bills, IFinanceCategoryRepository c
         {
             return BillSchedule.Occurrences(
                 command.Id, command.Kind, command.Description, command.CategoryId, command.AmountCents,
-                command.DueDate, recurrence.Kind, recurrence.Count);
+                command.DueDate, recurrence.Kind, recurrence.Count, recurrence.AmountIsTotal);
         }
         return [Bill.Create(command.Id, command.Kind, command.Description, command.CategoryId, command.AmountCents, command.DueDate)];
     }

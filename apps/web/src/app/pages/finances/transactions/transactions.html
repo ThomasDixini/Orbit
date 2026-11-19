@@ -80,6 +80,12 @@
     <p class="saved-elsewhere ui-muted" role="status">{{ message | t }}</p>
   }
 
+  @if (billsNotice(); as notice) {
+    <p class="saved-elsewhere ui-muted" role="status">
+      {{ notice.text | t: { count: notice.count ?? 0 } }}
+    </p>
+  }
+
   @if (importResult(); as result) {
     <p class="saved-elsewhere ui-muted" role="status">
       {{
@@ -110,7 +116,10 @@
       [transaction]="editing()"
       [defaultDate]="defaultDate()"
       [defaultAccountId]="defaultAccountId()"
+      [openBills]="openBills()"
       (save)="save($event)"
+      (saveInstallments)="saveInstallments($event)"
+      (settleBill)="settleBill($event)"
       (dismiss)="closeForm()"
       (remove)="remove()"
     />

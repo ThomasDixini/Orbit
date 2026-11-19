@@ -1,10 +1,13 @@
-import { Component, LOCALE_ID, computed, inject, signal } from '@angular/core';
+import { Component, ErrorHandler, LOCALE_ID, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { LoadFailed } from '../../../components/load-failed/load-failed';
 import { PageHeading } from '../../../components/page-heading/page-heading';
 import { Clock } from '../../../core/calendar/clock';
 import { isoDate } from '../../../core/calendar/date-label';
+import { Bill, BillDraft } from '../../../core/finances/bills';
+import { BillsGateway } from '../../../core/finances/bills-gateway';
 import { namesById } from '../../../core/finances/finance-references';
+import { IdGenerator } from '../../../core/ids/id-generator';
 import { Transaction, TransactionDraft } from '../../../core/finances/transaction';
 import { groupByDay } from '../../../core/finances/transaction-days';
 import {
@@ -23,7 +26,7 @@ import { TransactionsStore } from '../../../core/finances/transactions-store';
 import { FiltersBar } from './filters-bar/filters-bar';
 import { MonthSummary } from './month-summary/month-summary';
 import { ImportResult, StatementImport } from './statement-import/statement-import';
-import { TransactionForm } from './transaction-form/transaction-form';
+import { BillLink, TransactionForm } from './transaction-form/transaction-form';
 import { TransactionHistory } from './transaction-history/transaction-history';
 import { TranslatePipe } from '../../../core/i18n/translate.pipe';
 
@@ -48,6 +51,9 @@ export class Transactions {
   private readonly store = inject(TransactionsStore);
   private readonly clock = inject(Clock);
   private readonly locale = inject(LOCALE_ID);
+  private readonly billsGateway = inject(BillsGateway);
+  private readonly ids = inject(IdGenerator);
+  private readonly errorHandler = inject(ErrorHandler);
 
   protected readonly categories = this.store.categories;
   protected readonly accounts = this.store.accounts;
@@ -60,6 +66,10 @@ export class Transactions {
   protected readonly importResult = signal<ImportResult | undefined>(undefined);
   /** The transaction open in the form; none while recording a new one. */
   protected readonly editing = signal<Transaction | undefined>(undefined);
+  /** The open bills a new transaction can be linked to, read when the form opens. */
+  protected readonly openBills = signal<readonly Bill[]>([]);
+  /** What the last installment purchase or settled bill came to, shown until the person moves on. */
+  protected readonly billsNotice = signal<{ text: string; count?: number } | undefined>(undefined);
   /** Says where a transaction dated in another month went, since it does not show in this one. */
   protected readonly savedElsewhere = signal<string | undefined>(undefined);
 
@@ -93,6 +103,7 @@ export class Transactions {
   protected showMonth(step: number): void {
     this.closeForm();
     this.savedElsewhere.set(undefined);
+    this.billsNotice.set(undefined);
     this.store.showMonth(shiftMonth(this.store.month(), step));
   }
 
@@ -113,6 +124,7 @@ export class Transactions {
     this.isImportOpen.set(false);
     this.editing.set(undefined);
     this.isFormOpen.set(true);
+    this.loadOpenBills();
   }
 
   protected openEdit(transaction: Transaction): void {
@@ -137,6 +149,38 @@ export class Transactions {
     this.announceIfElsewhere(draft.date);
   }
 
+  /**
+   * Adds the bills of a purchase paid in installments, one to pay (or receive) for each month.
+   * @example this.saveInstallments({ kind: 'payable', description: 'TV', categoryId: 'home', amountCents: 50000, dueDate: '2026-12-03', repeat: { kind: 'installments', count: 6, amountIsTotal: true } })
+   */
+  protected saveInstallments(draft: BillDraft): void {
+    this.closeForm();
+    this.billsGateway.save(this.ids.next(), draft).subscribe({
+      next: () =>
+        this.billsNotice.set({
+          text: '{count} installments added to To pay & receive.',
+          count: draft.repeat?.count,
+        }),
+      error: (error: unknown) => this.errorHandler.handleError(error),
+    });
+  }
+
+  /**
+   * Settles the open bill the form was linked to, which records its transaction and marks it paid or received.
+   * @example this.settleBill({ billId: 'rent', settlement: { date: '2026-11-05', accountId: 'checking-account' } })
+   */
+  protected settleBill(link: BillLink): void {
+    this.closeForm();
+    this.billsGateway.settle(link.billId, link.settlement).subscribe({
+      next: () => {
+        this.billsNotice.set({ text: 'Bill settled in To pay & receive.' });
+        this.store.refresh();
+        this.announceIfElsewhere(link.settlement.date);
+      },
+      error: (error: unknown) => this.errorHandler.handleError(error),
+    });
+  }
+
   protected remove(): void {
     const editing = this.editing();
     if (editing !== undefined) this.store.delete(editing.id);
@@ -145,6 +189,13 @@ export class Transactions {
 
   protected reload(): void {
     this.store.reload();
+  }
+
+  private loadOpenBills(): void {
+    this.billsGateway.agenda(isoDate(this.clock.now())).subscribe({
+      next: (agenda) => this.openBills.set(agenda.bills.filter((bill) => !bill.settlement)),
+      error: (error: unknown) => this.errorHandler.handleError(error),
+    });
   }
 
   private announceIfElsewhere(isoDay: string): void {

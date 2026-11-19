@@ -215,6 +215,21 @@ export const PT_BR_FINANCES: Readonly<Record<string, string>> = {
   'Appreciation is what the value changed beyond the money put in or taken out; for an investment followed by balance, it is the yield after taxes and fees. Proventos are paid out, so they are not part of it.':
     'Valorização é quanto o valor mudou além do dinheiro aplicado ou resgatado; num investimento acompanhado por saldo, é o rendimento depois de impostos e taxas. Os proventos são pagos ao dono, então não entram nela.',
 
+  // Installments and linked bills
+  Payment: 'Pagamento',
+  'Single payment': 'À vista',
+  'In installments': 'Parcelado',
+  'Pays a bill to pay': 'Quita uma conta a pagar',
+  'Receives a bill to receive': 'Recebe uma conta a receber',
+  'No bill': 'Nenhuma conta',
+  'Total amount (R$)': 'Valor total (R$)',
+  'First installment due on': 'Primeira parcela vence em',
+  'Add installments': 'Adicionar parcelas',
+  'Settle the bill': 'Quitar a conta',
+  '{count} installments added to To pay & receive.':
+    '{count} parcelas adicionadas em A pagar e receber.',
+  'Bill settled in To pay & receive.': 'Conta quitada em A pagar e receber.',
+
   // To pay & receive
   'Due date': 'Vencimento',
   Repeat: 'Repetir',

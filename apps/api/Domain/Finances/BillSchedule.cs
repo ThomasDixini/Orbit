@@ -14,17 +14,33 @@ public static class BillSchedule
     /// <example><code>BillSchedule.Occurrences("b1", BillKind.Payable, "Rent", "housing", 150000, due, BillRecurrence.Monthly, 12).Count; // 12</code></example>
     public static IReadOnlyList<Bill> Occurrences(
         string id, BillKind kind, string description, string categoryId, long amountCents,
-        DateOnly firstDueDate, BillRecurrence recurrence, int count)
+        DateOnly firstDueDate, BillRecurrence recurrence, int count, bool amountIsTotal = false)
     {
         RequireCount(count);
+        RequireInstallmentsForTotal(recurrence, amountIsTotal);
         var series = EntityId.Require(id, "bill id");
         return Enumerable.Range(1, count)
             .Select(number => Bill.Create(
                 number == 1 ? series : EntityId.Require($"{series}-{number}", "bill id of the occurrence"),
-                kind, description, categoryId, amountCents,
+                kind, description, categoryId, ShareOf(amountCents, count, number, amountIsTotal),
                 DueDateOf(firstDueDate, recurrence, number - 1),
                 new BillSeries(series, recurrence, number, count)))
             .ToList();
+    }
+
+    // A total is split in whole cents; the cents left over go one each to the first installments, so the
+    // installments always add up to the total.
+    private static long ShareOf(long amountCents, int count, int number, bool amountIsTotal)
+    {
+        if (!amountIsTotal) return amountCents;
+        return amountCents / count + (number <= amountCents % count ? 1 : 0);
+    }
+
+    private static void RequireInstallmentsForTotal(BillRecurrence recurrence, bool amountIsTotal)
+    {
+        if (!amountIsTotal || recurrence == BillRecurrence.Installments) return;
+        throw new DomainRuleException(
+            $"Expected an amount that is a total to belong to installments, received a {recurrence} recurrence");
     }
 
     private static DateOnly DueDateOf(DateOnly first, BillRecurrence recurrence, int steps) =>
