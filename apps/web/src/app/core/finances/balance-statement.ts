@@ -52,7 +52,9 @@ export function monthlyStatement(
   today: string,
 ): StatementMonth[] {
   if (entries.length === 0) return [];
-  const firstMonth = entries.map((entry) => entry.date.slice(0, 7)).sort()[0];
+  const firstMonth = entries
+    .map((entry) => entry.date.slice(0, 7))
+    .sort((first, second) => first.localeCompare(second))[0];
   const months: StatementMonth[] = [];
   let closing = 0;
   for (const month of monthRange(firstMonth, today.slice(0, 7))) {
