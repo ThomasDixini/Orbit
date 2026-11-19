@@ -1,7 +1,9 @@
 namespace Orbit.Api.Domain.Investments;
 
 /// <summary>The whole portfolio at the end of a month: what it is worth, what was put in and how it did against the CDI.</summary>
-public sealed record MonthlyPoint(string Month, long ValueCents, long AppliedCents, decimal ReturnPercent, decimal CdiPercent);
+public sealed record MonthlyPoint(
+    string Month, long ValueCents, long AppliedCents, decimal ReturnPercent, decimal CdiPercent,
+    long ReceivedCents = 0, long CdiGainCents = 0);
 
 /// <summary>
 /// The portfolio month by month since the first trade. Each month is valued at the closing prices of its
@@ -53,8 +55,11 @@ public static class PortfolioHistory
         var applied = tradesUpTo.Sum(SignedCents);
         var received = incomesUpTo.Sum(income => income.AmountCents);
         var cdiGain = CdiGain(tradesUpTo, incomesUpTo, cdi, end);
+        // The received and CDI amounts travel with the percentages so points of several investments can be
+        // added up and the percentages worked out again.
         return new MonthlyPoint(
-            key, value, applied, PercentOf(value + received - applied, applied), PercentOf(cdiGain, applied));
+            key, value, applied, PercentOf(value + received - applied, applied), PercentOf(cdiGain, applied),
+            received, cdiGain);
     }
 
     private static long ValueOf(

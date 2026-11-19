@@ -308,3 +308,40 @@ describe('Investments page: investments followed by balance', () => {
     ]);
   });
 });
+
+describe('Investments page: charts of one investment', () => {
+  const WITH_HISTORY: Portfolio = {
+    ...WITH_CAIXINHA,
+    investmentHistories: {
+      caixinha: [
+        {
+          month: '2026-10',
+          valueCents: 1000,
+          appliedCents: 900,
+          returnPercent: 11.11,
+          cdiPercent: 1,
+        },
+        {
+          month: '2026-11',
+          valueCents: 1100,
+          appliedCents: 900,
+          returnPercent: 22.22,
+          cdiPercent: 2,
+        },
+      ],
+    },
+  };
+
+  it('draws the charts of the investment picked from its own history', async () => {
+    const { fixture } = await render(WITH_HISTORY);
+    const before = texts(fixture, 'app-line-chart:nth-of-type(2) .empty');
+
+    fill(fixture, 'select[name="asset"]', 'caixinha');
+    await flush(fixture);
+
+    expect([before, texts(fixture, 'app-line-chart:nth-of-type(2) .empty')]).toEqual([
+      ['No history yet.'],
+      [],
+    ]);
+  });
+});

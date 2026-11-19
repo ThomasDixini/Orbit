@@ -114,6 +114,9 @@ export interface MonthlyPoint {
   readonly returnPercent: number;
   /** Accumulated CDI on the same money up to the month, in percent. */
   readonly cdiPercent: number;
+  /** Proventos received up to the month; with the CDI gain, it lets the percentages be worked out again when points are added up. */
+  readonly receivedCents?: number;
+  readonly cdiGainCents?: number;
 }
 
 /** What the page reads. */
@@ -123,6 +126,8 @@ export interface Portfolio {
   readonly performance?: Performance;
   /** Month-end history sent by the API, valued at the real closing prices; empty before the first trade. */
   readonly history?: readonly MonthlyPoint[];
+  /** The same month-end history of each investment on its own, by id, so a class or one investment can be charted. */
+  readonly investmentHistories?: Readonly<Record<string, readonly MonthlyPoint[]>>;
   readonly trades: readonly Trade[];
   readonly incomes: readonly Income[];
   /** The statement lines of the balance-tracked investments; absent when there are none. */

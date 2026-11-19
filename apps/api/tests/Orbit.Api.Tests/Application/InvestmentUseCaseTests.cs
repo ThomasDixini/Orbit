@@ -166,4 +166,17 @@ public class InvestmentUseCaseTests
 
         _rateSource.Asked.ShouldBeEmpty();
     }
+    [Fact]
+    public async Task GetPortfolio_KeepsTheHistoryOfEachInvestmentOnItsOwn()
+    {
+        await SaveInvestment.ExecuteAsync(Petr4(), CancellationToken.None);
+        await SaveInvestment.ExecuteAsync(new SaveInvestmentCommand("rdb", "RDB", InvestmentKind.FixedIncome, null, null), CancellationToken.None);
+        await SaveTrade.ExecuteAsync(Trade("buy", TradeKind.Buy, 100_000), CancellationToken.None);
+
+        var snapshot = await GetPortfolio.ExecuteAsync(January6, CancellationToken.None);
+
+        snapshot.InvestmentHistories.Keys.Order().ShouldBe(["petr4", "rdb"]);
+        snapshot.InvestmentHistories["petr4"].Count.ShouldBe(1);
+        snapshot.InvestmentHistories["rdb"].ShouldBeEmpty();
+    }
 }

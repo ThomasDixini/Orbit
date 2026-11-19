@@ -6,7 +6,8 @@ namespace Orbit.Api.Application.Investments;
 /// <summary>The portfolio with the trades and proventos behind it, for the page to list.</summary>
 public sealed record PortfolioSnapshot(
     Portfolio Portfolio, IReadOnlyList<InvestmentTrade> Trades, IReadOnlyList<InvestmentIncome> Incomes,
-    IReadOnlyList<MonthlyPoint> History, IReadOnlyList<BalanceEntry> BalanceEntries);
+    IReadOnlyList<MonthlyPoint> History, IReadOnlyList<BalanceEntry> BalanceEntries,
+    IReadOnlyDictionary<string, IReadOnlyList<MonthlyPoint>> InvestmentHistories);
 
 /// <summary>
 /// Reads the portfolio as of a day. The daily CDI rates it compares against are stored once fetched; when
@@ -36,8 +37,22 @@ public sealed class GetPortfolio(
         var prices = await monthEndPrices.LoadAsync(all, trades, asOf, cancellationToken);
         return new PortfolioSnapshot(
             Portfolio.Build(all, trades, incomes, asOf, cdi, entries), trades, incomes,
-            PortfolioHistory.Build(all, flows, incomes, prices, cdi, asOf, entries), entries);
+            PortfolioHistory.Build(all, flows, incomes, prices, cdi, asOf, entries), entries,
+            HistoriesOf(all, flows, incomes, prices, cdi, asOf, entries));
     }
+
+    // One history per investment, so the page can chart a single investment or a class of them.
+    private static Dictionary<string, IReadOnlyList<MonthlyPoint>> HistoriesOf(
+        IReadOnlyList<Investment> all, IReadOnlyList<InvestmentTrade> flows, IReadOnlyList<InvestmentIncome> incomes,
+        IReadOnlyList<MonthEndPrice> prices, CdiIndex cdi, DateOnly asOf, IReadOnlyList<BalanceEntry> entries) =>
+        all.ToDictionary(
+            investment => investment.Id,
+            investment => PortfolioHistory.Build(
+                [investment],
+                flows.Where(flow => flow.InvestmentId == investment.Id).ToList(),
+                incomes.Where(income => income.InvestmentId == investment.Id).ToList(),
+                prices, cdi, asOf,
+                entries.Where(entry => entry.InvestmentId == investment.Id).ToList()));
 
     private async Task<CdiIndex> CdiSinceFirstTradeAsync(
         IReadOnlyList<InvestmentTrade> trades, DateOnly asOf, CancellationToken cancellationToken)
