@@ -81,7 +81,9 @@
   padding-bottom: 10px;
   border-top: 0;
   border-bottom: var(--border-hairline) solid var(--color-border);
-  background: var(--color-option-bg);
+  /* Frosted glass like the panel: the solid near-black of a dropdown stood out as a dark bar. */
+  background: var(--color-surface-glass);
+  backdrop-filter: blur(16px);
   font-size: var(--font-size-xs);
   color: var(--color-text-faint);
 }
