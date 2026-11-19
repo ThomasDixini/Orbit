@@ -54,51 +54,53 @@
     <div class="column">
       <div class="column-head">
         <h3 class="column-title">{{ listTitle() | t }}</h3>
-        @if (!isCard()) {
-          <div class="month-nav" role="group" [attr.aria-label]="'Month' | t">
-            <button
-              class="ui-icon-button"
-              type="button"
-              [attr.aria-label]="'Previous month' | t"
-              (click)="previousMonth.emit()"
+        <div
+          class="month-nav"
+          role="group"
+          [attr.aria-label]="(isCard() ? 'Invoice' : 'Month') | t"
+        >
+          <button
+            class="ui-icon-button"
+            type="button"
+            [attr.aria-label]="(isCard() ? 'Previous invoice' : 'Previous month') | t"
+            (click)="previousMonth.emit()"
+          >
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.8"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
             >
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="1.8"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                aria-hidden="true"
-              >
-                <path d="M15 6l-6 6 6 6"></path>
-              </svg>
-            </button>
-            <button
-              class="ui-icon-button"
-              type="button"
-              [attr.aria-label]="'Next month' | t"
-              [disabled]="isCurrentMonth()"
-              (click)="nextMonth.emit()"
+              <path d="M15 6l-6 6 6 6"></path>
+            </svg>
+          </button>
+          <button
+            class="ui-icon-button"
+            type="button"
+            [attr.aria-label]="(isCard() ? 'Next invoice' : 'Next month') | t"
+            [disabled]="isCard() ? isCurrentInvoice() : isCurrentMonth()"
+            (click)="nextMonth.emit()"
+          >
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.8"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
             >
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="1.8"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                aria-hidden="true"
-              >
-                <path d="M9 6l6 6-6 6"></path>
-              </svg>
-            </button>
-          </div>
-        }
+              <path d="M9 6l6 6-6 6"></path>
+            </svg>
+          </button>
+        </div>
       </div>
       @if (isLoadingMonth()) {
         <p class="ui-muted empty" role="status">{{ 'Loading…' | t }}</p>

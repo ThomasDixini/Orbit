@@ -8,6 +8,7 @@ import {
 } from '../../../../core/finances/account-activity';
 import { AccountStatement, CardStatement } from '../../../../core/finances/account-statement';
 import { Account, accountKindLabel } from '../../../../core/finances/finance-references';
+import { InvoicePeriod } from '../../../../core/finances/invoice-cycle';
 import { formatBalance, formatMoney, formatSignedMoney } from '../../../../core/finances/money';
 import { TranslatePipe } from '../../../../core/i18n/translate.pipe';
 
@@ -48,6 +49,10 @@ export class AccountDetail {
   readonly monthName = input.required<string>();
   /** Whether the month listed is the current one, which cannot be moved past. */
   readonly isCurrentMonth = input(true);
+  /** The invoice a card lists: the open one or an earlier one. */
+  readonly invoice = input<InvoicePeriod | undefined>(undefined);
+  /** Whether the invoice listed is the open one, which cannot be moved past. */
+  readonly isCurrentInvoice = input(true);
   /** Whether the month chosen is still being read. */
   readonly isLoadingMonth = input(false);
   /** Whether the card can be paid: there is a bank account to pay from. */
@@ -63,15 +68,18 @@ export class AccountDetail {
   protected readonly isCard = computed(() => this.account().kind === 'creditCard');
   protected readonly kindLabel = computed(() => accountKindLabel(this.account().kind));
   private readonly card = computed(() => this.statement()?.card);
+  /** Whether the card lists an invoice that is not the open one. */
+  private readonly isEarlierInvoice = computed(() => this.isCard() && !this.isCurrentInvoice());
   protected readonly stats = computed(() => {
     const card = this.card();
-    if (this.isCard()) return card === undefined ? this.pendingCardStats() : this.cardStats(card);
-    return this.bankStats();
+    if (!this.isCard()) return this.bankStats();
+    if (card === undefined) return this.pendingCardStats();
+    return this.isEarlierInvoice() ? this.earlierInvoiceStats() : this.cardStats(card);
   });
   protected readonly limitUse = computed(() => {
     const limitCents = this.account().card?.limitCents ?? 0;
     const card = this.card();
-    if (card === undefined || limitCents <= 0) return undefined;
+    if (card === undefined || limitCents <= 0 || this.isEarlierInvoice()) return undefined;
     const usedCents = Math.min(limitCents, Math.max(0, limitCents - card.availableLimitCents));
     const percent = Math.round((usedCents / limitCents) * PERCENT);
     const label = `${this.money(usedCents)} of ${this.money(limitCents)}`;
@@ -79,13 +87,16 @@ export class AccountDetail {
   });
   protected readonly amountDue = computed(() => {
     const card = this.card();
-    if (card === undefined || card.amountDueCents <= 0) return undefined;
+    if (card === undefined || card.amountDueCents <= 0 || this.isEarlierInvoice()) return undefined;
     const closedOn = this.day(card.closedInvoice.closesOn);
     return `${this.money(card.amountDueCents)} is still due from the invoice that closed on ${closedOn} (due ${this.day(card.closedInvoice.dueOn)}).`;
   });
-  protected readonly listTitle = computed(() =>
-    this.isCard() ? 'Invoice items' : `Movements in ${this.monthName()}`,
-  );
+  protected readonly listTitle = computed(() => {
+    if (!this.isCard()) return `Movements in ${this.monthName()}`;
+    const invoice = this.invoice();
+    if (this.isCurrentInvoice() || invoice === undefined) return 'Invoice items';
+    return `Invoice closed on ${this.day(invoice.closesOn)}`;
+  });
   protected readonly spendingTitle = computed(() =>
     this.isCard() ? 'Invoice spending by category' : 'Outflows by category',
   );
@@ -130,6 +141,17 @@ export class AccountDetail {
       { label: 'Closes on', value: this.day(card.openInvoice.closesOn), mark: 'neutral' },
       { label: 'Due on', value: this.day(card.openInvoice.dueOn), mark: 'neutral' },
       { label: 'Available limit', value: this.pendingOr(card.availableLimitCents), mark: 'accent' },
+    ];
+  }
+
+  /** An earlier invoice has closed: what it came to is what its purchases add up to. */
+  private earlierInvoiceStats(): AccountStat[] {
+    const invoice = this.invoice();
+    const totalCents = -this.movements().reduce((sum, movement) => sum + movement.amountCents, 0);
+    return [
+      { label: 'Invoice total', value: this.money(totalCents), mark: 'expense' },
+      { label: 'Closed on', value: this.day(invoice?.closesOn ?? ''), mark: 'neutral' },
+      { label: 'Due on', value: this.day(invoice?.dueOn ?? ''), mark: 'neutral' },
     ];
   }
 

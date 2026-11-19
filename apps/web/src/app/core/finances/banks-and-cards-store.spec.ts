@@ -308,3 +308,36 @@ function answer(
   reply?.next(list);
   reply?.complete();
 }
+
+describe('BanksAndCardsStore invoice shown', () => {
+  it('starts on the open invoice', () => {
+    const { store } = createStore();
+
+    expect(store.invoicesBack()).toBe(0);
+  });
+
+  it('reads the months around an earlier invoice that were not read yet', () => {
+    const { store, transactions } = createStoreWithAugust();
+
+    store.showInvoicesBack(3);
+
+    expect([
+      store.invoicesBack(),
+      transactions.askedMonths.slice(3),
+      store.isMonthLoading(),
+    ]).toEqual([3, ['2026-06', '2026-07', '2026-08'], false]);
+  });
+
+  it('does not read a month again once it was read, and goes back to the open invoice', () => {
+    const { store, transactions } = createStoreWithAugust();
+
+    store.showInvoicesBack(1);
+    store.showInvoicesBack(0);
+    store.showInvoicesBack(1);
+
+    expect([store.invoicesBack(), transactions.askedMonths]).toEqual([
+      1,
+      ['2026-09', '2026-10', '2026-11', '2026-08'],
+    ]);
+  });
+});
