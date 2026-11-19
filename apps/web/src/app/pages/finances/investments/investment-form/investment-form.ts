@@ -15,6 +15,7 @@ import {
   Investment,
   InvestmentDraft,
   InvestmentKind,
+  InvestmentTracking,
 } from '../../../../core/finances/investments';
 import { amountText, isValidAmount, parseAmountCents } from '../../../../core/finances/money';
 import { fieldValue } from '../../../../core/forms/field-value';
@@ -56,6 +57,11 @@ export class InvestmentForm {
   protected readonly name = linkedSignal(() => this.investment()?.name ?? '');
   protected readonly kind = linkedSignal<InvestmentKind>(() => this.investment()?.kind ?? 'stock');
   protected readonly riskOptions = INVESTMENT_RISK_OPTIONS;
+  /** Whether it is followed by its balance, like a statement, instead of by purchases and sales. */
+  protected readonly tracking = linkedSignal<InvestmentTracking>(
+    () => this.investment()?.tracking ?? 'trades',
+  );
+  protected readonly isBalance = computed(() => this.tracking() === 'balance');
   /** Empty while the investment is not rated. */
   protected readonly risk = linkedSignal<InvestmentRisk | ''>(() => this.investment()?.risk ?? '');
   protected readonly price = linkedSignal(() => {
@@ -70,7 +76,10 @@ export class InvestmentForm {
       : undefined,
   );
   protected readonly canSave = computed(
-    () => this.name().trim() !== '' && this.priceError() === undefined && !this.saving(),
+    () =>
+      this.name().trim() !== '' &&
+      (this.isBalance() || this.priceError() === undefined) &&
+      !this.saving(),
   );
 
   protected submit(event: SubmitEvent): void {
@@ -79,8 +88,9 @@ export class InvestmentForm {
     this.save.emit({
       name: this.name().trim(),
       kind: this.kind(),
-      price: this.pricePoint(),
+      price: this.isBalance() ? undefined : this.pricePoint(),
       risk: this.risk() === '' ? undefined : (this.risk() as InvestmentRisk),
+      tracking: this.isBalance() ? 'balance' : undefined,
     });
   }
 
@@ -90,6 +100,10 @@ export class InvestmentForm {
     if (!isValidAmount(cents)) return undefined;
     const stored = this.investment()?.price;
     return { cents, on: stored?.cents === cents ? stored.on : this.today() };
+  }
+
+  protected toggleTracking(event: Event): void {
+    this.tracking.set((event.target as HTMLInputElement).checked ? 'balance' : 'trades');
   }
 
   protected readonly valueOf = fieldValue;

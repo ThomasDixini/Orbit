@@ -42,24 +42,45 @@
       </select>
     </label>
 
-    <label class="ui-field">
-      {{ 'Current price of one unit (R$)' | t }}
-      <input
-        class="ui-input"
-        name="price"
-        type="text"
-        inputmode="decimal"
-        autocomplete="off"
-        [placeholder]="'Optional' | t"
-        [value]="price()"
-        [attr.aria-invalid]="priceError() !== undefined"
-        [attr.aria-describedby]="priceError() === undefined ? null : 'investment-price-error'"
-        (input)="price.set(valueOf($event))"
-      />
-      @if (priceError(); as error) {
-        <span id="investment-price-error" class="error">{{ error | t }}</span>
-      }
+    <label class="ui-field balance-option">
+      <span class="check">
+        <input
+          name="tracking"
+          type="checkbox"
+          [checked]="isBalance()"
+          [disabled]="isEditing()"
+          (change)="toggleTracking($event)"
+        />
+        {{ 'Follow by balance, like a statement' | t }}
+      </span>
+      <span class="ui-muted hint">
+        {{
+          'For RDB, savings boxes and the like: deposits, withdrawals, yield and what is taken out of it.'
+            | t
+        }}
+      </span>
     </label>
+
+    @if (!isBalance()) {
+      <label class="ui-field">
+        {{ 'Current price of one unit (R$)' | t }}
+        <input
+          class="ui-input"
+          name="price"
+          type="text"
+          inputmode="decimal"
+          autocomplete="off"
+          [placeholder]="'Optional' | t"
+          [value]="price()"
+          [attr.aria-invalid]="priceError() !== undefined"
+          [attr.aria-describedby]="priceError() === undefined ? null : 'investment-price-error'"
+          (input)="price.set(valueOf($event))"
+        />
+        @if (priceError(); as error) {
+          <span id="investment-price-error" class="error">{{ error | t }}</span>
+        }
+      </label>
+    }
   </div>
 
   <div class="actions">

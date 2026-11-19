@@ -17,7 +17,7 @@ public interface IInvestmentRepository
     /// <summary>Removes the investment; an unknown id is ignored.</summary>
     Task DeleteAsync(string investmentId, CancellationToken cancellationToken);
 
-    /// <summary>Whether the investment has any trade or provento.</summary>
+    /// <summary>Whether the investment has any trade, provento or balance entry.</summary>
     Task<bool> HasActivityAsync(string investmentId, CancellationToken cancellationToken);
 
     /// <summary>Every trade, oldest day first and, within a day, in the order recorded.</summary>
@@ -40,4 +40,13 @@ public interface IInvestmentRepository
 
     /// <summary>Removes the provento; an unknown id is ignored.</summary>
     Task DeleteIncomeAsync(string incomeId, CancellationToken cancellationToken);
+
+    /// <summary>Every balance entry, oldest day first and, within a day, in the order recorded.</summary>
+    Task<IReadOnlyList<BalanceEntry>> ListBalanceEntriesAsync(CancellationToken cancellationToken);
+
+    /// <summary>Stores the balance entry, replacing a stored one with the same id.</summary>
+    Task SaveBalanceEntryAsync(BalanceEntry entry, CancellationToken cancellationToken);
+
+    /// <summary>Removes the balance entry; an unknown id is ignored.</summary>
+    Task DeleteBalanceEntryAsync(string entryId, CancellationToken cancellationToken);
 }

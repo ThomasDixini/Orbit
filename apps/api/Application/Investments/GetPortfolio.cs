@@ -6,7 +6,7 @@ namespace Orbit.Api.Application.Investments;
 /// <summary>The portfolio with the trades and proventos behind it, for the page to list.</summary>
 public sealed record PortfolioSnapshot(
     Portfolio Portfolio, IReadOnlyList<InvestmentTrade> Trades, IReadOnlyList<InvestmentIncome> Incomes,
-    IReadOnlyList<MonthlyPoint> History);
+    IReadOnlyList<MonthlyPoint> History, IReadOnlyList<BalanceEntry> BalanceEntries);
 
 /// <summary>
 /// Reads the portfolio as of a day. The daily CDI rates it compares against are stored once fetched; when
@@ -29,11 +29,14 @@ public sealed class GetPortfolio(
         var all = await latestPrices.RefreshAsync(await investments.ListAsync(cancellationToken), asOf, cancellationToken);
         var trades = await investments.ListTradesAsync(cancellationToken);
         var incomes = await investments.ListIncomesAsync(cancellationToken);
-        var cdi = await CdiSinceFirstTradeAsync(trades, asOf, cancellationToken);
+        var entries = await investments.ListBalanceEntriesAsync(cancellationToken);
+        // What was put in and taken out of balance-tracked investments counts like purchases and sales.
+        var flows = trades.Concat(BalanceLedger.AsFlows(entries)).ToList();
+        var cdi = await CdiSinceFirstTradeAsync(flows, asOf, cancellationToken);
         var prices = await monthEndPrices.LoadAsync(all, trades, asOf, cancellationToken);
         return new PortfolioSnapshot(
-            Portfolio.Build(all, trades, incomes, asOf, cdi), trades, incomes,
-            PortfolioHistory.Build(all, trades, incomes, prices, cdi, asOf));
+            Portfolio.Build(all, trades, incomes, asOf, cdi, entries), trades, incomes,
+            PortfolioHistory.Build(all, flows, incomes, prices, cdi, asOf, entries), entries);
     }
 
     private async Task<CdiIndex> CdiSinceFirstTradeAsync(

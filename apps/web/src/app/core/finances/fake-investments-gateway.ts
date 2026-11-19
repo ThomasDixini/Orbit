@@ -1,5 +1,7 @@
 import { Observable, of, throwError } from 'rxjs';
 import {
+  BalanceEntry,
+  BalanceEntryDraft,
   Income,
   IncomeDraft,
   Investment,
@@ -90,6 +92,8 @@ export class FakeInvestmentsGateway extends InvestmentsGateway {
   readonly deletedTrades: string[] = [];
   readonly savedIncomes: { id: string; draft: IncomeDraft }[] = [];
   readonly deletedIncomes: string[] = [];
+  readonly savedBalanceEntries: { id: string; draft: BalanceEntryDraft }[] = [];
+  readonly deletedBalanceEntries: string[] = [];
   /** Days `portfolio` was asked for, in order. */
   readonly askedDays: string[] = [];
 
@@ -125,6 +129,16 @@ export class FakeInvestmentsGateway extends InvestmentsGateway {
 
   override deleteIncome(incomeId: string): Observable<void> {
     this.deletedIncomes.push(incomeId);
+    return this.answer(undefined);
+  }
+
+  override saveBalanceEntry(entryId: string, draft: BalanceEntryDraft): Observable<BalanceEntry> {
+    this.savedBalanceEntries.push({ id: entryId, draft });
+    return this.answer({ id: entryId, ...draft });
+  }
+
+  override deleteBalanceEntry(entryId: string): Observable<void> {
+    this.deletedBalanceEntries.push(entryId);
     return this.answer(undefined);
   }
 

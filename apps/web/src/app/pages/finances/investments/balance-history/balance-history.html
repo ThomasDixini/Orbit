@@ -1,0 +1,50 @@
+<section class="ui-card card" [attr.aria-label]="title() | t">
+  <h2 class="card-title">{{ title() | t }}</h2>
+  @if (!isEmpty()) {
+    <ul class="list">
+      @for (item of visible(); track item.key) {
+        <li class="entry">
+          <span class="text">
+            <span class="name">{{ detail(item) | t }}</span>
+          </span>
+          <span class="amount ui-tabular">{{ signed(item.cents) }}</span>
+          <button
+            class="ui-button-ghost"
+            type="button"
+            [attr.aria-label]="
+              'Delete {label} of {investmentName}'
+                | t: { label: item.label, investmentName: item.investmentName }
+            "
+            (click)="remove.emit(item.id)"
+          >
+            {{ 'Delete' | t }}
+          </button>
+        </li>
+      }
+    </ul>
+    @if (hasMore()) {
+      <button
+        class="ui-button-ghost more"
+        type="button"
+        [attr.aria-label]="'Show more movements' | t"
+        (click)="showMore()"
+      >
+        <svg
+          width="18"
+          height="18"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.8"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <path d="M6 9l6 6 6-6"></path>
+        </svg>
+      </button>
+    }
+  } @else {
+    <p class="ui-muted empty">{{ 'Nothing recorded yet.' | t }}</p>
+  }
+</section>

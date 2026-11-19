@@ -6,6 +6,7 @@ import { PageHeading } from '../../../components/page-heading/page-heading';
 import { parseIsoDate, shortDateLabel } from '../../../core/calendar/date-label';
 import { formatBalance, formatMoney, formatSignedMoney } from '../../../core/finances/money';
 import {
+  BalanceEntryKind,
   INVESTMENT_KIND_OPTIONS,
   Investment,
   InvestmentDraft,
@@ -17,11 +18,13 @@ import {
   formatPercent,
   investmentKindLabel,
   investmentRiskLabel,
+  isBalanceTracked,
   quantityText,
 } from '../../../core/finances/investments';
 import {
   InvestmentFilters,
   appliedByMonth,
+  closedInvestmentIds,
   distribution,
   filterLines,
   incomeByMonth,
@@ -37,6 +40,9 @@ import {
   INVESTMENTS_SECTION_OPTIONS,
   InvestmentsSection,
 } from '../../../core/finances/investments-section';
+import { BalanceEntryFields, BalanceEntryForm } from './balance-entry-form/balance-entry-form';
+import { BalanceHistory } from './balance-history/balance-history';
+import { BalanceStatement } from './balance-statement/balance-statement';
 import { IncomeFields, IncomeForm } from './income-form/income-form';
 import { MovementImport, MovementImportResult } from './movement-import/movement-import';
 import { InvestmentForm } from './investment-form/investment-form';
@@ -53,7 +59,8 @@ type Panel =
   | { readonly kind: 'new' }
   | { readonly kind: 'edit'; readonly investmentId: string }
   | { readonly kind: 'trade'; readonly investmentId: string }
-  | { readonly kind: 'income'; readonly investmentId: string };
+  | { readonly kind: 'income'; readonly investmentId: string }
+  | { readonly kind: 'balance'; readonly investmentId: string };
 
 interface Stat {
   readonly label: string;
@@ -81,6 +88,9 @@ const MOVEMENTS_PAGE_SIZE = 10;
     InvestmentForm,
     TradeForm,
     IncomeForm,
+    BalanceEntryForm,
+    BalanceStatement,
+    BalanceHistory,
     LineChart,
     BarChart,
     PortfolioDistribution,
@@ -122,7 +132,31 @@ export class Investments {
   protected readonly riskLabel = investmentRiskLabel;
   protected readonly range = computed(() => periodRange(this.filters().period, this.today));
   protected readonly lines = computed(() => this.store.portfolio()?.lines ?? []);
-  protected readonly tableLines = computed(() => this.sortedTableLines());
+  protected readonly tableLines = computed(() => this.visibleTableLines());
+  /** The investments that were held and are gone; hidden from the assets, kept in the histories. */
+  private readonly closedIds = computed(() => {
+    const portfolio = this.store.portfolio();
+    return portfolio === undefined ? new Set<string>() : closedInvestmentIds(portfolio);
+  });
+  protected readonly closedCount = computed(
+    () => this.sortedTableLines().filter((line) => this.closedIds().has(line.investment.id)).length,
+  );
+  protected readonly showClosed = signal(false);
+  protected readonly balanceEntries = computed(() => this.store.portfolio()?.balanceEntries ?? []);
+  protected readonly balanceInvestments = computed(() =>
+    this.lines()
+      .map((line) => line.investment)
+      .filter(isBalanceTracked),
+  );
+  protected readonly investmentNames = computed(
+    () => new Map(this.lines().map((line) => [line.investment.id, line.investment.name])),
+  );
+  protected readonly depositKinds: readonly BalanceEntryKind[] = [
+    'opening',
+    'deposit',
+    'withdrawal',
+  ];
+  protected readonly yieldKinds: readonly BalanceEntryKind[] = ['yield', 'incomeTax', 'iof', 'fee'];
   protected readonly selected = computed(() => filterLines(this.lines(), this.filters()));
   protected readonly panelInvestment = computed(() => this.investmentOfPanel());
   protected readonly summary = computed(() => this.describeSummary());
@@ -209,6 +243,22 @@ export class Investments {
     if (await this.store.addTrade({ ...fields, investmentId: panel.investmentId })) this.close();
   }
 
+  protected async addBalanceEntry(fields: BalanceEntryFields): Promise<void> {
+    const panel = this.panel();
+    if (panel.kind !== 'balance') return;
+    if (await this.store.addBalanceEntry({ ...fields, investmentId: panel.investmentId })) {
+      this.close();
+    }
+  }
+
+  protected removeBalanceEntry(entryId: string): void {
+    void this.store.deleteBalanceEntry(entryId);
+  }
+
+  protected isBalance(line: PortfolioLine): boolean {
+    return isBalanceTracked(line.investment);
+  }
+
   protected async addIncome(fields: IncomeFields): Promise<void> {
     const panel = this.panel();
     if (panel.kind !== 'income') return;
@@ -270,6 +320,13 @@ export class Investments {
 
   protected signed(cents: number): string {
     return formatSignedMoney(cents, this.locale);
+  }
+
+  private visibleTableLines(): PortfolioLine[] {
+    const lines = this.sortedTableLines();
+    return this.showClosed()
+      ? lines
+      : lines.filter((line) => !this.closedIds().has(line.investment.id));
   }
 
   private sortedTableLines(): PortfolioLine[] {

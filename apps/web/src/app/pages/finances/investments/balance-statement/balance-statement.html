@@ -1,0 +1,58 @@
+<section class="ui-card card" [attr.aria-label]="'Monthly statement' | t">
+  <div class="card-head">
+    <h2 class="card-title">{{ 'Monthly statement' | t }}</h2>
+    <label class="picker">
+      <span class="ui-visually-hidden">{{ 'Investment' | t }}</span>
+      <select class="ui-input" name="statement-investment" (change)="pick($event)">
+        <option [value]="all" [selected]="picked() === all">
+          {{ 'All balance investments' | t }}
+        </option>
+        @for (investment of investments(); track investment.id) {
+          <option [value]="investment.id" [selected]="picked() === investment.id">
+            {{ investment.name }}
+          </option>
+        }
+      </select>
+    </label>
+  </div>
+
+  @if (rows().length > 0) {
+    <div class="table-wrap">
+      <table class="statement">
+        <thead>
+          <tr>
+            <th scope="col">{{ 'Month' | t }}</th>
+            <th scope="col" class="number">{{ 'Opening balance' | t }}</th>
+            <th scope="col" class="number">{{ 'Deposits' | t }}</th>
+            <th scope="col" class="number">{{ 'Withdrawals' | t }}</th>
+            <th scope="col" class="number">{{ 'Yield' | t }}</th>
+            <th scope="col" class="number">{{ 'Income tax and IOF' | t }}</th>
+            <th scope="col" class="number">{{ 'Fees' | t }}</th>
+            <th scope="col" class="number">{{ 'Closing balance' | t }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of rows(); track row.month) {
+            <tr>
+              <th scope="row">{{ row.label }}</th>
+              <td class="number ui-tabular">{{ row.opening }}</td>
+              <td class="number ui-tabular">{{ row.inflows }}</td>
+              <td class="number ui-tabular">{{ row.outflows }}</td>
+              <td class="number ui-tabular gain">{{ row.yielded }}</td>
+              <td class="number ui-tabular loss">{{ row.taxes }}</td>
+              <td class="number ui-tabular loss">{{ row.fees }}</td>
+              <td class="number ui-tabular strong">{{ row.closing }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    <p class="ui-muted note">
+      {{ 'The yield is shown before income tax, IOF and fees, which come out of it.' | t }}
+    </p>
+  } @else {
+    <p class="ui-muted empty">
+      {{ 'No statement lines yet. Add the opening balance and the first deposit.' | t }}
+    </p>
+  }
+</section>

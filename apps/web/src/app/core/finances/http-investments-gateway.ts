@@ -2,6 +2,8 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import {
+  BalanceEntry,
+  BalanceEntryDraft,
   Income,
   IncomeDraft,
   Investment,
@@ -15,6 +17,7 @@ import { InvestmentsGateway } from './investments-gateway';
 const INVESTMENTS_URL = '/api/investments';
 const TRADES_URL = '/api/investment-trades';
 const INCOMES_URL = '/api/investment-incomes';
+const BALANCE_ENTRIES_URL = '/api/investment-balance-entries';
 
 /** Investments stored by the Orbit API. */
 @Injectable()
@@ -47,6 +50,14 @@ export class HttpInvestmentsGateway extends InvestmentsGateway {
 
   override deleteIncome(incomeId: string): Observable<void> {
     return this.httpClient.delete<void>(urlOf(INCOMES_URL, incomeId));
+  }
+
+  override saveBalanceEntry(entryId: string, draft: BalanceEntryDraft): Observable<BalanceEntry> {
+    return this.httpClient.put<BalanceEntry>(urlOf(BALANCE_ENTRIES_URL, entryId), draft);
+  }
+
+  override deleteBalanceEntry(entryId: string): Observable<void> {
+    return this.httpClient.delete<void>(urlOf(BALANCE_ENTRIES_URL, entryId));
   }
 }
 

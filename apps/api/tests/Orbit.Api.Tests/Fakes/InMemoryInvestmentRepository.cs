@@ -9,6 +9,7 @@ internal sealed class InMemoryInvestmentRepository : IInvestmentRepository
     private readonly List<Investment> _investments = [];
     private readonly List<InvestmentTrade> _trades = [];
     private readonly List<InvestmentIncome> _incomes = [];
+    private readonly List<BalanceEntry> _balanceEntries = [];
 
     public Task<IReadOnlyList<Investment>> ListAsync(CancellationToken cancellationToken) =>
         Task.FromResult<IReadOnlyList<Investment>>(_investments.ToList());
@@ -31,7 +32,8 @@ internal sealed class InMemoryInvestmentRepository : IInvestmentRepository
     public Task<bool> HasActivityAsync(string investmentId, CancellationToken cancellationToken) =>
         Task.FromResult(
             _trades.Exists(trade => trade.InvestmentId == investmentId)
-            || _incomes.Exists(income => income.InvestmentId == investmentId));
+            || _incomes.Exists(income => income.InvestmentId == investmentId)
+            || _balanceEntries.Exists(entry => entry.InvestmentId == investmentId));
 
     public Task<IReadOnlyList<InvestmentTrade>> ListTradesAsync(CancellationToken cancellationToken) =>
         Task.FromResult<IReadOnlyList<InvestmentTrade>>(_trades.OrderBy(trade => trade.Date).ToList());
@@ -63,6 +65,21 @@ internal sealed class InMemoryInvestmentRepository : IInvestmentRepository
     public Task DeleteIncomeAsync(string incomeId, CancellationToken cancellationToken)
     {
         _incomes.RemoveAll(income => income.Id == incomeId);
+        return Task.CompletedTask;
+    }
+
+    public Task<IReadOnlyList<BalanceEntry>> ListBalanceEntriesAsync(CancellationToken cancellationToken) =>
+        Task.FromResult<IReadOnlyList<BalanceEntry>>(_balanceEntries.OrderBy(entry => entry.Date).ToList());
+
+    public Task SaveBalanceEntryAsync(BalanceEntry entry, CancellationToken cancellationToken)
+    {
+        Upsert(_balanceEntries, entry, stored => stored.Id == entry.Id);
+        return Task.CompletedTask;
+    }
+
+    public Task DeleteBalanceEntryAsync(string entryId, CancellationToken cancellationToken)
+    {
+        _balanceEntries.RemoveAll(entry => entry.Id == entryId);
         return Task.CompletedTask;
     }
 

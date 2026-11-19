@@ -20,6 +20,7 @@ public sealed record Portfolio(
     IReadOnlyList<PortfolioLine> Lines, PortfolioTotals Totals, PortfolioPerformance? Performance)
 {
     private const int IncomeWindowMonths = 12;
+    private const long OneUnitThousandths = 1000;
 
     /// <summary>
     /// Puts the portfolio together as of a day. Lines are ordered by value, the largest first.
@@ -30,20 +31,35 @@ public sealed record Portfolio(
         IReadOnlyList<InvestmentTrade> trades,
         IReadOnlyList<InvestmentIncome> incomes,
         DateOnly asOf,
-        CdiIndex cdi)
+        CdiIndex cdi,
+        IReadOnlyList<BalanceEntry>? balanceEntries = null)
     {
+        var entries = balanceEntries ?? [];
         var lines = investments
-            .Select(investment => LineOf(investment, trades, incomes))
+            .Select(investment => LineOf(investment, trades, incomes, entries, asOf))
             .OrderByDescending(line => line.EffectiveValueCents)
             .ThenBy(line => line.Investment.Name, StringComparer.CurrentCultureIgnoreCase)
             .ToList();
         var totals = TotalsOf(lines, incomes, asOf);
-        return new Portfolio(lines, totals, PortfolioPerformance.From(trades, incomes, totals.ValueCents, cdi, asOf));
+        // The money put in and taken out of balance-tracked investments counts like purchases and sales.
+        var flows = trades.Concat(BalanceLedger.AsFlows(entries)).ToList();
+        return new Portfolio(lines, totals, PortfolioPerformance.From(flows, incomes, totals.ValueCents, cdi, asOf));
+    }
+
+    // A balance-tracked investment is worth its balance and cost what was put in and not yet taken out,
+    // so its gain is the yield minus what was taken out of it (income tax, IOF, fees).
+    private static PortfolioLine BalanceLineOf(Investment investment, IReadOnlyList<BalanceEntry> entries, DateOnly asOf)
+    {
+        var balance = Math.Max(0, BalanceLedger.BalanceAt(entries, investment.Id, asOf));
+        var principal = BalanceLedger.PrincipalAt(entries, investment.Id, asOf);
+        return new PortfolioLine(investment, balance > 0 ? OneUnitThousandths : 0, principal, balance, 0);
     }
 
     private static PortfolioLine LineOf(
-        Investment investment, IEnumerable<InvestmentTrade> trades, IEnumerable<InvestmentIncome> incomes)
+        Investment investment, IEnumerable<InvestmentTrade> trades, IEnumerable<InvestmentIncome> incomes,
+        IReadOnlyList<BalanceEntry> entries, DateOnly asOf)
     {
+        if (investment.Tracking == InvestmentTracking.Balance) return BalanceLineOf(investment, entries, asOf);
         var position = Position.Replay(investment.Id, trades.Where(trade => trade.InvestmentId == investment.Id));
         var value = ValueOf(investment, position);
         var income = incomes.Where(current => current.InvestmentId == investment.Id).Sum(current => current.AmountCents);

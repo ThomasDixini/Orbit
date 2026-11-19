@@ -29,7 +29,7 @@ internal static class SqliteSchema
         "categories", "goals", "goal_progress", "routines", "routine_blocks", "routine_rotation",
         "routine_rotation_steps", "tasks", "task_completions", "block_outcomes",
         "finance_categories", "accounts", "transactions", "card_payments", "bills", "sinking_funds", "investments",
-        "investment_trades", "investment_incomes", "investment_notes", "investment_analyses", "period_rates", "income_split", "income_split_parts",
+        "investment_trades", "investment_incomes", "investment_balance_entries", "investment_notes", "investment_analyses", "period_rates", "income_split", "income_split_parts",
         "income_split_categories", "notes",
     ];
 
@@ -252,6 +252,7 @@ internal static class SqliteSchema
             price_cents INTEGER NULL,
             priced_on TEXT NULL,
             risk TEXT NULL,
+            tracking TEXT NOT NULL DEFAULT 'Trades',
             PRIMARY KEY (user_id, id)
         );
         CREATE TABLE IF NOT EXISTS investment_notes (
@@ -305,6 +306,17 @@ internal static class SqliteSchema
             FOREIGN KEY (user_id, investment_id) REFERENCES investments (user_id, id)
         );
         CREATE INDEX IF NOT EXISTS ix_investment_incomes_investment ON investment_incomes (user_id, investment_id, date);
+        CREATE TABLE IF NOT EXISTS investment_balance_entries (
+            user_id TEXT NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+            id TEXT NOT NULL,
+            investment_id TEXT NOT NULL,
+            date TEXT NOT NULL,
+            kind TEXT NOT NULL,
+            amount_cents INTEGER NOT NULL,
+            PRIMARY KEY (user_id, id),
+            FOREIGN KEY (user_id, investment_id) REFERENCES investments (user_id, id)
+        );
+        CREATE INDEX IF NOT EXISTS ix_investment_balance_entries_investment ON investment_balance_entries (user_id, investment_id, date);
         CREATE TABLE IF NOT EXISTS cdi_rates (
             date TEXT PRIMARY KEY,
             daily_percent TEXT NOT NULL
@@ -356,6 +368,7 @@ internal static class SqliteSchema
         await SqliteHistoryMigration.DetachBlockOutcomesAsync(connection, cancellationToken);
         await SqliteCommands.ExecuteAsync(connection, CreateTables, cancellationToken);
         await AddInvestmentRiskColumnAsync(connection, cancellationToken);
+        await AddInvestmentTrackingColumnAsync(connection, cancellationToken);
         await SqliteHistoryMigration.KeepHistoryAsync(connection, cancellationToken);
         await SqliteCommands.ExecuteAsync(connection, $"PRAGMA application_id = {ApplicationId}", cancellationToken);
         await SqliteCommands.ExecuteAsync(connection, $"PRAGMA user_version = {CurrentVersion}", cancellationToken);
@@ -363,6 +376,14 @@ internal static class SqliteSchema
 
     // A column added to a table that already exists: CREATE TABLE IF NOT EXISTS leaves older databases
     // without it, and nothing else would add it. Checked every start, so no version bump is needed.
+    private static async Task AddInvestmentTrackingColumnAsync(
+        SqliteConnection connection, CancellationToken cancellationToken)
+    {
+        if (await SqliteMigrations.HasColumnAsync(connection, "investments", "tracking", cancellationToken)) return;
+        await SqliteCommands.ExecuteAsync(
+            connection, "ALTER TABLE investments ADD COLUMN tracking TEXT NOT NULL DEFAULT 'Trades'", cancellationToken);
+    }
+
     private static async Task AddInvestmentRiskColumnAsync(
         SqliteConnection connection, CancellationToken cancellationToken)
     {

@@ -14,6 +14,16 @@ export interface PricePoint {
 /** How risky the user considers an investment, by their own principles; nothing is calculated from it. */
 export type InvestmentRisk = 'low' | 'moderate' | 'high';
 
+/**
+ * How an investment is followed: by purchases and sales of units at a price (stocks, funds), or by its
+ * balance like a bank statement (deposits, withdrawals, yield and what is taken out of it).
+ */
+export type InvestmentTracking = 'trades' | 'balance';
+
+/** What a line of the statement of a balance-tracked investment is. */
+export type BalanceEntryKind =
+  'opening' | 'deposit' | 'withdrawal' | 'yield' | 'incomeTax' | 'iof' | 'fee';
+
 export interface Investment {
   readonly id: string;
   readonly name: string;
@@ -22,6 +32,8 @@ export interface Investment {
   readonly price?: PricePoint;
   /** Absent until the user rates it. */
   readonly risk?: InvestmentRisk;
+  /** Absent (or `trades`) when followed by purchases and sales; `balance` when followed by its balance. */
+  readonly tracking?: InvestmentTracking;
 }
 
 /** What the investment form fills in; the id is given by the store. */
@@ -81,6 +93,17 @@ export interface Income {
 
 export type IncomeDraft = Omit<Income, 'id'>;
 
+/** One line of the statement of a balance-tracked investment; the amount is always above zero. */
+export interface BalanceEntry {
+  readonly id: string;
+  readonly investmentId: string;
+  readonly date: string;
+  readonly kind: BalanceEntryKind;
+  readonly amountCents: number;
+}
+
+export type BalanceEntryDraft = Omit<BalanceEntry, 'id'>;
+
 /** The whole portfolio at the end of one month; what the evolution and return charts plot. */
 export interface MonthlyPoint {
   /** `YYYY-MM`. */
@@ -102,6 +125,8 @@ export interface Portfolio {
   readonly history?: readonly MonthlyPoint[];
   readonly trades: readonly Trade[];
   readonly incomes: readonly Income[];
+  /** The statement lines of the balance-tracked investments; absent when there are none. */
+  readonly balanceEntries?: readonly BalanceEntry[];
 }
 
 /** One line of the movements list: a purchase, a sale or a provento. */
@@ -140,6 +165,32 @@ export const INCOME_KIND_OPTIONS: readonly { value: IncomeKind; label: string }[
   { value: 'interestOnEquity', label: 'Interest on equity' },
   { value: 'yield', label: 'Fund yield' },
 ];
+
+export const BALANCE_ENTRY_KIND_OPTIONS: readonly { value: BalanceEntryKind; label: string }[] = [
+  { value: 'deposit', label: 'Deposit' },
+  { value: 'withdrawal', label: 'Withdrawal' },
+  { value: 'yield', label: 'Yield' },
+  { value: 'incomeTax', label: 'Income tax (IR)' },
+  { value: 'iof', label: 'IOF' },
+  { value: 'fee', label: 'Fee' },
+  { value: 'opening', label: 'Opening balance' },
+];
+
+/**
+ * The label of a balance entry kind.
+ * @example balanceEntryKindLabel('incomeTax') // 'Income tax (IR)'
+ */
+export function balanceEntryKindLabel(kind: BalanceEntryKind): string {
+  return BALANCE_ENTRY_KIND_OPTIONS.find((option) => option.value === kind)?.label ?? kind;
+}
+
+/**
+ * Whether an investment is followed by its balance instead of by purchases and sales.
+ * @example isBalanceTracked({ tracking: 'balance' }) // true
+ */
+export function isBalanceTracked(investment: Pick<Investment, 'tracking'>): boolean {
+  return investment.tracking === 'balance';
+}
 
 /**
  * The label of an investment kind.

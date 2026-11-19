@@ -84,6 +84,17 @@
         />
       }
     }
+    @case ('balance') {
+      @if (panelInvestment(); as investment) {
+        <app-balance-entry-form
+          [investmentName]="investment.name"
+          [today]="today"
+          [saving]="isSaving()"
+          (save)="addBalanceEntry($event)"
+          (dismiss)="close()"
+        />
+      }
+    }
   }
 
   @if (hasLoadFailed()) {
@@ -277,12 +288,18 @@
                       </span>
                     </button>
                   </th>
-                  <td class="number ui-tabular">{{ quantity(line) }}</td>
-                  <td class="number ui-tabular">{{ average(line) }}</td>
-                  <td class="number ui-tabular">
-                    {{ priceText(line.investment) | t }}
-                    <span class="detail">{{ priceDay(line.investment) }}</span>
-                  </td>
+                  @if (isBalance(line)) {
+                    <td class="number ui-tabular ui-muted" colspan="3">
+                      {{ 'Followed by balance' | t }}
+                    </td>
+                  } @else {
+                    <td class="number ui-tabular">{{ quantity(line) }}</td>
+                    <td class="number ui-tabular">{{ average(line) }}</td>
+                    <td class="number ui-tabular">
+                      {{ priceText(line.investment) | t }}
+                      <span class="detail">{{ priceDay(line.investment) }}</span>
+                    </td>
+                  }
                   <td class="number ui-tabular">{{ costText(line) }}</td>
                   <td class="number ui-tabular strong value-text">{{ valueText(line) | t }}</td>
                   <td
@@ -294,24 +311,37 @@
                   </td>
                   <td class="actions-cell">
                     <div class="actions">
-                      <button
-                        class="ui-button-ghost"
-                        type="button"
-                        [attr.aria-label]="'Trade {name}' | t: { name: line.investment.name }"
-                        (click)="open({ kind: 'trade', investmentId: line.investment.id })"
-                      >
-                        {{ 'Buy / sell' | t }}
-                      </button>
-                      <button
-                        class="ui-button-ghost"
-                        type="button"
-                        [attr.aria-label]="
-                          'Add income to {name}' | t: { name: line.investment.name }
-                        "
-                        (click)="open({ kind: 'income', investmentId: line.investment.id })"
-                      >
-                        {{ 'Income' | t }}
-                      </button>
+                      @if (isBalance(line)) {
+                        <button
+                          class="ui-button-ghost"
+                          type="button"
+                          [attr.aria-label]="
+                            'Add a statement line to {name}' | t: { name: line.investment.name }
+                          "
+                          (click)="open({ kind: 'balance', investmentId: line.investment.id })"
+                        >
+                          {{ 'Statement line' | t }}
+                        </button>
+                      } @else {
+                        <button
+                          class="ui-button-ghost"
+                          type="button"
+                          [attr.aria-label]="'Trade {name}' | t: { name: line.investment.name }"
+                          (click)="open({ kind: 'trade', investmentId: line.investment.id })"
+                        >
+                          {{ 'Buy / sell' | t }}
+                        </button>
+                        <button
+                          class="ui-button-ghost"
+                          type="button"
+                          [attr.aria-label]="
+                            'Add income to {name}' | t: { name: line.investment.name }
+                          "
+                          (click)="open({ kind: 'income', investmentId: line.investment.id })"
+                        >
+                          {{ 'Income' | t }}
+                        </button>
+                      }
                       <button
                         class="ui-button-ghost"
                         type="button"
@@ -332,10 +362,51 @@
           {{ 'No investments yet. Add one, then record your purchases to follow it here.' | t }}
         </p>
       }
+      @if (closedCount() > 0) {
+        <button
+          class="ui-button-ghost closed-toggle"
+          type="button"
+          [attr.aria-pressed]="showClosed()"
+          (click)="showClosed.set(!showClosed())"
+        >
+          {{
+            showClosed()
+              ? ('Hide closed investments' | t)
+              : ('Show closed investments ({count})' | t: { count: closedCount() })
+          }}
+        </button>
+      }
     </section>
+
+    @if (balanceInvestments().length > 0) {
+      <app-balance-statement
+        [investments]="balanceInvestments()"
+        [entries]="balanceEntries()"
+        [today]="today"
+      />
+    }
+
+    @if (balanceInvestments().length > 0) {
+      <app-balance-history
+        title="Deposits and withdrawals"
+        [kinds]="depositKinds"
+        [entries]="balanceEntries()"
+        [investmentNames]="investmentNames()"
+        (remove)="removeBalanceEntry($event)"
+      />
+
+      <app-balance-history
+        title="Yield and what is taken out of it"
+        [kinds]="yieldKinds"
+        [entries]="balanceEntries()"
+        [investmentNames]="investmentNames()"
+        (remove)="removeBalanceEntry($event)"
+      />
+    }
 
     <section class="ui-card card" [attr.aria-label]="'Movements' | t">
       <h2 class="card-title">{{ 'Purchases, sales and proventos' | t }}</h2>
+      <p class="ui-muted hint">{{ 'Includes investments already sold.' | t }}</p>
       @if (movements().length > 0) {
         <ul class="list">
           @for (movement of visibleMovements(); track movement.key) {

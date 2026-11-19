@@ -183,6 +183,30 @@ public sealed class SqliteMigrationTests : IDisposable
         (await CountAsync("SELECT COUNT(*) FROM investments WHERE id = 'petr4' AND risk IS NULL")).ShouldBe(1);
     }
 
+    [Fact]
+    public async Task AnInvestmentsTableWithoutTracking_GainsTheColumnFollowedByTradesAndKeepsItsRows()
+    {
+        await MigrateAsync();
+        await using (var connection = await _connections.OpenAsync(CancellationToken.None))
+        {
+            await SqliteCommands.ExecuteAsync(
+                connection,
+                """
+                PRAGMA foreign_keys = OFF;
+                DROP TABLE investment_balance_entries;
+                DROP TABLE investment_notes;
+                ALTER TABLE investments DROP COLUMN tracking;
+                INSERT INTO investments (user_id, id, name, kind) VALUES ('u1', 'petr4', 'PETR4', 'Stock');
+                """,
+                CancellationToken.None);
+        }
+
+        await MigrateAsync();
+
+        (await CountAsync("SELECT COUNT(*) FROM investments WHERE id = 'petr4' AND tracking = 'Trades'")).ShouldBe(1);
+        (await CountAsync("SELECT COUNT(*) FROM sqlite_master WHERE name = 'investment_balance_entries'")).ShouldBe(1);
+    }
+
     // The shape before history was kept: outcomes cascaded with their routine and goals had no archive day.
     private async Task GoBackToHistoryThatCascadesAsync()
     {
