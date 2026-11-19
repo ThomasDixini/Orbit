@@ -6,6 +6,7 @@ import { Positioned, positionOf, restoredAt, sameId } from '../lists/list-positi
 import { FinanceReferencesStore } from './finance-references-store';
 import { Transaction, TransactionDraft } from './transaction';
 import { monthOf, monthOfDay } from './transaction-month';
+import { DataRefresh } from '../refresh/data-refresh';
 import { TransactionsGateway } from './transactions-gateway';
 
 /** How many transactions of an import are sent at the same time. */
@@ -42,6 +43,16 @@ export class TransactionsStore {
   readonly hasLoadFailed = computed(() => this.monthFailed() || this.references.hasLoadFailed());
 
   constructor() {
+    this.loadMonth(this.shownMonth());
+    inject(DataRefresh).onRefresh(() => this.refresh());
+  }
+
+  /**
+   * Reads the month on screen again; the list stays until the answer arrives.
+   * @example store.refresh()
+   */
+  refresh(): void {
+    this.monthFailed.set(false);
     this.loadMonth(this.shownMonth());
   }
 

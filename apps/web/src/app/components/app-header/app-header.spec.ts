@@ -4,6 +4,7 @@ import { fakeSession } from '../../core/auth/fake-auth-gateway';
 import { SessionStore } from '../../core/auth/session-store';
 import { provideFakeBackupGateway } from '../../core/backups/fake-backup-gateway';
 import { DEMO_STORAGE_KEY } from '../../core/finances/demo/demo-mode';
+import { DataRefresh } from '../../core/refresh/data-refresh';
 import { AppHeader } from './app-header';
 
 describe('AppHeader', () => {
@@ -77,5 +78,21 @@ describe('AppHeader', () => {
     const backup = (fixture.nativeElement as HTMLElement).querySelector('app-backup-menu');
 
     expect(backup).toBeNull();
+  });
+});
+
+describe('AppHeader refresh button', () => {
+  it('asks for the data to be read again, without reloading the page', () => {
+    TestBed.configureTestingModule({ providers: [provideRouter([]), provideFakeBackupGateway()] });
+    const refresh = TestBed.inject(DataRefresh);
+    const fixture = TestBed.createComponent(AppHeader);
+    fixture.detectChanges();
+    const button = (fixture.nativeElement as HTMLElement).querySelector<HTMLButtonElement>(
+      '.refresh',
+    );
+
+    button?.click();
+
+    expect([button?.getAttribute('aria-label'), refresh.generation()]).toEqual(['Refresh data', 1]);
   });
 });

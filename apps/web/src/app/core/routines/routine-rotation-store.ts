@@ -1,6 +1,7 @@
 import { ErrorHandler, Injectable, inject, signal } from '@angular/core';
 import { NO_ROTATION, RoutineRotation } from './routine-rotation';
 import { RoutineRotationGateway } from './routine-rotation-gateway';
+import { DataRefresh } from '../refresh/data-refresh';
 import { withoutRoutine } from './rotation-edits';
 
 /**
@@ -20,6 +21,16 @@ export class RoutineRotationStore {
   readonly hasLoadFailed = this.loadFailed.asReadonly();
 
   constructor() {
+    this.load();
+    inject(DataRefresh).onRefresh(() => this.refresh());
+  }
+
+  /**
+   * Reads the rotation again; the one on screen stays until the answer arrives.
+   * @example store.refresh()
+   */
+  refresh(): void {
+    this.loadFailed.set(false);
     this.load();
   }
 
