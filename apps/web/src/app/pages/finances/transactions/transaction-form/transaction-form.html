@@ -10,16 +10,51 @@
         class="ui-chip"
         type="button"
         [attr.aria-pressed]="option.value === type()"
-        (click)="type.set(option.value)"
+        (click)="pickType(option.value)"
       >
         {{ option.label | t }}
       </button>
     }
   </div>
 
+  @if (!isEditing()) {
+    <div class="chips" role="group" [attr.aria-label]="'Payment' | t">
+      <button
+        class="ui-chip"
+        type="button"
+        [attr.aria-pressed]="!isInstallments()"
+        (click)="pickMode('single')"
+      >
+        {{ 'Single payment' | t }}
+      </button>
+      <button
+        class="ui-chip"
+        type="button"
+        [attr.aria-pressed]="isInstallments()"
+        (click)="pickMode('installments')"
+      >
+        {{ 'In installments' | t }}
+      </button>
+    </div>
+  }
+
+  @if (!isEditing() && !isInstallments() && linkableBills().length > 0) {
+    <label class="ui-field link">
+      {{ type() === 'expense' ? ('Pays a bill to pay' | t) : ('Receives a bill to receive' | t) }}
+      <select name="bill" class="ui-input" (change)="pickBill(valueOf($event))">
+        <option value="" [selected]="billId() === ''">{{ 'No bill' | t }}</option>
+        @for (bill of linkableBills(); track bill.id) {
+          <option [value]="bill.id" [selected]="bill.id === billId()">
+            {{ bill.description }} · {{ bill.dueDate }}
+          </option>
+        }
+      </select>
+    </label>
+  }
+
   <div class="fields">
     <label class="ui-field">
-      {{ 'Amount (R$)' | t }}
+      {{ isInstallments() ? ('Total amount (R$)' | t) : ('Amount (R$)' | t) }}
       <input
         class="ui-input"
         name="amount"
@@ -28,6 +63,7 @@
         autocomplete="off"
         placeholder="0.00"
         [value]="amount()"
+        [disabled]="linkedBill() !== undefined"
         [attr.aria-invalid]="amountError() !== undefined"
         [attr.aria-describedby]="amountError() === undefined ? null : 'transaction-amount-error'"
         (input)="amount.set(valueOf($event))"
@@ -45,13 +81,19 @@
         maxlength="80"
         [placeholder]="'E.g. Groceries' | t"
         [value]="description()"
+        [disabled]="linkedBill() !== undefined"
         (input)="description.set(valueOf($event))"
       />
     </label>
 
     <label class="ui-field">
       {{ 'Category' | t }}
-      <select class="ui-input" (change)="categoryId.set(valueOf($event))">
+      <select
+        class="ui-input"
+        name="category"
+        [disabled]="linkedBill() !== undefined"
+        (change)="categoryId.set(valueOf($event))"
+      >
         <option value="" disabled [selected]="categoryId() === ''">
           {{ 'Choose a category' | t }}
         </option>
@@ -63,24 +105,58 @@
       </select>
     </label>
 
-    <label class="ui-field">
-      {{ 'Account' | t }}
-      <select class="ui-input" (change)="accountId.set(valueOf($event))">
-        <option value="" disabled [selected]="accountId() === ''">
-          {{ 'Choose an account' | t }}
-        </option>
-        @for (account of accounts(); track account.id) {
-          <option [value]="account.id" [selected]="account.id === accountId()">
-            {{ account.name | t }}
-          </option>
+    @if (isInstallments()) {
+      <label class="ui-field">
+        {{ 'Installments' | t }}
+        <input
+          class="ui-input"
+          name="count"
+          type="number"
+          inputmode="numeric"
+          [min]="minCount"
+          [max]="maxCount"
+          [value]="installmentCount()"
+          [attr.aria-invalid]="countError() !== undefined"
+          [attr.aria-describedby]="countError() === undefined ? null : 'transaction-count-error'"
+          (input)="installmentCount.set(valueOf($event))"
+        />
+        @if (countError(); as error) {
+          <span id="transaction-count-error" class="error">
+            {{ error | t }}
+          </span>
         }
-      </select>
-    </label>
+      </label>
 
-    <label class="ui-field">
-      {{ 'Date' | t }}
-      <input class="ui-input" type="date" [value]="date()" (change)="date.set(valueOf($event))" />
-    </label>
+      <label class="ui-field">
+        {{ 'First installment due on' | t }}
+        <input
+          class="ui-input"
+          name="firstDue"
+          type="date"
+          [value]="firstDueDate()"
+          (change)="firstDueDate.set(valueOf($event))"
+        />
+      </label>
+    } @else {
+      <label class="ui-field">
+        {{ 'Account' | t }}
+        <select class="ui-input" (change)="accountId.set(valueOf($event))">
+          <option value="" disabled [selected]="accountId() === ''">
+            {{ 'Choose an account' | t }}
+          </option>
+          @for (account of accounts(); track account.id) {
+            <option [value]="account.id" [selected]="account.id === accountId()">
+              {{ account.name | t }}
+            </option>
+          }
+        </select>
+      </label>
+
+      <label class="ui-field">
+        {{ 'Date' | t }}
+        <input class="ui-input" type="date" [value]="date()" (change)="date.set(valueOf($event))" />
+      </label>
+    }
   </div>
 
   <div class="actions">
@@ -93,7 +169,7 @@
       {{ 'Cancel' | t }}
     </button>
     <button class="ui-button-primary" type="submit" [disabled]="!canSave()">
-      {{ isEditing() ? ('Save transaction' | t) : ('Add transaction' | t) }}
+      {{ submitLabel() | t }}
     </button>
   </div>
 </form>

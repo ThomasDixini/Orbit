@@ -188,6 +188,21 @@ export const PT_BR_FINANCES: Readonly<Record<string, string>> = {
   'Paid from': 'Paga com',
   'Record payment': 'Registrar pagamento',
 
+  // Installments and linked bills
+  Payment: 'Pagamento',
+  'Single payment': 'À vista',
+  'In installments': 'Parcelado',
+  'Pays a bill to pay': 'Quita uma conta a pagar',
+  'Receives a bill to receive': 'Recebe uma conta a receber',
+  'No bill': 'Nenhuma conta',
+  'Total amount (R$)': 'Valor total (R$)',
+  'First installment due on': 'Primeira parcela vence em',
+  'Add installments': 'Adicionar parcelas',
+  'Settle the bill': 'Quitar a conta',
+  '{count} installments added to To pay & receive.':
+    '{count} parcelas adicionadas em A pagar e receber.',
+  'Bill settled in To pay & receive.': 'Conta quitada em A pagar e receber.',
+
   // To pay & receive
   'Due date': 'Vencimento',
   Repeat: 'Repetir',

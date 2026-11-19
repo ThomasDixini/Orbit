@@ -39,6 +39,8 @@ export interface Bill {
 export interface BillRepeat {
   readonly kind: BillRecurrence;
   readonly count: number;
+  /** Installments only: the amount of the bill is the whole total, and the API splits it between them. */
+  readonly amountIsTotal?: boolean;
 }
 
 /** What the bill form fills in; the id is given by the store, and a repeat only applies to a new bill. */
