@@ -44,6 +44,7 @@ import {
 import { BalanceEntryFields, BalanceEntryForm } from './balance-entry-form/balance-entry-form';
 import { BalanceHistory } from './balance-history/balance-history';
 import { BalanceStatement } from './balance-statement/balance-statement';
+import { MonthlyAppreciation } from './monthly-appreciation/monthly-appreciation';
 import { IncomeFields, IncomeForm } from './income-form/income-form';
 import { MovementImport, MovementImportResult } from './movement-import/movement-import';
 import { InvestmentForm } from './investment-form/investment-form';
@@ -91,6 +92,7 @@ const MOVEMENTS_PAGE_SIZE = 10;
     IncomeForm,
     BalanceEntryForm,
     BalanceStatement,
+    MonthlyAppreciation,
     BalanceHistory,
     LineChart,
     BarChart,
@@ -118,12 +120,16 @@ export class Investments {
   protected readonly section = signal<InvestmentsSection>('portfolio');
   private readonly shownMovements = signal(MOVEMENTS_PAGE_SIZE);
   protected readonly visibleMovements = computed(() =>
-    this.store.movements().slice(0, this.shownMovements()),
+    this.movements().slice(0, this.shownMovements()),
   );
   protected readonly hasMoreMovements = computed(
-    () => this.store.movements().length > this.shownMovements(),
+    () => this.movements().length > this.shownMovements(),
   );
-  protected readonly movements = this.store.movements;
+  /** The movements of the class or asset picked, sold ones included; every movement when none is. */
+  protected readonly movements = computed(() => {
+    const ids = new Set(this.selected().map((line) => line.investment.id));
+    return this.store.movements().filter((movement) => ids.has(movement.investmentId));
+  });
   protected readonly panel = signal<Panel>(CLOSED);
   protected readonly isImportOpen = signal(false);
   /** What the last import came to, shown until the person moves on. */
@@ -139,6 +145,18 @@ export class Investments {
     const portfolio = this.store.portfolio();
     return portfolio === undefined ? new Set<string>() : closedInvestmentIds(portfolio);
   });
+  /** What the asset picker offers: the assets of the class, with the sold ones, so their history can be read. */
+  protected readonly pickerLines = computed(() => this.sortedTableLines());
+  protected readonly appreciationInvestments = computed(() =>
+    this.lines().map((line) => line.investment),
+  );
+  protected readonly investmentHistories = computed(
+    () => this.store.portfolio()?.investmentHistories ?? {},
+  );
+  protected readonly hasAppreciation = computed(() =>
+    Object.values(this.investmentHistories()).some((history) => history.length > 0),
+  );
+  protected readonly incomes = computed(() => this.store.portfolio()?.incomes ?? []);
   protected readonly closedCount = computed(
     () => this.sortedTableLines().filter((line) => this.closedIds().has(line.investment.id)).length,
   );
@@ -264,6 +282,10 @@ export class Investments {
     const panel = this.panel();
     if (panel.kind !== 'income') return;
     if (await this.store.addIncome({ ...fields, investmentId: panel.investmentId })) this.close();
+  }
+
+  protected isClosed(investmentId: string): boolean {
+    return this.closedIds().has(investmentId);
   }
 
   /** Reveals the next page of the movements list, which starts with the newest ones. */

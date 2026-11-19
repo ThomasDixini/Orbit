@@ -146,8 +146,11 @@
           (change)="pickAsset($any($event.target).value || undefined)"
         >
           <option value="">{{ 'All' | t }}</option>
-          @for (line of tableLines(); track line.investment.id) {
-            <option [value]="line.investment.id">{{ line.investment.name }}</option>
+          @for (line of pickerLines(); track line.investment.id) {
+            <option [value]="line.investment.id">
+              {{ line.investment.name
+              }}{{ isClosed(line.investment.id) ? ' · ' + ('sold' | t) : '' }}
+            </option>
           }
         </select>
       </label>
@@ -377,6 +380,14 @@
         </button>
       }
     </section>
+
+    @if (hasAppreciation()) {
+      <app-monthly-appreciation
+        [investments]="appreciationInvestments()"
+        [histories]="investmentHistories()"
+        [incomes]="incomes()"
+      />
+    }
 
     @if (balanceInvestments().length > 0) {
       <app-balance-statement

@@ -138,6 +138,7 @@ export interface Portfolio {
 export interface Movement {
   readonly key: string;
   readonly id: string;
+  readonly investmentId: string;
   readonly type: 'trade' | 'income';
   readonly date: string;
   readonly investmentName: string;
@@ -299,6 +300,7 @@ export function movements(
   const trades = portfolio.trades.map((trade): Movement => ({
     key: `trade:${trade.id}`,
     id: trade.id,
+    investmentId: trade.investmentId,
     type: 'trade',
     date: trade.date,
     investmentName: name(trade.investmentId),
@@ -308,6 +310,7 @@ export function movements(
   const incomes = portfolio.incomes.map((income): Movement => ({
     key: `income:${income.id}`,
     id: income.id,
+    investmentId: income.investmentId,
     type: 'income',
     date: income.date,
     investmentName: name(income.investmentId),

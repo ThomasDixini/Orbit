@@ -1,0 +1,65 @@
+<section class="ui-card card" [attr.aria-label]="'Monthly appreciation' | t">
+  <div class="card-head">
+    <h2 class="card-title">{{ 'Monthly appreciation' | t }}</h2>
+    <label class="picker">
+      <span class="ui-visually-hidden">{{ 'Investment' | t }}</span>
+      <select class="ui-input" name="appreciation-investment" (change)="pick($event)">
+        <option [value]="all" [selected]="picked() === all">{{ 'All investments' | t }}</option>
+        @for (investment of investments(); track investment.id) {
+          <option [value]="investment.id" [selected]="picked() === investment.id">
+            {{ investment.name }}
+          </option>
+        }
+      </select>
+    </label>
+  </div>
+
+  <app-line-chart
+    [title]="'Appreciation per month (%)' | t"
+    [labels]="labels()"
+    [series]="series()"
+    [format]="formatAxis"
+    emptyText="No history yet."
+  />
+
+  @if (rows().length > 0) {
+    <div class="table-wrap">
+      <table class="statement">
+        <thead>
+          <tr>
+            <th scope="col">{{ 'Month' | t }}</th>
+            <th scope="col" class="number">{{ 'Opening value' | t }}</th>
+            <th scope="col" class="number">{{ 'Put in or taken out' | t }}</th>
+            <th scope="col" class="number">{{ 'Appreciation' | t }}</th>
+            <th scope="col" class="number">%</th>
+            <th scope="col" class="number">{{ 'Proventos' | t }}</th>
+            <th scope="col" class="number">{{ 'Closing value' | t }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of rows(); track row.month) {
+            <tr>
+              <th scope="row">{{ row.label }}</th>
+              <td class="number ui-tabular">{{ row.opening }}</td>
+              <td class="number ui-tabular">{{ row.contributed }}</td>
+              <td class="number ui-tabular" [class.gain]="!row.isLoss" [class.loss]="row.isLoss">
+                {{ row.appreciation }}
+              </td>
+              <td class="number ui-tabular">{{ row.percent }}</td>
+              <td class="number ui-tabular">{{ row.income }}</td>
+              <td class="number ui-tabular strong">{{ row.closing }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    <p class="ui-muted note">
+      {{
+        'Appreciation is what the value changed beyond the money put in or taken out; for an investment followed by balance, it is the yield after taxes and fees. Proventos are paid out, so they are not part of it.'
+          | t
+      }}
+    </p>
+  } @else {
+    <p class="ui-muted empty">{{ 'No history yet.' | t }}</p>
+  }
+</section>

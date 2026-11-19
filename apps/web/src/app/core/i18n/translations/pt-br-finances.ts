@@ -188,6 +188,18 @@ export const PT_BR_FINANCES: Readonly<Record<string, string>> = {
   'Paid from': 'Paga com',
   'Record payment': 'Registrar pagamento',
 
+  // Monthly appreciation
+  'Monthly appreciation': 'Valorização mensal',
+  'All investments': 'Todos os investimentos',
+  'Appreciation per month (%)': 'Valorização por mês (%)',
+  'Opening value': 'Valor inicial',
+  'Put in or taken out': 'Aplicado ou resgatado',
+  Appreciation: 'Valorização',
+  'Closing value': 'Valor final',
+  sold: 'vendido',
+  'Appreciation is what the value changed beyond the money put in or taken out; for an investment followed by balance, it is the yield after taxes and fees. Proventos are paid out, so they are not part of it.':
+    'Valorização é quanto o valor mudou além do dinheiro aplicado ou resgatado; num investimento acompanhado por saldo, é o rendimento depois de impostos e taxas. Os proventos são pagos ao dono, então não entram nela.',
+
   // To pay & receive
   'Due date': 'Vencimento',
   Repeat: 'Repetir',

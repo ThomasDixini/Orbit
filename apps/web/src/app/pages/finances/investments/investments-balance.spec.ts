@@ -345,3 +345,45 @@ describe('Investments page: charts of one investment', () => {
     ]);
   });
 });
+
+describe('Investments page: a sold investment picked on its own', () => {
+  it('can be picked and then lists only its own movements', async () => {
+    const { fixture } = await render(WITH_SOLD_CDB);
+    const options = texts(fixture, 'select[name="asset"] option');
+
+    fill(fixture, 'select[name="asset"]', 'cdb');
+    await flush(fixture);
+
+    expect([
+      options.includes('CDB Demo · sold'),
+      texts(fixture, '.movement .name').map((text) => text.replace(/^.* · CDB Demo · /, '')),
+    ]).toEqual([true, ['Sell 15000', 'Buy 15000']]);
+  });
+});
+
+describe('Investments page: monthly appreciation', () => {
+  it('shows the appreciation of the months once the API sends the histories', async () => {
+    const { fixture } = await render({
+      ...WITH_CAIXINHA,
+      investmentHistories: {
+        caixinha: [
+          {
+            month: '2026-10',
+            valueCents: 1000,
+            appliedCents: 900,
+            returnPercent: 0,
+            cdiPercent: 0,
+          },
+        ],
+      },
+    });
+
+    expect(texts(fixture, 'app-monthly-appreciation tbody tr th')).toEqual(['October 2026']);
+  });
+
+  it('is not shown without histories', async () => {
+    const { fixture } = await render(WITH_CAIXINHA);
+
+    expect(texts(fixture, 'app-monthly-appreciation')).toEqual([]);
+  });
+});
