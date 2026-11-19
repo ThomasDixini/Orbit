@@ -24,6 +24,7 @@ import {
 import {
   InvestmentFilters,
   appliedByMonth,
+  combineHistories,
   closedInvestmentIds,
   distribution,
   filterLines,
@@ -384,7 +385,7 @@ export class Investments {
    * only one known for a single investment or class, since the history is the whole portfolio's.
    */
   private returnStat(sincePurchasePercent: number): Stat {
-    const inPeriod = periodPerformance(this.wholeHistory());
+    const inPeriod = periodPerformance(this.selectedHistory());
     if (inPeriod === undefined) {
       return {
         label: 'Return',
@@ -431,25 +432,38 @@ export class Investments {
     return `Average ${formatMoney(average, this.locale)} per month`;
   }
 
-  /** The history is the whole portfolio's, so it is only drawn when nothing narrows it down. */
-  private wholeHistory(): (MonthlyPoint | undefined)[] {
+  /**
+   * The history of the whole portfolio, or the ones of the investments the filters leave in, added up.
+   * A source without per-investment histories (the demo) leaves a narrowed view blank.
+   */
+  private selectedHistory(): (MonthlyPoint | undefined)[] {
     const { kind, investmentId } = this.filters();
-    const history = this.store.portfolio()?.history ?? [];
-    if (kind !== undefined || investmentId !== undefined) return this.months().map(() => undefined);
-    return this.months().map((month) => history.find((point) => point.month === month));
+    const portfolio = this.store.portfolio();
+    if (kind === undefined && investmentId === undefined) {
+      const history = portfolio?.history ?? [];
+      return this.months().map((month) => history.find((point) => point.month === month));
+    }
+    const histories = portfolio?.investmentHistories;
+    if (histories === undefined) return this.months().map(() => undefined);
+    const own = [...this.selectedIds()].map((id) => histories[id]);
+    return combineHistories(own, this.months());
   }
 
   private describeValueSeries(): ChartSeries[] {
+    const history = this.selectedHistory();
     const trades = this.store.portfolio()?.trades ?? [];
-    const applied = appliedByMonth(trades, this.selectedIds(), this.months());
+    // The history's applied money counts the deposits of balance-tracked investments, which trades do not.
+    const applied = history.some((point) => point !== undefined)
+      ? history.map((point) => point?.appliedCents)
+      : appliedByMonth(trades, this.selectedIds(), this.months());
     return [
-      { name: 'Current value', values: this.wholeHistory().map((point) => point?.valueCents) },
+      { name: 'Current value', values: history.map((point) => point?.valueCents) },
       { name: 'Applied', values: applied, dashed: true },
     ].map((series) => ({ ...series, values: series.values.map(this.toReais) }));
   }
 
   private describeReturnSeries(): ChartSeries[] {
-    const history = this.wholeHistory();
+    const history = this.selectedHistory();
     return [
       { name: 'Your investments', values: history.map((point) => point?.returnPercent) },
       { name: 'CDI', values: history.map((point) => point?.cdiPercent), dashed: true },
@@ -472,7 +486,7 @@ export class Investments {
     | undefined {
     const index = this.selectedMonthIndex();
     if (index === undefined) return undefined;
-    const point = this.wholeHistory()[index];
+    const point = this.selectedHistory()[index];
     const gainCents = this.monthlyGains()[index];
     return {
       title: this.monthLong(this.months()[index]),
@@ -490,7 +504,7 @@ export class Investments {
   }
 
   private describeMonthlyGains(): number[] {
-    const history = this.wholeHistory();
+    const history = this.selectedHistory();
     return history.map((point, index) => {
       const previous = history[index - 1];
       if (point === undefined || previous === undefined) return 0;

@@ -1,6 +1,7 @@
 import { Income, MonthlyPoint, PortfolioLine, Trade } from './investments';
 import {
   appliedByMonth,
+  combineHistories,
   distribution,
   filterLines,
   incomeByMonth,
@@ -133,5 +134,52 @@ describe('period performance', () => {
       undefined,
       undefined,
     ]);
+  });
+});
+
+describe('combineHistories', () => {
+  const rdb: MonthlyPoint[] = [
+    {
+      month: '2026-09',
+      valueCents: 1100,
+      appliedCents: 1000,
+      returnPercent: 10,
+      cdiPercent: 1,
+      receivedCents: 0,
+      cdiGainCents: 10,
+    },
+  ];
+  const tesouro: MonthlyPoint[] = [
+    {
+      month: '2026-08',
+      valueCents: 500,
+      appliedCents: 500,
+      returnPercent: 0,
+      cdiPercent: 0,
+      receivedCents: 0,
+      cdiGainCents: 0,
+    },
+    {
+      month: '2026-09',
+      valueCents: 900,
+      appliedCents: 1000,
+      returnPercent: -10,
+      cdiPercent: 3,
+      receivedCents: 0,
+      cdiGainCents: 30,
+    },
+  ];
+
+  it('adds the investments up and works the percentages out again from the sums', () => {
+    const [august, september] = combineHistories([rdb, tesouro], ['2026-08', '2026-09']);
+
+    expect([august?.valueCents, september?.valueCents, september?.appliedCents]).toEqual([
+      500, 2000, 2000,
+    ]);
+    expect([september?.returnPercent, september?.cdiPercent]).toEqual([0, 2]);
+  });
+
+  it('leaves a month with no figures undefined', () => {
+    expect(combineHistories([rdb, undefined], ['2026-07'])).toEqual([undefined]);
   });
 });

@@ -157,3 +157,44 @@ export function closedInvestmentIds(
       .map((line) => line.investment.id),
   );
 }
+
+/**
+ * The month-end figures of several investments added up, one entry per month; a month none of them has a
+ * figure for is undefined. The percentages are worked out again from the added amounts, since percentages
+ * of different investments cannot be summed.
+ * @example combineHistories([rdb, tesouro], ['2026-10'])[0]?.valueCents
+ */
+export function combineHistories(
+  histories: readonly (readonly MonthlyPoint[] | undefined)[],
+  months: readonly string[],
+): (MonthlyPoint | undefined)[] {
+  return months.map((month) => {
+    const points = histories
+      .map((history) => history?.find((point) => point.month === month))
+      .filter((point): point is MonthlyPoint => point !== undefined);
+    return points.length === 0 ? undefined : addUp(month, points);
+  });
+}
+
+function addUp(month: string, points: readonly MonthlyPoint[]): MonthlyPoint {
+  const sum = (amountOf: (point: MonthlyPoint) => number): number =>
+    points.reduce((total, point) => total + amountOf(point), 0);
+  const value = sum((point) => point.valueCents);
+  const applied = sum((point) => point.appliedCents);
+  const received = sum((point) => point.receivedCents ?? 0);
+  const cdiGain = sum((point) => point.cdiGainCents ?? 0);
+  return {
+    month,
+    valueCents: value,
+    appliedCents: applied,
+    returnPercent: percentOf(value + received - applied, applied),
+    cdiPercent: percentOf(cdiGain, applied),
+    receivedCents: received,
+    cdiGainCents: cdiGain,
+  };
+}
+
+function percentOf(cents: number, appliedCents: number): number {
+  if (appliedCents <= 0) return 0;
+  return Math.round((cents * PERCENT * PERCENT) / appliedCents) / PERCENT;
+}

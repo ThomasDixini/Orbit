@@ -64,4 +64,14 @@ public class BalancePortfolioTests
         months.Select(point => (point.Month, point.ValueCents, point.AppliedCents))
             .ShouldBe([("2025-12", 100_850L, 100_000L), ("2026-01", 100_850L, 100_000L)]);
     }
+    [Fact]
+    public void History_PointsCarryTheReceivedAndCdiAmountsSoSeveralOfThemCanBeAddedUp()
+    {
+        var flows = BalanceLedger.AsFlows(Statement);
+        var rates = new CdiIndex([new CdiRate(new DateOnly(2025, 12, 2), 0.01m)]);
+
+        var last = PortfolioHistory.Build([Rdb()], flows, [], [], rates, January31, Statement).Last();
+
+        (last.ReceivedCents, last.CdiGainCents > 0).ShouldBe((0L, true));
+    }
 }
