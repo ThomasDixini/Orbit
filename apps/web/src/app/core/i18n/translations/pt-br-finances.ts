@@ -424,11 +424,13 @@ export const PT_BR_FINANCES: Readonly<Record<string, string>> = {
   'All balance investments': 'Todos os investimentos por saldo',
   Deposits: 'Aportes',
   Withdrawals: 'Resgates',
-  'Income tax and IOF': 'IR e IOF',
   Fees: 'Taxas',
+  'Withdrawals and taxes': 'Resgates e impostos',
+  'Income tax, IOF and fees recorded in total: {amount}':
+    'IR, IOF e taxas lançados no total: {amount}',
   'Closing balance': 'Saldo final',
-  'The yield is shown before income tax, IOF and fees, which come out of it.':
-    'O rendimento aparece antes do IR, do IOF e das taxas, que saem dele.',
+  'Income tax, IOF and fees are charged when the money is redeemed or sold, so they are part of the withdrawals of that month, not a monthly column. The yield is shown before them.':
+    'IR, IOF e taxas são cobrados no resgate ou na venda, então entram nos resgates daquele mês, e não numa coluna mensal. O rendimento aparece antes deles.',
   'No statement lines yet. Add the opening balance and the first deposit.':
     'Nenhum lançamento ainda. Registre o saldo inicial e o primeiro aporte.',
   'Deposits and withdrawals': 'Aportes e resgates',

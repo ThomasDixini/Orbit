@@ -8,14 +8,13 @@ export interface StatementMonth {
   readonly openingCents: number;
   /** Deposits made in the month. */
   readonly inflowsCents: number;
-  /** Withdrawals made in the month. */
+  /**
+   * What left the investments in the month: the withdrawals plus the income tax, IOF and fees held back,
+   * which are charged when the money is redeemed or sold, not month by month.
+   */
   readonly outflowsCents: number;
   /** What the investments yielded, before what was taken out of it. */
   readonly yieldCents: number;
-  /** Income tax and IOF taken out of the yield. */
-  readonly taxesCents: number;
-  /** Fees charged. */
-  readonly feesCents: number;
   /** What the investments held when the month ended. */
   readonly closingCents: number;
 }
@@ -32,6 +31,16 @@ export interface BalanceHistoryItem {
 }
 
 const TAX_KINDS: readonly BalanceEntryKind[] = ['incomeTax', 'iof'];
+
+/**
+ * What was held back as income tax, IOF and fees, in total.
+ * @example withheldCents(entries) // 750
+ */
+export function withheldCents(entries: readonly BalanceEntry[]): number {
+  return entries
+    .filter((entry) => entry.kind === 'fee' || TAX_KINDS.includes(entry.kind))
+    .reduce((sum, entry) => sum + entry.amountCents, 0);
+}
 const ADDING_KINDS: readonly BalanceEntryKind[] = ['opening', 'deposit', 'yield'];
 
 /**
@@ -102,19 +111,15 @@ function statementMonth(
       .reduce((sum, entry) => sum + entry.amountCents, 0);
   const openingCents = previousClosingCents + sumOf('opening');
   const inflowsCents = sumOf('deposit');
-  const outflowsCents = sumOf('withdrawal');
+  const outflowsCents = sumOf('withdrawal', ...TAX_KINDS, 'fee');
   const yieldCents = sumOf('yield');
-  const taxesCents = sumOf(...TAX_KINDS);
-  const feesCents = sumOf('fee');
   return {
     month,
     openingCents,
     inflowsCents,
     outflowsCents,
     yieldCents,
-    taxesCents,
-    feesCents,
-    closingCents: openingCents + inflowsCents - outflowsCents + yieldCents - taxesCents - feesCents,
+    closingCents: openingCents + inflowsCents - outflowsCents + yieldCents,
   };
 }
 

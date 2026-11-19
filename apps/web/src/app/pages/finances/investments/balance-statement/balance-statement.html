@@ -24,10 +24,8 @@
             <th scope="col">{{ 'Month' | t }}</th>
             <th scope="col" class="number">{{ 'Opening balance' | t }}</th>
             <th scope="col" class="number">{{ 'Deposits' | t }}</th>
-            <th scope="col" class="number">{{ 'Withdrawals' | t }}</th>
+            <th scope="col" class="number">{{ 'Withdrawals and taxes' | t }}</th>
             <th scope="col" class="number">{{ 'Yield' | t }}</th>
-            <th scope="col" class="number">{{ 'Income tax and IOF' | t }}</th>
-            <th scope="col" class="number">{{ 'Fees' | t }}</th>
             <th scope="col" class="number">{{ 'Closing balance' | t }}</th>
           </tr>
         </thead>
@@ -39,8 +37,6 @@
               <td class="number ui-tabular">{{ row.inflows }}</td>
               <td class="number ui-tabular">{{ row.outflows }}</td>
               <td class="number ui-tabular gain">{{ row.yielded }}</td>
-              <td class="number ui-tabular loss">{{ row.taxes }}</td>
-              <td class="number ui-tabular loss">{{ row.fees }}</td>
               <td class="number ui-tabular strong">{{ row.closing }}</td>
             </tr>
           }
@@ -48,8 +44,16 @@
       </table>
     </div>
     <p class="ui-muted note">
-      {{ 'The yield is shown before income tax, IOF and fees, which come out of it.' | t }}
+      {{
+        'Income tax, IOF and fees are charged when the money is redeemed or sold, so they are part of the withdrawals of that month, not a monthly column. The yield is shown before them.'
+          | t
+      }}
     </p>
+    @if (hasWithheld()) {
+      <p class="ui-muted note">
+        {{ 'Income tax, IOF and fees recorded in total: {amount}' | t: { amount: withheld() } }}
+      </p>
+    }
   } @else {
     <p class="ui-muted empty">
       {{ 'No statement lines yet. Add the opening balance and the first deposit.' | t }}

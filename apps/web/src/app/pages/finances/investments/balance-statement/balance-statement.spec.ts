@@ -34,26 +34,8 @@ function rows(fixture: ComponentFixture<BalanceStatement>): string[][] {
 describe('BalanceStatement', () => {
   it('shows the months of all the balance investments together, newest first, like a bank statement', () => {
     expect(rows(render())).toEqual([
-      [
-        'November 2026',
-        'R$1,508.50',
-        'R$0.00',
-        'R$0.00',
-        'R$0.00',
-        'R$0.00',
-        'R$0.00',
-        'R$1,508.50',
-      ],
-      [
-        'October 2026',
-        'R$1,000.00',
-        'R$0.00',
-        'R$0.00',
-        'R$10.00',
-        'R$1.50',
-        'R$0.00',
-        'R$1,008.50',
-      ],
+      ['November 2026', 'R$1,508.50', 'R$0.00', 'R$0.00', 'R$0.00', 'R$1,508.50'],
+      ['October 2026', 'R$1,000.00', 'R$0.00', 'R$1.50', 'R$10.00', 'R$1,008.50'],
     ]);
   });
 
@@ -67,7 +49,7 @@ describe('BalanceStatement', () => {
     picker.dispatchEvent(new Event('change'));
     fixture.detectChanges();
 
-    expect(rows(fixture).map((row) => [row[0], row[7]])).toEqual([['November 2026', 'R$500.00']]);
+    expect(rows(fixture).map((row) => [row[0], row[5]])).toEqual([['November 2026', 'R$500.00']]);
   });
 
   it('lists the picker with every balance investment', () => {
@@ -84,5 +66,20 @@ describe('BalanceStatement', () => {
     expect(
       (fixture.nativeElement as HTMLElement).querySelector('.empty')?.textContent?.trim(),
     ).toBe('No statement lines yet. Add the opening balance and the first deposit.');
+  });
+});
+
+describe('BalanceStatement: taxes and fees', () => {
+  it('has no columns for them and says how much was recorded in total', () => {
+    const fixture = render();
+    const element = fixture.nativeElement as HTMLElement;
+
+    expect([
+      [...element.querySelectorAll('thead th')].map((cell) => cell.textContent?.trim()),
+      [...element.querySelectorAll('.note')].at(-1)?.textContent?.trim(),
+    ]).toEqual([
+      ['Month', 'Opening balance', 'Deposits', 'Withdrawals and taxes', 'Yield', 'Closing balance'],
+      'Income tax, IOF and fees recorded in total: R$1.50',
+    ]);
   });
 });
