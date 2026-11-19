@@ -78,6 +78,7 @@ import { HttpBackupGateway } from './core/backups/http-backup-gateway';
 import { AuthGateway } from './core/auth/auth-gateway';
 import { HttpAuthGateway } from './core/auth/http-auth-gateway';
 import { authInterceptor } from './core/auth/auth-interceptor';
+import { loadingInterceptor } from './core/loading/loading-interceptor';
 
 // A link with ?demo=on (or off) switches the made-up data before the gateways are chosen.
 applyDemoFromAddress(globalThis.location?.search ?? '');
@@ -86,7 +87,7 @@ const isDemo = isDemoMode();
 export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
-    provideHttpClient(withInterceptors([authInterceptor])),
+    provideHttpClient(withInterceptors([loadingInterceptor, authInterceptor])),
     provideRouter(routes, withViewTransitions({ onViewTransitionCreated: animateModuleSwitch })),
     provideLanguage(),
     { provide: TitleStrategy, useClass: TranslatedTitleStrategy },
