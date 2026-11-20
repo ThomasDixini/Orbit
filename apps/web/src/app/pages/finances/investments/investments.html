@@ -146,8 +146,11 @@
           (change)="pickAsset($any($event.target).value || undefined)"
         >
           <option value="">{{ 'All' | t }}</option>
-          @for (line of tableLines(); track line.investment.id) {
-            <option [value]="line.investment.id">{{ line.investment.name }}</option>
+          @for (line of pickerLines(); track line.investment.id) {
+            <option [value]="line.investment.id">
+              {{ line.investment.name
+              }}{{ isClosed(line.investment.id) ? ' · ' + ('sold' | t) : '' }}
+            </option>
           }
         </select>
       </label>
@@ -175,12 +178,27 @@
       <p class="ui-muted cdi-note">{{ note | t }}</p>
     }
 
+    <div class="compare" role="group" [attr.aria-label]="'Compare the return with' | t">
+      <span class="ui-muted">{{ 'Compare the return with' | t }}</span>
+      @for (option of comparisonOptions(); track option.value) {
+        <button
+          class="ui-chip"
+          type="button"
+          [attr.aria-pressed]="compared().has(option.value)"
+          (click)="toggleComparison(option.value)"
+        >
+          {{ option.label | t }}
+        </button>
+      }
+    </div>
+
     <section class="charts" [attr.aria-label]="'Charts' | t">
       <app-line-chart
         [title]="'Value over time' | t"
         [labels]="monthLabels()"
         [series]="valueSeries()"
         [format]="formatAxisMoney"
+        [detailFormat]="formatReais"
         emptyText="No history yet."
       />
       <app-line-chart
@@ -188,6 +206,7 @@
         [labels]="monthLabels()"
         [series]="returnSeries()"
         [format]="formatAxisPercent"
+        [detailFormat]="formatPercentDetail"
         emptyText="No history yet."
       />
       <app-bar-chart
@@ -197,6 +216,7 @@
         [labels]="monthLabels()"
         [values]="monthlyGains()"
         [format]="formatCentsAxis"
+        [detailFormat]="formatSignedCents"
         emptyText="No history yet."
         [selectable]="true"
         [selectedIndex]="selectedMonthIndex()"
@@ -236,6 +256,7 @@
         [labels]="monthLabels()"
         [values]="monthlyIncome()"
         [format]="formatCentsAxis"
+        [detailFormat]="formatCents"
         emptyText="No proventos in this period."
       />
     </section>
@@ -377,6 +398,14 @@
         </button>
       }
     </section>
+
+    @if (hasAppreciation()) {
+      <app-monthly-appreciation
+        [investments]="appreciationInvestments()"
+        [histories]="investmentHistories()"
+        [incomes]="incomes()"
+      />
+    }
 
     @if (balanceInvestments().length > 0) {
       <app-balance-statement

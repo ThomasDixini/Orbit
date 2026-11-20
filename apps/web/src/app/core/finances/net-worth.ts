@@ -157,3 +157,40 @@ export function netWorthGrowth(points: readonly NetWorthPoint[]): NetWorthGrowth
     best,
   };
 }
+
+/**
+ * The last day of each of the last `count` months up to the month of `today`, oldest first; the month of
+ * `today` ends on `today`, since nothing after it is known.
+ * @example monthEnds('2026-11-19', 2) // [{ month: '2026-10', day: '2026-10-31' }, { month: '2026-11', day: '2026-11-19' }]
+ */
+export function monthEnds(today: string, count: number): { month: string; day: string }[] {
+  const year = Number(today.slice(0, 4));
+  const month = Number(today.slice(5, 7));
+  return Array.from({ length: count }, (_, index) => {
+    const first = new Date(year, month - 1 - (count - 1 - index), 1);
+    const key = `${first.getFullYear()}-${String(first.getMonth() + 1).padStart(2, '0')}`;
+    const last = new Date(first.getFullYear(), first.getMonth() + 1, 0);
+    const day =
+      key === today.slice(0, 7) ? today : `${key}-${String(last.getDate()).padStart(2, '0')}`;
+    return { month: key, day };
+  });
+}
+
+/**
+ * The net worth at the end of each month: the balances of the accounts that day (cards count what they owe
+ * as negative) plus what the investments were worth. Months before anything existed are left out.
+ * @example netWorthHistory(balancesByMonth, investedByMonth)[0].cents
+ */
+export function netWorthHistory(
+  accountsCentsByMonth: ReadonlyMap<string, number>,
+  investedCentsByMonth: ReadonlyMap<string, number>,
+): NetWorthPoint[] {
+  const points = [...accountsCentsByMonth.keys()]
+    .sort((first, second) => first.localeCompare(second))
+    .map((month) => ({
+      month,
+      cents: (accountsCentsByMonth.get(month) ?? 0) + (investedCentsByMonth.get(month) ?? 0),
+    }));
+  const firstWithMoney = points.findIndex((point) => point.cents !== 0);
+  return firstWithMoney === -1 ? [] : points.slice(firstWithMoney);
+}

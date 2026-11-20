@@ -1,6 +1,12 @@
 import { Injectable } from '@angular/core';
 import { Observable, of } from 'rxjs';
-import { PeriodRate, PeriodRateDraft, PeriodRateKind, sortedRates } from '../period-rates';
+import {
+  PeriodRate,
+  PeriodRateDraft,
+  PeriodRateKind,
+  sameRate,
+  sortedRates,
+} from '../period-rates';
 import { PeriodRatesGateway } from '../period-rates-gateway';
 
 /** Period rates kept in memory by the demo; they start empty and last until the page is reloaded. */
@@ -18,16 +24,16 @@ export class DemoPeriodRatesGateway extends PeriodRatesGateway {
     draft: PeriodRateDraft,
   ): Observable<PeriodRate> {
     const stored: PeriodRate = { kind, month, ...draft };
-    this.rates = [...this.without(kind, month), stored];
+    this.rates = [...this.without(kind, month, draft.name), stored];
     return of(stored);
   }
 
-  override delete(kind: PeriodRateKind, month: string): Observable<void> {
-    this.rates = this.without(kind, month);
+  override delete(kind: PeriodRateKind, month: string, name?: string): Observable<void> {
+    this.rates = this.without(kind, month, name);
     return of(undefined);
   }
 
-  private without(kind: PeriodRateKind, month: string): readonly PeriodRate[] {
-    return this.rates.filter((rate) => rate.kind !== kind || rate.month !== month);
+  private without(kind: PeriodRateKind, month: string, name?: string): readonly PeriodRate[] {
+    return this.rates.filter((rate) => !sameRate(rate, { kind, month, name }));
   }
 }

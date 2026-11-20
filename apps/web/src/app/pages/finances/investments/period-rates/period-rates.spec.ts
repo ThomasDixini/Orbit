@@ -125,3 +125,48 @@ describe('PeriodRates', () => {
     expect(root(fixture).querySelector<HTMLInputElement>('input[name="value"]')!.value).toBe('13');
   });
 });
+
+describe('PeriodRates: custom rates', () => {
+  it('asks for a name and saves the rate with it', () => {
+    const gateway = new FakePeriodRatesGateway();
+    const fixture = render(gateway);
+    const kind = root(fixture).querySelector<HTMLSelectElement>('select[name="kind"]')!;
+    kind.value = 'custom';
+    kind.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+    type(fixture, 'input[name="rate-name"]', '  Poupança ');
+    type(fixture, 'input[name="value"]', '0,6');
+
+    button(fixture, 'Save rate').click();
+
+    expect(gateway.saved).toEqual([
+      { kind: 'custom', month: '2026-11', basisPoints: 60, name: 'Poupança' },
+    ]);
+  });
+
+  it('cannot save a custom rate without a name', () => {
+    const fixture = render(new FakePeriodRatesGateway());
+    const kind = root(fixture).querySelector<HTMLSelectElement>('select[name="kind"]')!;
+    kind.value = 'custom';
+    kind.dispatchEvent(new Event('change'));
+    type(fixture, 'input[name="value"]', '0,6');
+
+    expect(button(fixture, 'Save rate').disabled).toBe(true);
+  });
+
+  it('lists a custom rate by its name and deletes it by name', () => {
+    const gateway = new FakePeriodRatesGateway();
+    gateway.ratesToServe = [
+      { kind: 'custom', name: 'Poupança', month: '2026-10', basisPoints: 60 },
+    ];
+    const fixture = render(gateway);
+
+    const listed = root(fixture).querySelector('.rate .kind')?.textContent?.trim();
+    button(fixture, 'Delete Poupança of October 2026').click();
+
+    expect([listed, gateway.deleted]).toEqual([
+      'Poupança',
+      [{ kind: 'custom', month: '2026-10', name: 'Poupança' }],
+    ]);
+  });
+});

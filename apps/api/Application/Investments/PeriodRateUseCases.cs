@@ -2,7 +2,7 @@ using Orbit.Api.Domain.Investments;
 
 namespace Orbit.Api.Application.Investments;
 
-public sealed record SavePeriodRateCommand(PeriodRateKind Kind, string Month, int BasisPoints);
+public sealed record SavePeriodRateCommand(PeriodRateKind Kind, string Month, int BasisPoints, string? Name = null);
 
 /// <summary>Stores the rate of a kind for a month; saving again replaces it, so retries are harmless.</summary>
 public sealed class SavePeriodRate(IPeriodRateRepository rates)
@@ -13,7 +13,7 @@ public sealed class SavePeriodRate(IPeriodRateRepository rates)
     /// <example><code>await savePeriodRate.ExecuteAsync(new SavePeriodRateCommand(PeriodRateKind.Selic, "2026-10", 1300), ct);</code></example>
     public async Task<PeriodRate> ExecuteAsync(SavePeriodRateCommand command, CancellationToken cancellationToken)
     {
-        var rate = PeriodRate.Create(command.Kind, command.Month, command.BasisPoints);
+        var rate = PeriodRate.Create(command.Kind, command.Month, command.BasisPoints, command.Name);
         await rates.SaveAsync(rate, cancellationToken);
         return rate;
     }
@@ -26,8 +26,8 @@ public sealed class DeletePeriodRate(IPeriodRateRepository rates)
     /// Validates the month and removes the rate if it exists.
     /// </summary>
     /// <example><code>await deletePeriodRate.ExecuteAsync(PeriodRateKind.Selic, "2026-10", ct);</code></example>
-    public Task ExecuteAsync(PeriodRateKind kind, string month, CancellationToken cancellationToken) =>
-        rates.DeleteAsync(kind, PeriodRate.RequireMonth(month), cancellationToken);
+    public Task ExecuteAsync(PeriodRateKind kind, string month, CancellationToken cancellationToken, string? name = null) =>
+        rates.DeleteAsync(kind, name, PeriodRate.RequireMonth(month), cancellationToken);
 }
 
 /// <summary>Lists every rate the user typed.</summary>

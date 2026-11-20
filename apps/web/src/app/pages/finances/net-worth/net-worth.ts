@@ -68,6 +68,8 @@ export class NetWorth {
   protected readonly series = computed(() => [
     { name: 'Net worth', values: this.points().map((point) => point.cents / 100) },
   ]);
+  protected readonly formatDetail = (reais: number): string =>
+    formatMoney(Math.round(reais * 100), this.locale);
   protected readonly formatAxis = (reais: number): string =>
     new Intl.NumberFormat(this.locale, { notation: 'compact', maximumFractionDigits: 1 }).format(
       reais,

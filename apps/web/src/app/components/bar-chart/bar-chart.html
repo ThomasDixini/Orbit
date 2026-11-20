@@ -31,7 +31,11 @@
         <rect
           class="bar"
           [class.negative]="bar.isNegative"
-          [class.dimmed]="selectedIndex() !== undefined && selectedIndex() !== $index"
+          [class.dimmed]="
+            (selectedIndex() !== undefined && selectedIndex() !== $index) ||
+            (hovered() !== undefined && hovered() !== $index && selectedIndex() === undefined)
+          "
+          [class.hovered]="hovered() === $index"
           rx="2"
           [attr.x]="bar.x"
           [attr.y]="bar.y"
@@ -40,14 +44,16 @@
         >
           <title>{{ bar.description }}</title>
         </rect>
-        <text
-          class="axis"
-          [attr.x]="bar.x + barWidth() / 2"
-          [attr.y]="height - 6"
-          text-anchor="middle"
-        >
-          {{ bar.label | t }}
-        </text>
+        @if ($index % labelEvery() === 0) {
+          <text
+            class="axis"
+            [attr.x]="bar.x + barWidth() / 2"
+            [attr.y]="height - 6"
+            text-anchor="middle"
+          >
+            {{ bar.label | t }}
+          </text>
+        }
         @if (selectable()) {
           <rect
             class="hit"
@@ -59,11 +65,48 @@
             [attr.height]="height"
             [attr.aria-pressed]="selectedIndex() === $index"
             [attr.aria-label]="bar.description"
+            (mouseenter)="hovered.set($index)"
+            (mouseleave)="hovered.set(undefined)"
+            (focus)="hovered.set($index)"
+            (blur)="hovered.set(undefined)"
             (click)="pick.emit($index)"
             (keydown.enter)="pick.emit($index)"
             (keydown.space)="pick.emit($index); $event.preventDefault()"
           />
+        } @else {
+          <rect
+            class="zone"
+            aria-hidden="true"
+            [attr.x]="bar.slotX"
+            y="0"
+            [attr.width]="slot()"
+            [attr.height]="height"
+            (mouseenter)="hovered.set($index)"
+            (mouseleave)="hovered.set(undefined)"
+          />
         }
+      }
+      @if (tooltip(); as box) {
+        <g class="tooltip" aria-hidden="true">
+          <rect
+            class="tooltip-box"
+            rx="4"
+            [attr.x]="box.x"
+            [attr.y]="box.y"
+            [attr.width]="box.width"
+            [attr.height]="box.height"
+          />
+          @for (line of box.lines; track $index) {
+            <text
+              class="tooltip-text"
+              [class.strong]="$index > 0"
+              [attr.x]="line.x"
+              [attr.y]="line.y"
+            >
+              {{ line.text }}
+            </text>
+          }
+        </g>
       }
     </svg>
   } @else {

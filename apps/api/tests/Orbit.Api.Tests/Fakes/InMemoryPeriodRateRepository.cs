@@ -10,18 +10,18 @@ internal sealed class InMemoryPeriodRateRepository : IPeriodRateRepository
 
     public Task<IReadOnlyList<PeriodRate>> ListAsync(CancellationToken cancellationToken) =>
         Task.FromResult<IReadOnlyList<PeriodRate>>(
-            _rates.OrderByDescending(rate => rate.Month).ThenBy(rate => rate.Kind).ToList());
+            _rates.OrderByDescending(rate => rate.Month).ThenBy(rate => rate.Kind).ThenBy(rate => rate.Name).ToList());
 
     public Task SaveAsync(PeriodRate rate, CancellationToken cancellationToken)
     {
-        _rates.RemoveAll(stored => stored.Kind == rate.Kind && stored.Month == rate.Month);
+        _rates.RemoveAll(stored => stored.Kind == rate.Kind && stored.Name == rate.Name && stored.Month == rate.Month);
         _rates.Add(rate);
         return Task.CompletedTask;
     }
 
-    public Task DeleteAsync(PeriodRateKind kind, string month, CancellationToken cancellationToken)
+    public Task DeleteAsync(PeriodRateKind kind, string? name, string month, CancellationToken cancellationToken)
     {
-        _rates.RemoveAll(rate => rate.Kind == kind && rate.Month == month);
+        _rates.RemoveAll(rate => rate.Kind == kind && rate.Name == (name ?? "") && rate.Month == month);
         return Task.CompletedTask;
     }
 }

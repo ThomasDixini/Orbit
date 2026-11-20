@@ -52,8 +52,6 @@ describe('monthlyStatement', () => {
       inflowsCents: 88_400,
       outflowsCents: 0,
       yieldCents: 4_024,
-      taxesCents: 0,
-      feesCents: 0,
       closingCents: 329_775,
     });
   });
@@ -68,10 +66,12 @@ describe('monthlyStatement', () => {
     ]);
   });
 
-  it('takes income tax, IOF and fees out of the closing balance and counts them apart', () => {
+  it('counts income tax, IOF and fees as what left in the month, not as columns of their own', () => {
     const january = monthlyStatement(ENTRIES, '2026-02-18')[1];
 
-    expect([january.yieldCents, january.taxesCents, january.feesCents]).toEqual([4_632, 600, 100]);
+    expect([january.yieldCents, january.outflowsCents, january.closingCents]).toEqual([
+      4_632, 700, 333_707,
+    ]);
   });
 
   it('keeps the months without entries, up to the month of the day', () => {

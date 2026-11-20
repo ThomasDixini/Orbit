@@ -52,4 +52,30 @@ public class PeriodRateTests
         var error = Should.Throw<DomainRuleException>(() => PeriodRate.Create((PeriodRateKind)9, "2026-10", 100));
         error.Message.ShouldContain("received 9");
     }
+
+    [Fact]
+    public void Create_ACustomRateHasTheNameTheUserGaveIt()
+    {
+        var rate = PeriodRate.Create(PeriodRateKind.Custom, "2026-10", 60, "  Poupança ");
+
+        (rate.Kind, rate.Name).ShouldBe((PeriodRateKind.Custom, "Poupança"));
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("Selic")]
+    [InlineData("ipca")]
+    public void Create_ACustomRateNeedsANameOfItsOwn(string name)
+    {
+        Should.Throw<DomainRuleException>(() => PeriodRate.Create(PeriodRateKind.Custom, "2026-10", 60, name));
+    }
+
+    [Fact]
+    public void StorageKey_KeepsTheNameOfACustomRateAndReadsItBack()
+    {
+        var key = PeriodRate.StorageKey(PeriodRateKind.Custom, "Poupança");
+
+        (key, PeriodRate.FromStorageKey(key), PeriodRate.FromStorageKey("Ipca")).ShouldBe(
+            ("Custom:Poupança", (PeriodRateKind.Custom, "Poupança"), (PeriodRateKind.Ipca, "")));
+    }
 }

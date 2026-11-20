@@ -1,6 +1,6 @@
 import { ErrorHandler, Injectable, inject, signal } from '@angular/core';
 import { Observable } from 'rxjs';
-import { PeriodRate, PeriodRateDraft, PeriodRateKind, sortedRates } from './period-rates';
+import { PeriodRate, PeriodRateDraft, PeriodRateKind, sameRate, sortedRates } from './period-rates';
 import { PeriodRatesGateway } from './period-rates-gateway';
 
 /**
@@ -44,7 +44,9 @@ export class PeriodRatesStore {
    */
   save(kind: PeriodRateKind, month: string, draft: PeriodRateDraft): void {
     this.change(this.gateway.save(kind, month, draft), (rate) => {
-      this.rateList.update((rates) => sortedRates([...this.without(rates, kind, month), rate]));
+      this.rateList.update((rates) =>
+        sortedRates([...this.without(rates, kind, month, draft.name), rate]),
+      );
       this.saves.update((count) => count + 1);
     });
   }
@@ -53,9 +55,9 @@ export class PeriodRatesStore {
    * Deletes the rate of a kind for a month.
    * @example store.remove('selic', '2026-10')
    */
-  remove(kind: PeriodRateKind, month: string): void {
-    this.change(this.gateway.delete(kind, month), () =>
-      this.rateList.update((rates) => this.without(rates, kind, month)),
+  remove(kind: PeriodRateKind, month: string, name?: string): void {
+    this.change(this.gateway.delete(kind, month, name), () =>
+      this.rateList.update((rates) => this.without(rates, kind, month, name)),
     );
   }
 
@@ -63,8 +65,9 @@ export class PeriodRatesStore {
     rates: readonly PeriodRate[],
     kind: PeriodRateKind,
     month: string,
+    name?: string,
   ): readonly PeriodRate[] {
-    return rates.filter((rate) => rate.kind !== kind || rate.month !== month);
+    return rates.filter((rate) => !sameRate(rate, { kind, month, name }));
   }
 
   private change<TAnswer>(

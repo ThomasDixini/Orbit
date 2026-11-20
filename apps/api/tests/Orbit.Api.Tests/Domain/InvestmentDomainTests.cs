@@ -97,4 +97,18 @@ public class InvestmentDomainTests
         index.FactorBetween(January2.AddDays(4), January2.AddDays(9)).ShouldBe(1m);
         index.Through.ShouldBe(January2.AddDays(4));
     }
+    [Fact]
+    public void CdiIndex_MonthlyPercents_CompoundsTheDailyRatesOfEachMonth()
+    {
+        var index = new CdiIndex([
+            new CdiRate(new DateOnly(2026, 9, 30), 1m),
+            new CdiRate(new DateOnly(2026, 10, 1), 1m),
+            new CdiRate(new DateOnly(2026, 10, 2), 1m),
+        ]);
+
+        var months = index.MonthlyPercents(new DateOnly(2026, 9, 15), new DateOnly(2026, 11, 3));
+
+        months.Select(month => (month.Month, month.Percent))
+            .ShouldBe([("2026-09", 1m), ("2026-10", 2.01m), ("2026-11", 0m)]);
+    }
 }

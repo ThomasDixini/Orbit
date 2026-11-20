@@ -1,5 +1,6 @@
-import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, input, output, signal } from '@angular/core';
 import { TranslatePipe } from '../../core/i18n/translate.pipe';
+import { TooltipBox, labelStep, tooltipBox } from '../chart-tooltip';
 
 interface Bar {
   readonly label: string;
@@ -43,7 +44,10 @@ export class BarChart {
   readonly note = input<string>('');
   readonly labels = input.required<readonly string[]>();
   readonly values = input.required<readonly number[]>();
+  /** Short numbers for the axis. */
   readonly format = input.required<(value: number) => string>();
+  /** Full numbers for the tooltip; the axis format is used when not given. */
+  readonly detailFormat = input<((value: number) => string) | undefined>(undefined);
   readonly emptyText = input.required<string>();
   readonly positiveLabel = input<string>('');
   readonly negativeLabel = input<string>('');
@@ -58,6 +62,12 @@ export class BarChart {
   protected readonly left = PAD_LEFT;
   protected readonly right = WIDTH - PAD_RIGHT;
 
+  /** The bar under the mouse or the keyboard focus, which gets the tooltip and the highlight. */
+  protected readonly hovered = signal<number | undefined>(undefined);
+  protected readonly tooltip = computed<TooltipBox | undefined>(() => this.buildTooltip());
+  protected readonly labelEvery = computed(() =>
+    labelStep(this.labels(), WIDTH - PAD_LEFT - PAD_RIGHT, this.values().length),
+  );
   protected readonly hasData = computed(() => this.values().some((value) => value !== 0));
   protected readonly bounds = computed(() => this.valueBounds());
   protected readonly ticks = computed<Tick[]>(() => this.buildTicks());
@@ -66,6 +76,21 @@ export class BarChart {
   protected readonly bars = computed<Bar[]>(() =>
     this.values().map((value, index) => this.buildBar(value, index)),
   );
+
+  private buildTooltip(): TooltipBox | undefined {
+    const index = this.hovered();
+    if (index === undefined) return undefined;
+    const bar = this.bars()[index];
+    if (bar === undefined) return undefined;
+    const format = this.detailFormat() ?? this.format();
+    const anchorY = bar.isNegative ? bar.y + bar.height : bar.y;
+    return tooltipBox(
+      bar.x + this.barWidth() / 2,
+      anchorY,
+      [bar.label, format(this.values()[index])],
+      HEIGHT,
+    );
+  }
 
   private valueBounds(): { min: number; max: number } {
     const max = Math.max(0, ...this.values());
@@ -91,7 +116,7 @@ export class BarChart {
       y: Math.min(this.yOf(value), this.yOf(0)),
       height: Math.abs(this.yOf(value) - this.yOf(0)),
       isNegative: value < 0,
-      description: `${label}: ${this.format()(value)}`,
+      description: `${label}: ${(this.detailFormat() ?? this.format())(value)}`,
     };
   }
 

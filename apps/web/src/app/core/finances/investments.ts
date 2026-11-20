@@ -127,6 +127,8 @@ export interface Portfolio {
   /** Month-end history sent by the API, valued at the real closing prices; empty before the first trade. */
   readonly history?: readonly MonthlyPoint[];
   /** The same month-end history of each investment on its own, by id, so a class or one investment can be charted. */
+  /** What the CDI rose in each month, from the first one of the portfolio, in percent; absent when unknown. */
+  readonly cdiMonthly?: readonly { readonly month: string; readonly percent: number }[];
   readonly investmentHistories?: Readonly<Record<string, readonly MonthlyPoint[]>>;
   readonly trades: readonly Trade[];
   readonly incomes: readonly Income[];
@@ -138,6 +140,7 @@ export interface Portfolio {
 export interface Movement {
   readonly key: string;
   readonly id: string;
+  readonly investmentId: string;
   readonly type: 'trade' | 'income';
   readonly date: string;
   readonly investmentName: string;
@@ -299,6 +302,7 @@ export function movements(
   const trades = portfolio.trades.map((trade): Movement => ({
     key: `trade:${trade.id}`,
     id: trade.id,
+    investmentId: trade.investmentId,
     type: 'trade',
     date: trade.date,
     investmentName: name(trade.investmentId),
@@ -308,6 +312,7 @@ export function movements(
   const incomes = portfolio.incomes.map((income): Movement => ({
     key: `income:${income.id}`,
     id: income.id,
+    investmentId: income.investmentId,
     type: 'income',
     date: income.date,
     investmentName: name(income.investmentId),

@@ -88,7 +88,8 @@ public sealed record PortfolioResponse(
     IReadOnlyList<PortfolioLineResponse> Lines, PortfolioTotals Totals, PerformanceResponse? Performance,
     IReadOnlyList<TradeResponse> Trades, IReadOnlyList<IncomeResponse> Incomes, IReadOnlyList<MonthlyPoint> History,
     IReadOnlyList<BalanceEntryResponse> BalanceEntries,
-    IReadOnlyDictionary<string, IReadOnlyList<MonthlyPoint>> InvestmentHistories)
+    IReadOnlyDictionary<string, IReadOnlyList<MonthlyPoint>> InvestmentHistories,
+    IReadOnlyList<MonthlyCdi> CdiMonthly)
 {
     public static PortfolioResponse From(PortfolioSnapshot snapshot) =>
         new(snapshot.Portfolio.Lines.Select(PortfolioLineResponse.From).ToList(),
@@ -98,7 +99,8 @@ public sealed record PortfolioResponse(
             snapshot.Incomes.Select(IncomeResponse.From).ToList(),
             snapshot.History,
             snapshot.BalanceEntries.Select(BalanceEntryResponse.From).ToList(),
-            snapshot.InvestmentHistories);
+            snapshot.InvestmentHistories,
+            snapshot.CdiMonthly);
 }
 
 /// <summary>HTTP routes for investments, their trades and proventos, and the portfolio they make up.</summary>

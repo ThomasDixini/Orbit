@@ -1,4 +1,7 @@
 import {
+  cdiSeries,
+  comparisonOptions,
+  sameRate,
   PeriodRate,
   basisPointsText,
   parseBasisPoints,
@@ -93,5 +96,73 @@ describe('sortedRates', () => {
       '2026-10 ipca',
       '2026-09 selic',
     ]);
+  });
+});
+
+describe('cdiSeries', () => {
+  it('accumulates the monthly CDI from the first month it is known for', () => {
+    const series = cdiSeries(
+      [
+        { month: '2026-09', percent: 1 },
+        { month: '2026-10', percent: 1 },
+      ],
+      ['2026-08', '2026-09', '2026-10', '2026-11'],
+    );
+
+    expect(series.values.map((value) => value?.toFixed(4))).toEqual([
+      undefined,
+      '1.0000',
+      '2.0100',
+      undefined,
+    ]);
+  });
+
+  it('has no values when the CDI is not known', () => {
+    expect(cdiSeries([], ['2026-10']).values).toEqual([undefined]);
+  });
+});
+
+describe('custom rates', () => {
+  const POUPANCA = (month: string, basisPoints: number): PeriodRate => ({
+    kind: 'custom',
+    name: 'Poupança',
+    month,
+    basisPoints,
+  });
+
+  it('draws a line for each custom rate, compounded like the IPCA', () => {
+    const series = rateSeries([POUPANCA('2026-09', 100), POUPANCA('2026-10', 100)], MONTHS);
+
+    expect([series[0].id, series[0].name, series[0].values[1]?.toFixed(2)]).toEqual([
+      'custom:Poupança',
+      'Poupança',
+      '2.01',
+    ]);
+  });
+
+  it('keeps two custom rates apart by name', () => {
+    const other: PeriodRate = { ...POUPANCA('2026-09', 300), name: 'Fundo X' };
+
+    expect(rateSeries([POUPANCA('2026-09', 100), other], MONTHS).map((line) => line.name)).toEqual([
+      'Fundo X',
+      'Poupança',
+    ]);
+  });
+
+  it('offers a comparison chip for each custom rate after the usual ones', () => {
+    expect(comparisonOptions([POUPANCA('2026-09', 100)]).map((option) => option.value)).toEqual([
+      'moneyInCdi',
+      'cdi',
+      'selic',
+      'ipca',
+      'custom:Poupança',
+    ]);
+  });
+
+  it('tells rates of the same kind apart by name', () => {
+    expect([
+      sameRate(POUPANCA('2026-09', 1), { ...POUPANCA('2026-09', 2) }),
+      sameRate(POUPANCA('2026-09', 1), { ...POUPANCA('2026-09', 1), name: 'Fundo X' }),
+    ]).toEqual([true, false]);
   });
 });

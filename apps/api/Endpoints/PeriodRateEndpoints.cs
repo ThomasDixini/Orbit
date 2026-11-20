@@ -5,18 +5,20 @@ using Orbit.Api.Domain.Investments;
 namespace Orbit.Api.Endpoints;
 
 /// <summary>Body of <c>PUT /period-rates/{kind}/{month}</c>; the kind and month come from the route.</summary>
-public sealed record SavePeriodRateRequest(int BasisPoints);
+public sealed record SavePeriodRateRequest(int BasisPoints, string? Name = null);
 
-public sealed record PeriodRateResponse(PeriodRateKind Kind, string Month, int BasisPoints)
+public sealed record PeriodRateResponse(PeriodRateKind Kind, string Month, int BasisPoints, string? Name = null)
 {
-    public static PeriodRateResponse From(PeriodRate rate) => new(rate.Kind, rate.Month, rate.BasisPoints);
+    public static PeriodRateResponse From(PeriodRate rate) =>
+        new(rate.Kind, rate.Month, rate.BasisPoints, rate.Name == "" ? null : rate.Name);
 }
 
-/// <summary>HTTP routes for the monthly rates (Selic, IPCA, income tax) the user typed.</summary>
+/// <summary>HTTP routes for the monthly rates (Selic, IPCA, income tax, or custom ones with a name) the user typed.</summary>
 public static class PeriodRateEndpoints
 {
     /// <summary>
-    /// Maps <c>GET /period-rates</c> and <c>PUT</c>/<c>DELETE /period-rates/{kind}/{month}</c>.
+    /// Maps <c>GET /period-rates</c> and <c>PUT</c>/<c>DELETE /period-rates/{kind}/{month}</c>; a custom
+    /// rate is named in the body when saved and by <c>?name=</c> when deleted.
     /// </summary>
     /// <example><code>app.MapPeriodRateEndpoints();</code></example>
     public static IEndpointRouteBuilder MapPeriodRateEndpoints(this IEndpointRouteBuilder routes)
@@ -37,14 +39,14 @@ public static class PeriodRateEndpoints
         string kind, string month, SavePeriodRateRequest request, SavePeriodRate save,
         CancellationToken cancellationToken)
     {
-        var command = new SavePeriodRateCommand(ParseKind(kind), month, request.BasisPoints);
+        var command = new SavePeriodRateCommand(ParseKind(kind), month, request.BasisPoints, request.Name);
         return Results.Ok(PeriodRateResponse.From(await save.ExecuteAsync(command, cancellationToken)));
     }
 
     private static async Task<IResult> DeleteAsync(
-        string kind, string month, DeletePeriodRate delete, CancellationToken cancellationToken)
+        string kind, string month, string? name, DeletePeriodRate delete, CancellationToken cancellationToken)
     {
-        await delete.ExecuteAsync(ParseKind(kind), month, cancellationToken);
+        await delete.ExecuteAsync(ParseKind(kind), month, cancellationToken, name);
         return Results.NoContent();
     }
 
@@ -53,6 +55,6 @@ public static class PeriodRateEndpoints
     {
         if (Enum.TryParse<PeriodRateKind>(kind, ignoreCase: true, out var parsed) && Enum.IsDefined(parsed)) return parsed;
         throw new DomainRuleException(
-            $"Expected the rate kind to be selic, ipca or incomeTax, received {ReceivedValue.Quote(kind)}");
+            $"Expected the rate kind to be selic, ipca, incomeTax or custom, received {ReceivedValue.Quote(kind)}");
     }
 }

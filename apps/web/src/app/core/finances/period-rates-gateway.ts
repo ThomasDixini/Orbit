@@ -13,6 +13,6 @@ export abstract class PeriodRatesGateway {
     draft: PeriodRateDraft,
   ): Observable<PeriodRate>;
 
-  /** Removes the rate of this kind and month; one that is not there is ignored. */
-  abstract delete(kind: PeriodRateKind, month: string): Observable<void>;
+  /** Removes the rate of this kind (and name, for a custom one) and month; one that is not there is ignored. */
+  abstract delete(kind: PeriodRateKind, month: string, name?: string): Observable<void>;
 }

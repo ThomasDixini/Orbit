@@ -7,7 +7,8 @@ namespace Orbit.Api.Application.Investments;
 public sealed record PortfolioSnapshot(
     Portfolio Portfolio, IReadOnlyList<InvestmentTrade> Trades, IReadOnlyList<InvestmentIncome> Incomes,
     IReadOnlyList<MonthlyPoint> History, IReadOnlyList<BalanceEntry> BalanceEntries,
-    IReadOnlyDictionary<string, IReadOnlyList<MonthlyPoint>> InvestmentHistories);
+    IReadOnlyDictionary<string, IReadOnlyList<MonthlyPoint>> InvestmentHistories,
+    IReadOnlyList<MonthlyCdi> CdiMonthly);
 
 /// <summary>
 /// Reads the portfolio as of a day. The daily CDI rates it compares against are stored once fetched; when
@@ -38,7 +39,8 @@ public sealed class GetPortfolio(
         return new PortfolioSnapshot(
             Portfolio.Build(all, trades, incomes, asOf, cdi, entries), trades, incomes,
             PortfolioHistory.Build(all, flows, incomes, prices, cdi, asOf, entries), entries,
-            HistoriesOf(all, flows, incomes, prices, cdi, asOf, entries));
+            HistoriesOf(all, flows, incomes, prices, cdi, asOf, entries),
+            flows.Count == 0 ? [] : cdi.MonthlyPercents(flows.Min(flow => flow.Date), asOf));
     }
 
     // One history per investment, so the page can chart a single investment or a class of them.

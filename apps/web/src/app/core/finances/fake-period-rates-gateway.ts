@@ -7,7 +7,7 @@ export class FakePeriodRatesGateway extends PeriodRatesGateway {
   failure: Error | undefined;
   ratesToServe: readonly PeriodRate[] = [];
   readonly saved: PeriodRate[] = [];
-  readonly deleted: { kind: PeriodRateKind; month: string }[] = [];
+  readonly deleted: { kind: PeriodRateKind; month: string; name?: string }[] = [];
   listCalls = 0;
 
   override list(): Observable<readonly PeriodRate[]> {
@@ -25,8 +25,8 @@ export class FakePeriodRatesGateway extends PeriodRatesGateway {
     return this.answer(rate);
   }
 
-  override delete(kind: PeriodRateKind, month: string): Observable<void> {
-    this.deleted.push({ kind, month });
+  override delete(kind: PeriodRateKind, month: string, name?: string): Observable<void> {
+    this.deleted.push(name === undefined ? { kind, month } : { kind, month, name });
     return this.answer(undefined);
   }
 

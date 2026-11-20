@@ -1,10 +1,12 @@
 import { Component, LOCALE_ID, computed, effect, inject, input, signal } from '@angular/core';
 import { LoadFailed } from '../../../../components/load-failed/load-failed';
 import {
+  MAX_RATE_NAME_LENGTH,
   PERIOD_RATE_KIND_OPTIONS,
   PeriodRate,
   PeriodRateKind,
   basisPointsText,
+  customRateNames,
   parseBasisPoints,
   periodRateKindLabel,
 } from '../../../../core/finances/period-rates';
@@ -40,6 +42,10 @@ export class PeriodRates {
   protected readonly hasActionFailed = this.store.hasActionFailed;
   protected readonly kindOptions = PERIOD_RATE_KIND_OPTIONS;
   protected readonly kind = signal<PeriodRateKind>('selic');
+  protected readonly name = signal('');
+  protected readonly maxNameLength = MAX_RATE_NAME_LENGTH;
+  protected readonly customNames = computed(() => customRateNames(this.rates()));
+  protected readonly isCustom = computed(() => this.kind() === 'custom');
   protected readonly month = signal('');
   protected readonly value = signal('');
 
@@ -50,7 +56,10 @@ export class PeriodRates {
       : undefined,
   );
   protected readonly canSave = computed(
-    () => this.month().length === MONTH_LENGTH && this.basisPoints() !== undefined,
+    () =>
+      this.month().length === MONTH_LENGTH &&
+      this.basisPoints() !== undefined &&
+      (!this.isCustom() || this.name().trim() !== ''),
   );
 
   constructor() {
@@ -68,17 +77,21 @@ export class PeriodRates {
     const basisPoints = this.basisPoints();
     if (basisPoints === undefined || !this.canSave()) return;
     this.savesAtSubmit.set(this.store.savedCount());
-    this.store.save(this.kind(), this.month(), { basisPoints });
+    this.store.save(this.kind(), this.month(), {
+      basisPoints,
+      ...(this.isCustom() ? { name: this.name().trim() } : {}),
+    });
   }
 
   protected edit(rate: PeriodRate): void {
     this.kind.set(rate.kind);
+    this.name.set(rate.name ?? '');
     this.month.set(rate.month);
     this.value.set(basisPointsText(rate.basisPoints));
   }
 
   protected remove(rate: PeriodRate): void {
-    this.store.remove(rate.kind, rate.month);
+    this.store.remove(rate.kind, rate.month, rate.name);
   }
 
   protected reload(): void {
@@ -86,7 +99,7 @@ export class PeriodRates {
   }
 
   protected kindLabel(rate: PeriodRate): string {
-    return periodRateKindLabel(rate.kind);
+    return rate.kind === 'custom' && rate.name ? rate.name : periodRateKindLabel(rate.kind);
   }
 
   protected rateText(rate: PeriodRate): string {

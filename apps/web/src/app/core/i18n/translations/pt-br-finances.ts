@@ -188,6 +188,35 @@ export const PT_BR_FINANCES: Readonly<Record<string, string>> = {
   'Paid from': 'Paga com',
   'Record payment': 'Registrar pagamento',
 
+  // Custom rates
+  'My own rate (per month)': 'Minha própria taxa (por mês)',
+  'My own rate': 'Minha taxa',
+  'Name of the rate': 'Nome da taxa',
+  'E.g. Poupança': 'Ex.: Poupança',
+  'The rates you type here can be picked to compare with the return chart, as can rates of your own, like the Poupança.':
+    'As taxas que você digita aqui podem ser escolhidas para comparar no gráfico de rentabilidade, assim como taxas suas, como a Poupança.',
+
+  // Rates to compare with
+  'Compare the return with': 'Comparar a rentabilidade com',
+  'CDI on your money': 'CDI sobre o seu dinheiro',
+  CDI: 'CDI',
+  Selic: 'Selic',
+  IPCA: 'IPCA',
+
+  // Monthly appreciation
+  'Show appreciation of': 'Mostrar a valorização de',
+  'Show statement of': 'Mostrar o extrato de',
+  'Monthly appreciation': 'Valorização mensal',
+  'All investments': 'Todos os investimentos',
+  'Appreciation per month (%)': 'Valorização por mês (%)',
+  'Opening value': 'Valor inicial',
+  'Put in or taken out': 'Aplicado ou resgatado',
+  Appreciation: 'Valorização',
+  'Closing value': 'Valor final',
+  sold: 'vendido',
+  'Appreciation is what the value changed beyond the money put in or taken out; for an investment followed by balance, it is the yield after taxes and fees. Proventos are paid out, so they are not part of it.':
+    'Valorização é quanto o valor mudou além do dinheiro aplicado ou resgatado; num investimento acompanhado por saldo, é o rendimento depois de impostos e taxas. Os proventos são pagos ao dono, então não entram nela.',
+
   // Installments and linked bills
   Payment: 'Pagamento',
   'Single payment': 'À vista',
@@ -365,8 +394,6 @@ export const PT_BR_FINANCES: Readonly<Record<string, string>> = {
 
   // Period rates
   'Period rates': 'Taxas por período',
-  'The Selic and the IPCA you type here are drawn on the return chart.':
-    'A Selic e o IPCA que você digita aqui aparecem no gráfico de rentabilidade.',
   'New rate': 'Nova taxa',
   Rate: 'Taxa',
   'Value (%)': 'Valor (%)',
@@ -427,11 +454,13 @@ export const PT_BR_FINANCES: Readonly<Record<string, string>> = {
   'All balance investments': 'Todos os investimentos por saldo',
   Deposits: 'Aportes',
   Withdrawals: 'Resgates',
-  'Income tax and IOF': 'IR e IOF',
   Fees: 'Taxas',
+  'Withdrawals and taxes': 'Resgates e impostos',
+  'Income tax, IOF and fees recorded in total: {amount}':
+    'IR, IOF e taxas lançados no total: {amount}',
   'Closing balance': 'Saldo final',
-  'The yield is shown before income tax, IOF and fees, which come out of it.':
-    'O rendimento aparece antes do IR, do IOF e das taxas, que saem dele.',
+  'Income tax, IOF and fees are charged when the money is redeemed or sold, so they are part of the withdrawals of that month, not a monthly column. The yield is shown before them.':
+    'IR, IOF e taxas são cobrados no resgate ou na venda, então entram nos resgates daquele mês, e não numa coluna mensal. O rendimento aparece antes deles.',
   'No statement lines yet. Add the opening balance and the first deposit.':
     'Nenhum lançamento ainda. Registre o saldo inicial e o primeiro aporte.',
   'Deposits and withdrawals': 'Aportes e resgates',

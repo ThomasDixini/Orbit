@@ -32,8 +32,15 @@ import {
   lineValueCents,
   periodPerformance,
 } from '../../../core/finances/investments-analytics';
+import { appreciationMonths } from '../../../core/finances/monthly-appreciation';
 import { InvestmentsStore } from '../../../core/finances/investments-store';
-import { rateSeries } from '../../../core/finances/period-rates';
+import {
+  ComparisonId,
+  RateSeries,
+  cdiSeries,
+  comparisonOptions,
+  rateSeries,
+} from '../../../core/finances/period-rates';
 import { PeriodRatesStore } from '../../../core/finances/period-rates-store';
 import { Period, periodMonths, periodRange } from '../../../core/finances/period';
 import { PeriodFilter } from '../../../components/period-filter/period-filter';
@@ -44,6 +51,7 @@ import {
 import { BalanceEntryFields, BalanceEntryForm } from './balance-entry-form/balance-entry-form';
 import { BalanceHistory } from './balance-history/balance-history';
 import { BalanceStatement } from './balance-statement/balance-statement';
+import { MonthlyAppreciation } from './monthly-appreciation/monthly-appreciation';
 import { IncomeFields, IncomeForm } from './income-form/income-form';
 import { MovementImport, MovementImportResult } from './movement-import/movement-import';
 import { InvestmentForm } from './investment-form/investment-form';
@@ -91,6 +99,7 @@ const MOVEMENTS_PAGE_SIZE = 10;
     IncomeForm,
     BalanceEntryForm,
     BalanceStatement,
+    MonthlyAppreciation,
     BalanceHistory,
     LineChart,
     BarChart,
@@ -118,12 +127,16 @@ export class Investments {
   protected readonly section = signal<InvestmentsSection>('portfolio');
   private readonly shownMovements = signal(MOVEMENTS_PAGE_SIZE);
   protected readonly visibleMovements = computed(() =>
-    this.store.movements().slice(0, this.shownMovements()),
+    this.movements().slice(0, this.shownMovements()),
   );
   protected readonly hasMoreMovements = computed(
-    () => this.store.movements().length > this.shownMovements(),
+    () => this.movements().length > this.shownMovements(),
   );
-  protected readonly movements = this.store.movements;
+  /** The movements of the class or asset picked, sold ones included; every movement when none is. */
+  protected readonly movements = computed(() => {
+    const ids = new Set(this.selected().map((line) => line.investment.id));
+    return this.store.movements().filter((movement) => ids.has(movement.investmentId));
+  });
   protected readonly panel = signal<Panel>(CLOSED);
   protected readonly isImportOpen = signal(false);
   /** What the last import came to, shown until the person moves on. */
@@ -139,6 +152,18 @@ export class Investments {
     const portfolio = this.store.portfolio();
     return portfolio === undefined ? new Set<string>() : closedInvestmentIds(portfolio);
   });
+  /** What the asset picker offers: the assets of the class, with the sold ones, so their history can be read. */
+  protected readonly pickerLines = computed(() => this.sortedTableLines());
+  protected readonly appreciationInvestments = computed(() =>
+    this.lines().map((line) => line.investment),
+  );
+  protected readonly investmentHistories = computed(
+    () => this.store.portfolio()?.investmentHistories ?? {},
+  );
+  protected readonly hasAppreciation = computed(() =>
+    Object.values(this.investmentHistories()).some((history) => history.length > 0),
+  );
+  protected readonly incomes = computed(() => this.store.portfolio()?.incomes ?? []);
   protected readonly closedCount = computed(
     () => this.sortedTableLines().filter((line) => this.closedIds().has(line.investment.id)).length,
   );
@@ -167,6 +192,13 @@ export class Investments {
   protected readonly monthLabels = computed(() => this.months().map((key) => this.monthName(key)));
   protected readonly valueSeries = computed(() => this.describeValueSeries());
   protected readonly returnSeries = computed(() => this.describeReturnSeries());
+  protected readonly comparisonOptions = computed(() =>
+    comparisonOptions(this.periodRates.rates()),
+  );
+  /** What the return chart is compared with; the CDI the money would have earned and the typed rates at first. */
+  protected readonly compared = signal<ReadonlySet<ComparisonId>>(
+    new Set<ComparisonId>(['moneyInCdi', 'selic', 'ipca']),
+  );
   protected readonly monthlyGains = computed(() => this.describeMonthlyGains());
   /** The month picked on the gains chart, `YYYY-MM`; it is forgotten once the period no longer holds it. */
   private readonly pickedMonth = signal<string | undefined>(undefined);
@@ -179,6 +211,13 @@ export class Investments {
   protected readonly incomeNote = computed(() => this.describeIncomeNote());
   protected readonly formatAxisMoney = (reais: number): string => this.compact(reais);
   protected readonly formatAxisPercent = (percent: number): string => `${Math.round(percent)}%`;
+  protected readonly formatReais = (reais: number): string =>
+    formatMoney(Math.round(reais * 100), this.locale);
+  protected readonly formatPercentDetail = (percent: number): string =>
+    formatPercent(percent, this.locale);
+  protected readonly formatCents = (cents: number): string => formatMoney(cents, this.locale);
+  protected readonly formatSignedCents = (cents: number): string =>
+    formatSignedMoney(cents, this.locale);
   protected readonly formatCentsAxis = (cents: number): string => this.compact(cents / 100);
 
   private readonly months = computed(() => periodMonths(this.filters().period, this.today));
@@ -211,6 +250,14 @@ export class Investments {
 
   protected pickKind(kind: InvestmentKind | undefined): void {
     this.filters.update((current) => ({ ...current, kind, investmentId: undefined }));
+  }
+
+  protected toggleComparison(id: ComparisonId): void {
+    this.compared.update((current) => {
+      const next = new Set(current);
+      if (!next.delete(id)) next.add(id);
+      return next;
+    });
   }
 
   protected pickPeriod(period: Period): void {
@@ -264,6 +311,10 @@ export class Investments {
     const panel = this.panel();
     if (panel.kind !== 'income') return;
     if (await this.store.addIncome({ ...fields, investmentId: panel.investmentId })) this.close();
+  }
+
+  protected isClosed(investmentId: string): boolean {
+    return this.closedIds().has(investmentId);
   }
 
   /** Reveals the next page of the movements list, which starts with the newest ones. */
@@ -437,16 +488,32 @@ export class Investments {
    * A source without per-investment histories (the demo) leaves a narrowed view blank.
    */
   private selectedHistory(): (MonthlyPoint | undefined)[] {
+    return this.historyOver(this.months());
+  }
+
+  private historyOver(months: readonly string[]): (MonthlyPoint | undefined)[] {
     const { kind, investmentId } = this.filters();
     const portfolio = this.store.portfolio();
     if (kind === undefined && investmentId === undefined) {
       const history = portfolio?.history ?? [];
-      return this.months().map((month) => history.find((point) => point.month === month));
+      return months.map((month) => history.find((point) => point.month === month));
     }
     const histories = portfolio?.investmentHistories;
-    if (histories === undefined) return this.months().map(() => undefined);
+    if (histories === undefined) return months.map(() => undefined);
     const own = [...this.selectedIds()].map((id) => histories[id]);
-    return combineHistories(own, this.months());
+    return combineHistories(own, months);
+  }
+
+  /** Every month the history of the selection covers, oldest first, not only the ones of the period. */
+  private historyMonths(): string[] {
+    const { kind, investmentId } = this.filters();
+    const portfolio = this.store.portfolio();
+    const histories =
+      kind === undefined && investmentId === undefined
+        ? [portfolio?.history ?? []]
+        : [...this.selectedIds()].map((id) => portfolio?.investmentHistories?.[id] ?? []);
+    const keys = new Set(histories.flatMap((history) => history.map((point) => point.month)));
+    return [...keys].sort((first, second) => first.localeCompare(second));
   }
 
   private describeValueSeries(): ChartSeries[] {
@@ -464,14 +531,29 @@ export class Investments {
 
   private describeReturnSeries(): ChartSeries[] {
     const history = this.selectedHistory();
+    const chosen = this.compared();
+    const yourMoneyInCdi: ChartSeries[] = chosen.has('moneyInCdi')
+      ? [
+          {
+            name: 'CDI on your money',
+            values: history.map((point) => point?.cdiPercent),
+            dashed: true,
+          },
+        ]
+      : [];
     return [
       { name: 'Your investments', values: history.map((point) => point?.returnPercent) },
-      { name: 'CDI', values: history.map((point) => point?.cdiPercent), dashed: true },
-      ...rateSeries(this.periodRates.rates(), this.months()).map((series) => ({
-        ...series,
-        dashed: true,
-      })),
+      ...yourMoneyInCdi,
+      ...this.rateLines(chosen).map((series) => ({ ...series, dashed: true })),
     ];
+  }
+
+  // The CDI, Selic and IPCA lines the person picked, each accumulated from the first month of the chart.
+  private rateLines(chosen: ReadonlySet<ComparisonId>): RateSeries[] {
+    const cdi = cdiSeries(this.store.portfolio()?.cdiMonthly ?? [], this.months());
+    const typed = rateSeries(this.periodRates.rates(), this.months());
+    const lines = chosen.has('cdi') && cdi.values.some((value) => value !== undefined) ? [cdi] : [];
+    return [...lines, ...typed.filter((series) => chosen.has(series.id))];
   }
 
   private describeMonthDetail():
@@ -503,14 +585,16 @@ export class Investments {
     return new Intl.DateTimeFormat(this.locale, { month: 'long', year: 'numeric' }).format(date);
   }
 
+  // Worked out over the whole history, so the first month of the period is compared with the one before
+  // it (outside the period) and the first month ever opens at zero, instead of both showing no gain.
   private describeMonthlyGains(): number[] {
-    const history = this.selectedHistory();
-    return history.map((point, index) => {
-      const previous = history[index - 1];
-      if (point === undefined || previous === undefined) return 0;
-      const gain = point.valueCents - point.appliedCents;
-      return gain - (previous.valueCents - previous.appliedCents);
-    });
+    const points = this.historyOver(this.historyMonths()).filter(
+      (point): point is MonthlyPoint => point !== undefined,
+    );
+    const gains = new Map(
+      appreciationMonths(points, []).map((month) => [month.month, month.appreciationCents]),
+    );
+    return this.months().map((month) => gains.get(month) ?? 0);
   }
 
   private describeCdiNote(): string | undefined {

@@ -1,5 +1,5 @@
 import { Account } from './finance-references';
-import { netWorth, netWorthGrowth, netWorthRows } from './net-worth';
+import { monthEnds, netWorth, netWorthGrowth, netWorthHistory, netWorthRows } from './net-worth';
 
 const CHECKING: Account = {
   id: 'checking-account',
@@ -130,5 +130,43 @@ describe('net worth history', () => {
       undefined,
       undefined,
     ]);
+  });
+});
+
+describe('monthEnds', () => {
+  it('gives the last day of each month, oldest first, and ends the current month today', () => {
+    expect(monthEnds('2026-11-19', 3)).toEqual([
+      { month: '2026-09', day: '2026-09-30' },
+      { month: '2026-10', day: '2026-10-31' },
+      { month: '2026-11', day: '2026-11-19' },
+    ]);
+  });
+
+  it('crosses the end of the year and knows a short February', () => {
+    expect(monthEnds('2027-02-10', 3).map((end) => end.day)).toEqual([
+      '2026-12-31',
+      '2027-01-31',
+      '2027-02-10',
+    ]);
+  });
+});
+
+describe('netWorthHistory', () => {
+  it('adds the accounts and the investments of each month and drops the months before any money', () => {
+    const accounts = new Map([
+      ['2026-08', 0],
+      ['2026-09', 100_000],
+      ['2026-10', 120_000],
+    ]);
+    const invested = new Map([['2026-10', 50_000]]);
+
+    expect(netWorthHistory(accounts, invested)).toEqual([
+      { month: '2026-09', cents: 100_000 },
+      { month: '2026-10', cents: 170_000 },
+    ]);
+  });
+
+  it('has nothing when there was never any money', () => {
+    expect(netWorthHistory(new Map([['2026-10', 0]]), new Map())).toEqual([]);
   });
 });

@@ -23,8 +23,9 @@ export class HttpPeriodRatesGateway extends PeriodRatesGateway {
     return this.httpClient.put<PeriodRate>(rateUrl(kind, month), draft);
   }
 
-  override delete(kind: PeriodRateKind, month: string): Observable<void> {
-    return this.httpClient.delete<void>(rateUrl(kind, month));
+  override delete(kind: PeriodRateKind, month: string, name?: string): Observable<void> {
+    const params: Record<string, string> = name === undefined ? {} : { name };
+    return this.httpClient.delete<void>(rateUrl(kind, month), { params });
   }
 }
 

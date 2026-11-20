@@ -44,7 +44,7 @@
   border-top: 2px solid var(--color-violet);
 }
 
-.swatch.second {
+.swatch[data-series='1'] {
   border-top-color: var(--color-text-muted);
 }
 
@@ -75,8 +75,105 @@ svg {
   stroke-linejoin: round;
 }
 
-.line.second {
+.line[data-series='1'] {
   stroke: var(--color-text-muted);
+}
+
+/* More than two lines (one per investment) need colors of their own; the first two keep theirs. */
+[data-series='2'] {
+  --series: var(--color-mint);
+}
+
+[data-series='3'] {
+  --series: var(--color-amber);
+}
+
+[data-series='4'] {
+  --series: var(--color-sky);
+}
+
+[data-series='5'] {
+  --series: var(--color-orchid);
+}
+
+[data-series='6'] {
+  --series: var(--color-expense);
+}
+
+[data-series='7'] {
+  --series: var(--color-danger);
+}
+
+.line[data-series='2'],
+.line[data-series='3'],
+.line[data-series='4'],
+.line[data-series='5'],
+.line[data-series='6'],
+.line[data-series='7'] {
+  stroke: var(--series);
+}
+
+.swatch[data-series='2'],
+.swatch[data-series='3'],
+.swatch[data-series='4'],
+.swatch[data-series='5'],
+.swatch[data-series='6'],
+.swatch[data-series='7'] {
+  border-top-color: var(--series);
+}
+
+.marker[data-series='2'],
+.marker[data-series='3'],
+.marker[data-series='4'],
+.marker[data-series='5'],
+.marker[data-series='6'],
+.marker[data-series='7'] {
+  fill: var(--series);
+}
+
+.line.faded {
+  opacity: 0.55;
+}
+
+.guide {
+  stroke: var(--color-border-strong);
+  stroke-width: 1;
+  stroke-dasharray: 2 3;
+  pointer-events: none;
+}
+
+.marker {
+  fill: var(--color-violet);
+  stroke: var(--color-bg);
+  stroke-width: 1.5;
+  pointer-events: none;
+}
+
+.marker[data-series='1'] {
+  fill: var(--color-text-muted);
+}
+
+.zone {
+  fill: transparent;
+}
+
+.tooltip {
+  pointer-events: none;
+}
+
+.tooltip-box {
+  fill: var(--color-option-bg);
+  stroke: var(--color-border-strong);
+  stroke-width: 1;
+}
+
+.tooltip-text {
+  fill: var(--color-text);
+  font-size: 9px;
+}
+
+.tooltip-text.strong {
+  fill: var(--color-text-muted);
 }
 
 .line.dashed {

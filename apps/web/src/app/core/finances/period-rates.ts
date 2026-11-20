@@ -1,5 +1,8 @@
-/** Which rate a typed value is: the Selic (per year), the IPCA (per month) or the income tax. */
-export type PeriodRateKind = 'selic' | 'ipca' | 'incomeTax';
+/**
+ * Which rate a typed value is: the Selic (per year), the IPCA (per month), the income tax, or a rate of the
+ * user's own (per month), told apart from the others by the name it was given.
+ */
+export type PeriodRateKind = 'selic' | 'ipca' | 'incomeTax' | 'custom';
 
 /** A rate the user typed for one month; 1300 basis points is 13%. */
 export interface PeriodRate {
@@ -7,10 +10,15 @@ export interface PeriodRate {
   /** `YYYY-MM`. */
   readonly month: string;
   readonly basisPoints: number;
+  /** What a custom rate is called; absent for the other kinds. */
+  readonly name?: string;
 }
 
-/** What the rate form fills in; kind and month identify the rate. */
-export type PeriodRateDraft = Pick<PeriodRate, 'basisPoints'>;
+/** What the rate form fills in; kind, month and, for a custom rate, name identify the rate. */
+export type PeriodRateDraft = Pick<PeriodRate, 'basisPoints' | 'name'>;
+
+/** Longest name of a custom rate, as the API accepts. */
+export const MAX_RATE_NAME_LENGTH = 30;
 
 /** Same range as the API: from -10% to 100%. */
 export const MIN_BASIS_POINTS = -1000;
@@ -25,6 +33,7 @@ export const PERIOD_RATE_KIND_OPTIONS: readonly { value: PeriodRateKind; label: 
   { value: 'selic', label: 'Selic (per year)' },
   { value: 'ipca', label: 'IPCA (per month)' },
   { value: 'incomeTax', label: 'Income tax' },
+  { value: 'custom', label: 'My own rate (per month)' },
 ];
 
 /** The kinds drawn as a line on the return chart; the income tax is a rate to keep, not a return. */
@@ -35,6 +44,7 @@ const SERIES_NAMES: Readonly<Record<PeriodRateKind, string>> = {
   selic: 'Selic',
   ipca: 'IPCA',
   incomeTax: 'Income tax',
+  custom: 'My own rate',
 };
 
 /**
@@ -43,6 +53,32 @@ const SERIES_NAMES: Readonly<Record<PeriodRateKind, string>> = {
  */
 export function periodRateKindLabel(kind: PeriodRateKind): string {
   return PERIOD_RATE_KIND_OPTIONS.find((option) => option.value === kind)?.label ?? kind;
+}
+
+/**
+ * Whether two rates are the same one: same kind, same name (for a custom rate) and same month.
+ * @example sameRate(selicOctober, selicOctober) // true
+ */
+export function sameRate(
+  first: Pick<PeriodRate, 'kind' | 'name' | 'month'>,
+  second: Pick<PeriodRate, 'kind' | 'name' | 'month'>,
+): boolean {
+  return (
+    first.kind === second.kind &&
+    (first.name ?? '') === (second.name ?? '') &&
+    first.month === second.month
+  );
+}
+
+/**
+ * The names of the custom rates typed so far, in alphabetical order.
+ * @example customRateNames(rates) // ['Poupança']
+ */
+export function customRateNames(rates: readonly PeriodRate[]): string[] {
+  const names = new Set(
+    rates.filter((rate) => rate.kind === 'custom' && rate.name).map((rate) => rate.name!),
+  );
+  return [...names].sort((first, second) => first.localeCompare(second));
 }
 
 /**
@@ -77,6 +113,8 @@ export function basisPointsText(basisPoints: number): string {
 
 /** One line of the return chart: what a rate would have accumulated month by month. */
 export interface RateSeries {
+  /** What the chips pick: `selic`, `ipca`, or `custom:` and the name of a custom rate. */
+  readonly id: string;
   readonly name: string;
   readonly values: readonly (number | undefined)[];
 }
@@ -93,10 +131,27 @@ export function rateSeries(
   rates: readonly PeriodRate[],
   months: readonly string[],
 ): readonly RateSeries[] {
-  return CHARTED_KINDS.map((kind) => ({
+  const own = customRateNames(rates).map((name) => ({
+    id: `custom:${name}`,
+    name,
+    values: accumulate(
+      rates.filter((rate) => rate.kind === 'custom' && rate.name === name),
+      'custom',
+      months,
+    ),
+  }));
+  const builtIn = CHARTED_KINDS.map((kind) => ({
+    id: kind,
     name: SERIES_NAMES[kind],
-    values: accumulate(rates, kind, months),
-  })).filter((series) => series.values.some((value) => value !== undefined));
+    values: accumulate(
+      rates.filter((rate) => rate.kind === kind),
+      kind,
+      months,
+    ),
+  }));
+  return [...builtIn, ...own].filter((series) =>
+    series.values.some((value) => value !== undefined),
+  );
 }
 
 function accumulate(
@@ -104,9 +159,7 @@ function accumulate(
   kind: PeriodRateKind,
   months: readonly string[],
 ): (number | undefined)[] {
-  const byMonth = new Map(
-    rates.filter((rate) => rate.kind === kind).map((rate) => [rate.month, rate.basisPoints]),
-  );
+  const byMonth = new Map(rates.map((rate) => [rate.month, rate.basisPoints]));
   let factor = 1;
   let known = true;
   return months.map((month) => {
@@ -134,4 +187,56 @@ export function sortedRates(rates: readonly PeriodRate[]): readonly PeriodRate[]
       second.month.localeCompare(first.month) ||
       order.indexOf(first.kind) - order.indexOf(second.kind),
   );
+}
+
+/** What the return chart can be compared with: the CDI the money would have earned, or a rate itself. */
+export type ComparisonId = string;
+
+const BASE_COMPARISONS: readonly { value: ComparisonId; label: string }[] = [
+  { value: 'moneyInCdi', label: 'CDI on your money' },
+  { value: 'cdi', label: 'CDI' },
+  { value: 'selic', label: 'Selic' },
+  { value: 'ipca', label: 'IPCA' },
+];
+
+/**
+ * The choices of the comparison chips: the CDI on your money, the CDI, the Selic and the IPCA, then one
+ * for each custom rate typed.
+ * @example comparisonOptions(rates).map((option) => option.value) // ['moneyInCdi', 'cdi', 'selic', 'ipca', 'custom:Poupança']
+ */
+export function comparisonOptions(
+  rates: readonly PeriodRate[],
+): { value: ComparisonId; label: string }[] {
+  return [
+    ...BASE_COMPARISONS,
+    ...customRateNames(rates).map((name) => ({ value: `custom:${name}`, label: name })),
+  ];
+}
+
+/**
+ * The CDI itself, accumulated month by month from the first month of the chart: the same kind of line as the
+ * Selic and the IPCA, so the three can be compared. The line starts at the first month the CDI is known for
+ * (the portfolio may be younger than the period) and ends at the first one missing after that.
+ * @example cdiSeries([{ month: '2026-10', percent: 1 }], ['2026-10', '2026-11']) // { name: 'CDI', values: [1, undefined] }
+ */
+export function cdiSeries(
+  monthly: readonly { readonly month: string; readonly percent: number }[],
+  months: readonly string[],
+): RateSeries {
+  const byMonth = new Map(monthly.map((item) => [item.month, item.percent]));
+  let factor = 1;
+  let started = false;
+  let ended = false;
+  const values = months.map((month) => {
+    const percent = byMonth.get(month);
+    if (percent === undefined) {
+      ended = started;
+      return undefined;
+    }
+    if (ended) return undefined;
+    started = true;
+    factor *= 1 + percent / 100;
+    return (factor - 1) * 100;
+  });
+  return { id: 'cdi', name: 'CDI', values };
 }
