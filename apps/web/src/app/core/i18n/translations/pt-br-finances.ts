@@ -204,6 +204,8 @@ export const PT_BR_FINANCES: Readonly<Record<string, string>> = {
   IPCA: 'IPCA',
 
   // Monthly appreciation
+  'Show appreciation of': 'Mostrar a valorização de',
+  'Show statement of': 'Mostrar o extrato de',
   'Monthly appreciation': 'Valorização mensal',
   'All investments': 'Todos os investimentos',
   'Appreciation per month (%)': 'Valorização por mês (%)',
