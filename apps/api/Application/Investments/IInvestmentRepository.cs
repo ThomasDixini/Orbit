@@ -49,4 +49,13 @@ public interface IInvestmentRepository
 
     /// <summary>Removes the balance entry; an unknown id is ignored.</summary>
     Task DeleteBalanceEntryAsync(string entryId, CancellationToken cancellationToken);
+
+    /// <summary>Every month-end price typed by the user, oldest month first.</summary>
+    Task<IReadOnlyList<InvestmentMonthPrice>> ListMonthPricesAsync(CancellationToken cancellationToken);
+
+    /// <summary>Stores the price, replacing the one stored for the same investment and month.</summary>
+    Task SaveMonthPriceAsync(InvestmentMonthPrice price, CancellationToken cancellationToken);
+
+    /// <summary>Removes the price of the investment in the month; one that is not stored is ignored.</summary>
+    Task DeleteMonthPriceAsync(string investmentId, string month, CancellationToken cancellationToken);
 }

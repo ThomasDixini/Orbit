@@ -6,6 +6,7 @@ import {
   IncomeDraft,
   Investment,
   InvestmentDraft,
+  MonthPrice,
   Portfolio,
   Trade,
   TradeDraft,
@@ -94,6 +95,8 @@ export class FakeInvestmentsGateway extends InvestmentsGateway {
   readonly deletedIncomes: string[] = [];
   readonly savedBalanceEntries: { id: string; draft: BalanceEntryDraft }[] = [];
   readonly deletedBalanceEntries: string[] = [];
+  readonly savedMonthPrices: MonthPrice[] = [];
+  readonly deletedMonthPrices: { investmentId: string; month: string }[] = [];
   /** Days `portfolio` was asked for, in order. */
   readonly askedDays: string[] = [];
 
@@ -139,6 +142,21 @@ export class FakeInvestmentsGateway extends InvestmentsGateway {
 
   override deleteBalanceEntry(entryId: string): Observable<void> {
     this.deletedBalanceEntries.push(entryId);
+    return this.answer(undefined);
+  }
+
+  override saveMonthPrice(
+    investmentId: string,
+    month: string,
+    cents: number,
+  ): Observable<MonthPrice> {
+    const price: MonthPrice = { investmentId, month, cents };
+    this.savedMonthPrices.push(price);
+    return this.answer(price);
+  }
+
+  override deleteMonthPrice(investmentId: string, month: string): Observable<void> {
+    this.deletedMonthPrices.push({ investmentId, month });
     return this.answer(undefined);
   }
 

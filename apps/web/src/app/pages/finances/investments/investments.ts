@@ -12,6 +12,7 @@ import {
   InvestmentDraft,
   InvestmentKind,
   Movement,
+  MonthPrice,
   MonthlyPoint,
   PortfolioLine,
   averagePriceCents,
@@ -51,6 +52,7 @@ import {
 import { BalanceEntryFields, BalanceEntryForm } from './balance-entry-form/balance-entry-form';
 import { BalanceHistory } from './balance-history/balance-history';
 import { BalanceStatement } from './balance-statement/balance-statement';
+import { MonthPriceFields, MonthPriceForm } from './month-price-form/month-price-form';
 import { MonthlyAppreciation } from './monthly-appreciation/monthly-appreciation';
 import { IncomeFields, IncomeForm } from './income-form/income-form';
 import { MovementImport, MovementImportResult } from './movement-import/movement-import';
@@ -69,6 +71,7 @@ type Panel =
   | { readonly kind: 'edit'; readonly investmentId: string }
   | { readonly kind: 'trade'; readonly investmentId: string }
   | { readonly kind: 'income'; readonly investmentId: string }
+  | { readonly kind: 'monthPrice'; readonly investmentId: string }
   | { readonly kind: 'balance'; readonly investmentId: string };
 
 interface Stat {
@@ -98,6 +101,7 @@ const MOVEMENTS_PAGE_SIZE = 10;
     TradeForm,
     IncomeForm,
     BalanceEntryForm,
+    MonthPriceForm,
     BalanceStatement,
     MonthlyAppreciation,
     BalanceHistory,
@@ -164,6 +168,7 @@ export class Investments {
     Object.values(this.investmentHistories()).some((history) => history.length > 0),
   );
   protected readonly incomes = computed(() => this.store.portfolio()?.incomes ?? []);
+  protected readonly monthPrices = computed(() => this.store.portfolio()?.monthPrices ?? []);
   protected readonly closedCount = computed(
     () => this.sortedTableLines().filter((line) => this.closedIds().has(line.investment.id)).length,
   );
@@ -195,6 +200,8 @@ export class Investments {
   protected readonly comparisonOptions = computed(() =>
     comparisonOptions(this.periodRates.rates()),
   );
+  /** The picked comparisons that draw no line because no rate was typed for the months of the chart. */
+  protected readonly emptyComparisons = computed(() => this.describeEmptyComparisons());
   /** What the return chart is compared with; the CDI the money would have earned and the typed rates at first. */
   protected readonly compared = signal<ReadonlySet<ComparisonId>>(
     new Set<ComparisonId>(['moneyInCdi', 'selic', 'ipca']),
@@ -301,6 +308,17 @@ export class Investments {
 
   protected removeBalanceEntry(entryId: string): void {
     void this.store.deleteBalanceEntry(entryId);
+  }
+
+  /** The panel stays open after a price is saved, to type the next month. */
+  protected async addMonthPrice(fields: MonthPriceFields): Promise<void> {
+    const panel = this.panel();
+    if (panel.kind !== 'monthPrice') return;
+    await this.store.saveMonthPrice(panel.investmentId, fields.month, fields.cents);
+  }
+
+  protected removeMonthPrice(price: MonthPrice): void {
+    void this.store.deleteMonthPrice(price.investmentId, price.month);
   }
 
   protected isBalance(line: PortfolioLine): boolean {
@@ -546,6 +564,22 @@ export class Investments {
       ...yourMoneyInCdi,
       ...this.rateLines(chosen).map((series) => ({ ...series, dashed: true })),
     ];
+  }
+
+  private describeEmptyComparisons(): string[] {
+    const cdi = cdiSeries(this.store.portfolio()?.cdiMonthly ?? [], this.months());
+    const drawn = new Set<ComparisonId>(
+      rateSeries(this.periodRates.rates(), this.months()).map((series) => series.id),
+    );
+    if (cdi.values.some((value) => value !== undefined)) drawn.add('cdi');
+    return this.comparisonOptions()
+      .filter(
+        (option) =>
+          option.value !== 'moneyInCdi' &&
+          this.compared().has(option.value) &&
+          !drawn.has(option.value),
+      )
+      .map((option) => option.label);
   }
 
   // The CDI, Selic and IPCA lines the person picked, each accumulated from the first month of the chart.

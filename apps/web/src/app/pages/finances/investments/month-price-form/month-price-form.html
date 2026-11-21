@@ -1,0 +1,50 @@
+<form
+  class="month-price-form ui-enter"
+  [attr.aria-label]="
+    'Month-end price of {investmentName}' | t: { investmentName: investmentName() }
+  "
+  (submit)="submit($event)"
+  (keydown.escape)="dismiss.emit()"
+>
+  <div class="fields">
+    <label class="ui-field">
+      {{ 'Month' | t }}
+      <input
+        class="ui-input"
+        name="month-price-month"
+        type="month"
+        [max]="lastMonth()"
+        [value]="month()"
+        (change)="month.set(valueOf($event))"
+      />
+    </label>
+
+    <label class="ui-field">
+      {{ 'Price per unit (R$)' | t }}
+      <input
+        class="ui-input"
+        name="month-price-price"
+        type="text"
+        inputmode="decimal"
+        autocomplete="off"
+        placeholder="0.00"
+        [value]="price()"
+        [attr.aria-invalid]="priceError() !== undefined"
+        [attr.aria-describedby]="priceError() === undefined ? null : 'month-price-error'"
+        (input)="price.set(valueOf($event))"
+      />
+      @if (priceError(); as error) {
+        <span id="month-price-error" class="error">{{ error | t }}</span>
+      }
+    </label>
+  </div>
+
+  <div class="actions">
+    <button class="ui-button-ghost" type="button" (click)="dismiss.emit()">
+      {{ 'Cancel' | t }}
+    </button>
+    <button class="ui-button-primary" type="submit" [disabled]="!canSave()">
+      {{ 'Record price' | t }}
+    </button>
+  </div>
+</form>

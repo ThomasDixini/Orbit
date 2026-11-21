@@ -65,7 +65,7 @@ public sealed class SqliteInvestmentRepository(SqliteConnectionFactory connectio
     {
         await using var lease = await connections.LeaseAsync(cancellationToken);
         // The notes, analyses and balance entries go with the investment; they hold a foreign key to it.
-        foreach (var table in new[] { "investment_notes", "investment_analyses", "investment_balance_entries" })
+        foreach (var table in new[] { "investment_notes", "investment_analyses", "investment_balance_entries", "investment_month_prices" })
         {
             await SqliteCommands.ExecuteAsync(
                 lease.Connection, $"DELETE FROM {table} WHERE user_id = $user AND investment_id = $id",
@@ -210,6 +210,42 @@ public sealed class SqliteInvestmentRepository(SqliteConnectionFactory connectio
         await SqliteCommands.ExecuteAsync(
             lease.Connection, "DELETE FROM investment_balance_entries WHERE user_id = $user AND id = $id", cancellationToken,
             ("$id", entryId), ("$user", connections.UserId));
+    }
+
+    public async Task<IReadOnlyList<InvestmentMonthPrice>> ListMonthPricesAsync(CancellationToken cancellationToken)
+    {
+        await using var lease = await connections.LeaseAsync(cancellationToken);
+        return await SqliteCommands.QueryAsync(
+            lease.Connection,
+            "SELECT investment_id, month, price_cents FROM investment_month_prices WHERE user_id = $user ORDER BY month, investment_id",
+            reader => InvestmentMonthPrice.Restore(reader.GetString(0), reader.GetString(1), reader.GetInt64(2)),
+            cancellationToken,
+            ("$user", connections.UserId));
+    }
+
+    public async Task SaveMonthPriceAsync(InvestmentMonthPrice price, CancellationToken cancellationToken)
+    {
+        await using var lease = await connections.LeaseAsync(cancellationToken);
+        await SqliteCommands.ExecuteAsync(
+            lease.Connection,
+            """
+            INSERT INTO investment_month_prices (user_id, investment_id, month, price_cents)
+            VALUES ($user, $investmentId, $month, $cents)
+            ON CONFLICT (user_id, investment_id, month) DO UPDATE SET price_cents = excluded.price_cents
+            """,
+            cancellationToken,
+            ("$user", connections.UserId), ("$investmentId", price.InvestmentId), ("$month", price.Month),
+            ("$cents", price.Cents));
+    }
+
+    public async Task DeleteMonthPriceAsync(string investmentId, string month, CancellationToken cancellationToken)
+    {
+        await using var lease = await connections.LeaseAsync(cancellationToken);
+        await SqliteCommands.ExecuteAsync(
+            lease.Connection,
+            "DELETE FROM investment_month_prices WHERE user_id = $user AND investment_id = $id AND month = $month",
+            cancellationToken,
+            ("$id", investmentId), ("$month", month), ("$user", connections.UserId));
     }
 
     private static BalanceEntry ToBalanceEntry(SqliteDataReader reader)

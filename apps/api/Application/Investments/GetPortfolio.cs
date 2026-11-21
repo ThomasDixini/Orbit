@@ -8,7 +8,7 @@ public sealed record PortfolioSnapshot(
     Portfolio Portfolio, IReadOnlyList<InvestmentTrade> Trades, IReadOnlyList<InvestmentIncome> Incomes,
     IReadOnlyList<MonthlyPoint> History, IReadOnlyList<BalanceEntry> BalanceEntries,
     IReadOnlyDictionary<string, IReadOnlyList<MonthlyPoint>> InvestmentHistories,
-    IReadOnlyList<MonthlyCdi> CdiMonthly);
+    IReadOnlyList<MonthlyCdi> CdiMonthly, IReadOnlyList<InvestmentMonthPrice> MonthPrices);
 
 /// <summary>
 /// Reads the portfolio as of a day. The daily CDI rates it compares against are stored once fetched; when
@@ -36,25 +36,31 @@ public sealed class GetPortfolio(
         var flows = trades.Concat(BalanceLedger.AsFlows(entries)).ToList();
         var cdi = await CdiSinceFirstTradeAsync(flows, asOf, cancellationToken);
         var prices = await monthEndPrices.LoadAsync(all, trades, asOf, cancellationToken);
+        var typedPrices = await investments.ListMonthPricesAsync(cancellationToken);
         return new PortfolioSnapshot(
             Portfolio.Build(all, trades, incomes, asOf, cdi, entries), trades, incomes,
-            PortfolioHistory.Build(all, flows, incomes, prices, cdi, asOf, entries), entries,
-            HistoriesOf(all, flows, incomes, prices, cdi, asOf, entries),
-            flows.Count == 0 ? [] : cdi.MonthlyPercents(flows.Min(flow => flow.Date), asOf));
+            PortfolioHistory.Build(all, flows, incomes, prices, cdi, asOf, entries, typedPrices), entries,
+            HistoriesOf(all, flows, incomes, new PriceSources(prices, typedPrices), cdi, asOf, entries),
+            flows.Count == 0 ? [] : cdi.MonthlyPercents(flows.Min(flow => flow.Date), asOf),
+            typedPrices);
     }
+
+    private sealed record PriceSources(
+        IReadOnlyList<MonthEndPrice> Quoted, IReadOnlyList<InvestmentMonthPrice> Typed);
 
     // One history per investment, so the page can chart a single investment or a class of them.
     private static Dictionary<string, IReadOnlyList<MonthlyPoint>> HistoriesOf(
         IReadOnlyList<Investment> all, IReadOnlyList<InvestmentTrade> flows, IReadOnlyList<InvestmentIncome> incomes,
-        IReadOnlyList<MonthEndPrice> prices, CdiIndex cdi, DateOnly asOf, IReadOnlyList<BalanceEntry> entries) =>
+        PriceSources prices, CdiIndex cdi, DateOnly asOf, IReadOnlyList<BalanceEntry> entries) =>
         all.ToDictionary(
             investment => investment.Id,
             investment => PortfolioHistory.Build(
                 [investment],
                 flows.Where(flow => flow.InvestmentId == investment.Id).ToList(),
                 incomes.Where(income => income.InvestmentId == investment.Id).ToList(),
-                prices, cdi, asOf,
-                entries.Where(entry => entry.InvestmentId == investment.Id).ToList()));
+                prices.Quoted, cdi, asOf,
+                entries.Where(entry => entry.InvestmentId == investment.Id).ToList(),
+                prices.Typed));
 
     private async Task<CdiIndex> CdiSinceFirstTradeAsync(
         IReadOnlyList<InvestmentTrade> trades, DateOnly asOf, CancellationToken cancellationToken)

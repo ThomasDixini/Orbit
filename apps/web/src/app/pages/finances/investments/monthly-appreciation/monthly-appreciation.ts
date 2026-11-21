@@ -1,9 +1,10 @@
-import { Component, LOCALE_ID, computed, inject, input, signal } from '@angular/core';
+import { Component, LOCALE_ID, computed, inject, input, output, signal } from '@angular/core';
 import { ChartSeries, LineChart } from '../../../../components/line-chart/line-chart';
 import { combineHistories } from '../../../../core/finances/investments-analytics';
 import {
   Income,
   Investment,
+  MonthPrice,
   MonthlyPoint,
   formatPercent,
 } from '../../../../core/finances/investments';
@@ -35,9 +36,19 @@ interface AppreciationRow {
   readonly closing: string;
 }
 
+/** One month price the user typed, ready to be listed and removed. */
+interface TypedPriceRow {
+  readonly key: string;
+  readonly price: MonthPrice;
+  readonly investmentName: string;
+  readonly label: string;
+  readonly value: string;
+}
+
 /**
  * How much each investment appreciated in each month, sold ones included: a table for one investment or
- * all of them added up, and a chart that sets the investments' monthly appreciation side by side.
+ * all of them added up, and a chart that sets the investments' monthly appreciation side by side. It lists
+ * the month-end prices typed by hand (from the row of an investment) so they can be removed.
  */
 @Component({
   selector: 'app-monthly-appreciation',
@@ -49,11 +60,16 @@ export class MonthlyAppreciation {
   readonly investments = input.required<readonly Investment[]>();
   readonly histories = input.required<Readonly<Record<string, readonly MonthlyPoint[]>>>();
   readonly incomes = input.required<readonly Income[]>();
+  /** The month-end prices typed so far, from the row of each investment. */
+  readonly monthPrices = input<readonly MonthPrice[]>([]);
+  readonly saving = input(false);
+  readonly removePrice = output<MonthPrice>();
 
   private readonly locale = inject(LOCALE_ID);
 
   protected readonly all = ALL;
   protected readonly picked = signal(ALL);
+  protected readonly typedPrices = computed(() => this.describeTypedPrices());
   protected readonly rows = computed(() => this.describeRows());
   protected readonly labels = computed(() =>
     this.chartMonths().map((month) => this.shortMonth(month)),
@@ -65,6 +81,27 @@ export class MonthlyAppreciation {
 
   protected pick(event: Event): void {
     this.picked.set(fieldValue(event));
+  }
+
+  protected remove(row: TypedPriceRow): void {
+    this.removePrice.emit(row.price);
+  }
+
+  // Newest month first, for the investment picked or for all of them.
+  private describeTypedPrices(): TypedPriceRow[] {
+    const names = new Map(
+      this.pickedInvestments().map((investment) => [investment.id, investment.name]),
+    );
+    return this.monthPrices()
+      .filter((price) => names.has(price.investmentId))
+      .sort((first, second) => second.month.localeCompare(first.month))
+      .map((price) => ({
+        key: `${price.investmentId}-${price.month}`,
+        price,
+        investmentName: names.get(price.investmentId) ?? '',
+        label: monthLabel(price.month, this.locale),
+        value: formatMoney(price.cents, this.locale),
+      }));
   }
 
   private pickedInvestments(): readonly Investment[] {

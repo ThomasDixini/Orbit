@@ -8,6 +8,7 @@ import {
   IncomeDraft,
   Investment,
   InvestmentDraft,
+  MonthPrice,
   Portfolio,
   Trade,
   TradeDraft,
@@ -18,6 +19,7 @@ const INVESTMENTS_URL = '/api/investments';
 const TRADES_URL = '/api/investment-trades';
 const INCOMES_URL = '/api/investment-incomes';
 const BALANCE_ENTRIES_URL = '/api/investment-balance-entries';
+const MONTH_PRICES_URL = '/api/investment-month-prices';
 
 /** Investments stored by the Orbit API. */
 @Injectable()
@@ -59,6 +61,22 @@ export class HttpInvestmentsGateway extends InvestmentsGateway {
   override deleteBalanceEntry(entryId: string): Observable<void> {
     return this.httpClient.delete<void>(urlOf(BALANCE_ENTRIES_URL, entryId));
   }
+
+  override saveMonthPrice(
+    investmentId: string,
+    month: string,
+    cents: number,
+  ): Observable<MonthPrice> {
+    return this.httpClient.put<MonthPrice>(monthPriceUrl(investmentId, month), { cents });
+  }
+
+  override deleteMonthPrice(investmentId: string, month: string): Observable<void> {
+    return this.httpClient.delete<void>(monthPriceUrl(investmentId, month));
+  }
+}
+
+function monthPriceUrl(investmentId: string, month: string): string {
+  return `${urlOf(MONTH_PRICES_URL, investmentId)}/${encodeURIComponent(month)}`;
 }
 
 function urlOf(base: string, id: string): string {

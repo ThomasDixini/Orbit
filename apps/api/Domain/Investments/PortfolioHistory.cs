@@ -26,22 +26,27 @@ public static class PortfolioHistory
         IReadOnlyList<MonthEndPrice> prices,
         CdiIndex cdi,
         DateOnly asOf,
-        IReadOnlyList<BalanceEntry>? balanceEntries = null)
+        IReadOnlyList<BalanceEntry>? balanceEntries = null,
+        IReadOnlyList<InvestmentMonthPrice>? monthPrices = null)
     {
         if (trades.Count == 0) return [];
         var entries = balanceEntries ?? [];
+        var typed = monthPrices ?? [];
         var points = new List<MonthlyPoint>();
         var first = StartOfMonth(trades.Min(trade => trade.Date));
         for (var month = first; month <= asOf; month = month.AddMonths(1))
         {
-            points.Add(PointAt(month, investments, trades, incomes, prices, cdi, asOf, entries));
+            points.Add(PointAt(month, investments, trades, incomes, new PriceBook(prices, typed), cdi, asOf, entries));
         }
         return points;
     }
 
+    // The closing prices fetched from the market and the ones the user typed, which win over them.
+    private sealed record PriceBook(IReadOnlyList<MonthEndPrice> Quoted, IReadOnlyList<InvestmentMonthPrice> Typed);
+
     private static MonthlyPoint PointAt(
         DateOnly month, IReadOnlyList<Investment> investments, IReadOnlyList<InvestmentTrade> trades,
-        IReadOnlyList<InvestmentIncome> incomes, IReadOnlyList<MonthEndPrice> prices, CdiIndex cdi, DateOnly asOf,
+        IReadOnlyList<InvestmentIncome> incomes, PriceBook prices, CdiIndex cdi, DateOnly asOf,
         IReadOnlyList<BalanceEntry> entries)
     {
         var end = Earliest(month.AddMonths(1).AddDays(-1), asOf);
@@ -63,22 +68,34 @@ public static class PortfolioHistory
     }
 
     private static long ValueOf(
-        Investment investment, IEnumerable<InvestmentTrade> trades, IReadOnlyList<MonthEndPrice> prices,
+        Investment investment, IEnumerable<InvestmentTrade> trades, PriceBook prices,
         string month, bool isCurrentMonth)
     {
         var position = Position.Replay(investment.Id, trades.Where(trade => trade.InvestmentId == investment.Id));
-        var price = isCurrentMonth && investment.Price is { } typed ? typed.Cents : QuotedPrice(investment, prices, month);
+        var price = isCurrentMonth && investment.Price is { } latest ? latest.Cents : PriceAt(investment, prices, month);
         return price is null ? position.CostCents : InvestmentTrade.ValueOf(position.QuantityThousandths, price.Value);
     }
 
-    // A month without a close of its own (a ticker that did not trade) keeps the last one before it.
-    private static long? QuotedPrice(Investment investment, IReadOnlyList<MonthEndPrice> prices, string month)
+    // A month without a close of its own (a ticker that did not trade) keeps the last one before it. Of
+    // the typed and the quoted price the nearest month wins, and the typed one when both are of the same month.
+    private static long? PriceAt(Investment investment, PriceBook prices, string month)
+    {
+        var typed = prices.Typed
+            .Where(price => price.InvestmentId == investment.Id && string.CompareOrdinal(price.Month, month) <= 0)
+            .MaxBy(price => price.Month);
+        var quoted = QuotedPrice(investment, prices.Quoted, month);
+        if (typed is null) return quoted?.Cents;
+        if (quoted is null || string.CompareOrdinal(typed.Month, quoted.Month) >= 0) return typed.Cents;
+        return quoted.Cents;
+    }
+
+    private static MonthEndPrice? QuotedPrice(Investment investment, IReadOnlyList<MonthEndPrice> prices, string month)
     {
         var symbol = QuoteSymbol.For(investment);
         if (symbol is null) return null;
         return prices
             .Where(price => price.Symbol == symbol && string.CompareOrdinal(price.Month, month) <= 0)
-            .MaxBy(price => price.Month)?.Cents;
+            .MaxBy(price => price.Month);
     }
 
     // The same money kept in the CDI: purchases go in on their day, sales and proventos come out.

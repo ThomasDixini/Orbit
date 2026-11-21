@@ -14,6 +14,7 @@ import {
   IncomeDraft,
   Investment,
   InvestmentDraft,
+  MonthPrice,
   Portfolio,
   Trade,
   TradeDraft,
@@ -226,6 +227,28 @@ export class DemoInvestmentsGateway extends InvestmentsGateway {
 
   override deleteBalanceEntry(entryId: string): Observable<void> {
     this.demo.balanceEntries = this.demo.balanceEntries.filter((item) => item.id !== entryId);
+    return of(undefined);
+  }
+
+  override saveMonthPrice(
+    investmentId: string,
+    month: string,
+    cents: number,
+  ): Observable<MonthPrice> {
+    const price: MonthPrice = { investmentId, month, cents };
+    this.demo.monthPrices = [
+      ...this.demo.monthPrices.filter(
+        (item) => item.investmentId !== investmentId || item.month !== month,
+      ),
+      price,
+    ];
+    return of(price);
+  }
+
+  override deleteMonthPrice(investmentId: string, month: string): Observable<void> {
+    this.demo.monthPrices = this.demo.monthPrices.filter(
+      (item) => item.investmentId !== investmentId || item.month !== month,
+    );
     return of(undefined);
   }
 }

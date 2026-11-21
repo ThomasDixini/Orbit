@@ -63,4 +63,37 @@
   } @else {
     <p class="ui-muted empty">{{ 'No history yet.' | t }}</p>
   }
+
+  @if (typedPrices().length > 0) {
+    <section class="typed" [attr.aria-label]="'Prices you typed' | t">
+      <h3 class="typed-title">{{ 'Prices you typed' | t }}</h3>
+      <ul class="typed-list">
+        @for (row of typedPrices(); track row.key) {
+          <li class="typed-item">
+            <span class="typed-month">{{ row.label }}</span>
+            <span class="typed-name">{{ row.investmentName }}</span>
+            <span class="typed-value ui-tabular">{{ row.value }}</span>
+            <button
+              class="ui-button-ghost"
+              type="button"
+              [disabled]="saving()"
+              [attr.aria-label]="
+                'Remove price of {investmentName} in {month}'
+                  | t: { investmentName: row.investmentName, month: row.label }
+              "
+              (click)="remove(row)"
+            >
+              {{ 'Remove' | t }}
+            </button>
+          </li>
+        }
+      </ul>
+      <p class="ui-muted note">
+        {{
+          'A price you type is used for the end of its month and wins over the quote fetched for it.'
+            | t
+        }}
+      </p>
+    </section>
+  }
 </section>

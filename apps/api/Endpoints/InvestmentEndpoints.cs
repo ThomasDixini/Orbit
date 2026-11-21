@@ -66,6 +66,17 @@ public sealed record IncomeResponse(string Id, string InvestmentId, DateOnly Dat
         new(income.Id, income.InvestmentId, income.Date, income.Kind, income.AmountCents);
 }
 
+/// <summary>Body of <c>PUT /investment-month-prices/{investmentId}/{month}</c>; the investment and the month come from the route.</summary>
+public sealed record SaveMonthPriceRequest(long Cents)
+{
+    public SaveMonthPriceCommand ToCommand(string investmentId, string month) => new(investmentId, month, Cents);
+}
+
+public sealed record MonthPriceResponse(string InvestmentId, string Month, long Cents)
+{
+    public static MonthPriceResponse From(InvestmentMonthPrice price) => new(price.InvestmentId, price.Month, price.Cents);
+}
+
 public sealed record PortfolioLineResponse(
     InvestmentResponse Investment, long QuantityThousandths, long CostCents, long? ValueCents, long? GainCents, long IncomeCents)
 {
@@ -89,7 +100,7 @@ public sealed record PortfolioResponse(
     IReadOnlyList<TradeResponse> Trades, IReadOnlyList<IncomeResponse> Incomes, IReadOnlyList<MonthlyPoint> History,
     IReadOnlyList<BalanceEntryResponse> BalanceEntries,
     IReadOnlyDictionary<string, IReadOnlyList<MonthlyPoint>> InvestmentHistories,
-    IReadOnlyList<MonthlyCdi> CdiMonthly)
+    IReadOnlyList<MonthlyCdi> CdiMonthly, IReadOnlyList<MonthPriceResponse> MonthPrices)
 {
     public static PortfolioResponse From(PortfolioSnapshot snapshot) =>
         new(snapshot.Portfolio.Lines.Select(PortfolioLineResponse.From).ToList(),
@@ -100,7 +111,8 @@ public sealed record PortfolioResponse(
             snapshot.History,
             snapshot.BalanceEntries.Select(BalanceEntryResponse.From).ToList(),
             snapshot.InvestmentHistories,
-            snapshot.CdiMonthly);
+            snapshot.CdiMonthly,
+            snapshot.MonthPrices.Select(MonthPriceResponse.From).ToList());
 }
 
 /// <summary>HTTP routes for investments, their trades and proventos, and the portfolio they make up.</summary>
@@ -109,7 +121,8 @@ public static class InvestmentEndpoints
     /// <summary>
     /// Maps <c>GET /investments?date=YYYY-MM-DD</c>, <c>PUT</c>/<c>DELETE /investments/{investmentId}</c>,
     /// <c>PUT</c>/<c>DELETE /investment-trades/{tradeId}</c>, <c>PUT</c>/<c>DELETE /investment-incomes/{incomeId}</c>
-    /// and <c>PUT</c>/<c>DELETE /investment-balance-entries/{entryId}</c>.
+    /// <c>PUT</c>/<c>DELETE /investment-balance-entries/{entryId}</c> and
+    /// <c>PUT</c>/<c>DELETE /investment-month-prices/{investmentId}/{month}</c>.
     /// </summary>
     /// <example><code>app.MapInvestmentEndpoints();</code></example>
     public static IEndpointRouteBuilder MapInvestmentEndpoints(this IEndpointRouteBuilder routes)
@@ -123,6 +136,8 @@ public static class InvestmentEndpoints
         routes.MapDelete("/investment-incomes/{incomeId}", DeleteIncomeAsync);
         routes.MapPut("/investment-balance-entries/{entryId}", SaveBalanceEntryAsync);
         routes.MapDelete("/investment-balance-entries/{entryId}", DeleteBalanceEntryAsync);
+        routes.MapPut("/investment-month-prices/{investmentId}/{month}", SaveMonthPriceAsync);
+        routes.MapDelete("/investment-month-prices/{investmentId}/{month}", DeleteMonthPriceAsync);
         return routes;
     }
 
@@ -175,6 +190,21 @@ public static class InvestmentEndpoints
     {
         var saved = await saveBalanceEntry.ExecuteAsync(request.ToCommand(entryId), cancellationToken);
         return Results.Ok(BalanceEntryResponse.From(saved));
+    }
+
+    private static async Task<IResult> SaveMonthPriceAsync(
+        string investmentId, string month, SaveMonthPriceRequest request, SaveMonthPrice saveMonthPrice,
+        CancellationToken cancellationToken)
+    {
+        var saved = await saveMonthPrice.ExecuteAsync(request.ToCommand(investmentId, month), cancellationToken);
+        return Results.Ok(MonthPriceResponse.From(saved));
+    }
+
+    private static async Task<IResult> DeleteMonthPriceAsync(
+        string investmentId, string month, DeleteMonthPrice deleteMonthPrice, CancellationToken cancellationToken)
+    {
+        await deleteMonthPrice.ExecuteAsync(investmentId, month, cancellationToken);
+        return Results.NoContent();
     }
 
     private static async Task<IResult> DeleteBalanceEntryAsync(

@@ -84,6 +84,17 @@
         />
       }
     }
+    @case ('monthPrice') {
+      @if (panelInvestment(); as investment) {
+        <app-month-price-form
+          [investmentName]="investment.name"
+          [today]="today"
+          [saving]="isSaving()"
+          (save)="addMonthPrice($event)"
+          (dismiss)="close()"
+        />
+      }
+    }
     @case ('balance') {
       @if (panelInvestment(); as investment) {
         <app-balance-entry-form
@@ -190,7 +201,18 @@
           {{ option.label | t }}
         </button>
       }
+      <button class="ui-button-ghost" type="button" (click)="section.set('analysis')">
+        {{ 'Add your own rate' | t }}
+      </button>
     </div>
+    @if (emptyComparisons().length > 0) {
+      <p class="ui-muted compare-note">
+        {{
+          'No rates typed for {names} in this period. Type them month by month in the Analysis tab.'
+            | t: { names: emptyComparisons().join(', ') }
+        }}
+      </p>
+    }
 
     <section class="charts" [attr.aria-label]="'Charts' | t">
       <app-line-chart
@@ -362,6 +384,16 @@
                         >
                           {{ 'Income' | t }}
                         </button>
+                        <button
+                          class="ui-button-ghost"
+                          type="button"
+                          [attr.aria-label]="
+                            'Type a month-end price of {name}' | t: { name: line.investment.name }
+                          "
+                          (click)="open({ kind: 'monthPrice', investmentId: line.investment.id })"
+                        >
+                          {{ 'Month price' | t }}
+                        </button>
                       }
                       <button
                         class="ui-button-ghost"
@@ -404,6 +436,9 @@
         [investments]="appreciationInvestments()"
         [histories]="investmentHistories()"
         [incomes]="incomes()"
+        [monthPrices]="monthPrices()"
+        [saving]="isSaving()"
+        (removePrice)="removeMonthPrice($event)"
       />
     }
 

@@ -400,6 +400,20 @@ describe('Investments page', () => {
     ]);
   });
 
+  it('types a month-end price from the row of the investment and stays open for the next month', async () => {
+    const { fixture, gateway } = await render();
+
+    await clickButton(fixture, 'Type a month-end price of PETR4');
+    fill(fixture, 'input[name="month-price-month"]', '2026-02');
+    fill(fixture, 'input[name="month-price-price"]', '31,50');
+    await submit(fixture, 'Month-end price of PETR4');
+
+    expect(gateway.savedMonthPrices).toEqual([
+      { investmentId: 'petr4', month: '2026-02', cents: 3150 },
+    ]);
+    expect(hasForm(fixture, 'Month-end price of PETR4')).toBe(true);
+  });
+
   it('adds an investment without a price', async () => {
     const { fixture, gateway } = await render();
 

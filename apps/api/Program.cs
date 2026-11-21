@@ -101,6 +101,8 @@ builder.Services.AddScoped<DeleteTrade>();
 builder.Services.AddScoped<SaveIncome>();
 builder.Services.AddScoped<SaveBalanceEntry>();
 builder.Services.AddScoped<DeleteBalanceEntry>();
+builder.Services.AddScoped<SaveMonthPrice>();
+builder.Services.AddScoped<DeleteMonthPrice>();
 builder.Services.AddScoped<DeleteIncome>();
 builder.Services.AddScoped<ListInvestmentNotes>();
 builder.Services.AddScoped<SaveInvestmentNote>();
