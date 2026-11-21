@@ -1,18 +1,12 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { Investment } from '../../../../core/finances/investments';
 import { MonthPriceFields, MonthPriceForm } from './month-price-form';
-
-const INVESTMENTS: readonly Investment[] = [
-  { id: 'tots3', name: 'TOTS3', kind: 'stock' },
-  { id: 'petr4', name: 'PETR4', kind: 'stock' },
-];
 
 function render(today = '2026-11-03'): {
   fixture: ComponentFixture<MonthPriceForm>;
   sent: MonthPriceFields[];
 } {
   const fixture = TestBed.createComponent(MonthPriceForm);
-  fixture.componentRef.setInput('investments', INVESTMENTS);
+  fixture.componentRef.setInput('investmentName', 'TOTS3');
   fixture.componentRef.setInput('today', today);
   const sent: MonthPriceFields[] = [];
   fixture.componentInstance.save.subscribe((fields) => sent.push(fields));
@@ -46,11 +40,11 @@ function submitButton(fixture: ComponentFixture<MonthPriceForm>): HTMLButtonElem
 }
 
 describe('MonthPriceForm', () => {
-  it('starts at the last finished month and the first investment', () => {
+  it('starts at the last finished month, with the month ahead as the limit', () => {
     const { fixture } = render('2026-11-03');
 
     expect(field<HTMLInputElement>(fixture, 'month-price-month').value).toBe('2026-10');
-    expect(field<HTMLSelectElement>(fixture, 'month-price-investment').value).toBe('tots3');
+    expect(field<HTMLInputElement>(fixture, 'month-price-month').max).toBe('2026-11');
   });
 
   it('starts at December of the year before when it is January', () => {
@@ -59,16 +53,15 @@ describe('MonthPriceForm', () => {
     expect(field<HTMLInputElement>(fixture, 'month-price-month').value).toBe('2025-12');
   });
 
-  it('sends the investment, the month and the price in cents, then clears the price', () => {
+  it('sends the month and the price in cents, then clears the price', () => {
     const { fixture, sent } = render();
 
-    fill(fixture, 'month-price-investment', 'petr4', 'change');
     fill(fixture, 'month-price-month', '2026-02', 'change');
     fill(fixture, 'month-price-price', '31,50', 'input');
     submitButton(fixture).click();
     fixture.detectChanges();
 
-    expect(sent).toEqual([{ investmentId: 'petr4', month: '2026-02', cents: 3150 }]);
+    expect(sent).toEqual([{ month: '2026-02', cents: 3150 }]);
     expect(field<HTMLInputElement>(fixture, 'month-price-price').value).toBe('');
   });
 

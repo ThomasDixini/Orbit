@@ -1,25 +1,12 @@
 <form
   class="month-price-form ui-enter"
-  [attr.aria-label]="'Month-end price' | t"
+  [attr.aria-label]="
+    'Month-end price of {investmentName}' | t: { investmentName: investmentName() }
+  "
   (submit)="submit($event)"
   (keydown.escape)="dismiss.emit()"
 >
   <div class="fields">
-    <label class="ui-field">
-      {{ 'Investment' | t }}
-      <select
-        class="ui-input"
-        name="month-price-investment"
-        (change)="investmentId.set(valueOf($event))"
-      >
-        @for (investment of investments(); track investment.id) {
-          <option [value]="investment.id" [selected]="investment.id === investmentId()">
-            {{ investment.name }}
-          </option>
-        }
-      </select>
-    </label>
-
     <label class="ui-field">
       {{ 'Month' | t }}
       <input

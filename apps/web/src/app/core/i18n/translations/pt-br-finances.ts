@@ -217,8 +217,9 @@ export const PT_BR_FINANCES: Readonly<Record<string, string>> = {
   'Add your own rate': 'Adicionar taxa própria',
   'No rates typed for {names} in this period. Type them month by month in the Analysis tab.':
     'Nenhuma taxa informada para {names} neste período. Informe mês a mês na aba Análise.',
-  'Type a month price': 'Informar preço de um mês',
-  'Month-end price': 'Preço no fim do mês',
+  'Month price': 'Preço do mês',
+  'Type a month-end price of {name}': 'Informar preço de fim de mês de {name}',
+  'Month-end price of {investmentName}': 'Preço de fim de mês de {investmentName}',
   'Record price': 'Registrar preço',
   'Prices you typed': 'Preços que você informou',
   'Remove price of {investmentName} in {month}': 'Remover preço de {investmentName} em {month}',

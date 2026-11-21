@@ -72,11 +72,6 @@
   margin: 0;
 }
 
-.price-actions {
-  display: flex;
-  justify-content: flex-end;
-}
-
 .typed {
   display: flex;
   flex-direction: column;

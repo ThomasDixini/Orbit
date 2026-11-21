@@ -38,18 +38,12 @@ function render(monthPrices: readonly MonthPrice[] = []): ComponentFixture<Month
   fixture.componentRef.setInput('histories', HISTORIES);
   fixture.componentRef.setInput('incomes', INCOMES);
   fixture.componentRef.setInput('monthPrices', monthPrices);
-  fixture.componentRef.setInput('today', '2026-08-10');
   fixture.detectChanges();
   return fixture;
 }
 
 function element(fixture: ComponentFixture<MonthlyAppreciation>): HTMLElement {
   return fixture.nativeElement as HTMLElement;
-}
-
-function typeInto(input: HTMLInputElement, value: string, eventName: string): void {
-  input.value = value;
-  input.dispatchEvent(new Event(eventName));
 }
 
 function rows(fixture: ComponentFixture<MonthlyAppreciation>): string[][] {
@@ -91,38 +85,6 @@ describe('MonthlyAppreciation', () => {
   });
 
   describe('month prices', () => {
-    function openForm(fixture: ComponentFixture<MonthlyAppreciation>): void {
-      element(fixture).querySelector<HTMLButtonElement>('.price-actions button')!.click();
-      fixture.detectChanges();
-    }
-
-    it('offers the form only for the investments that have a price per unit', () => {
-      const fixture = render();
-
-      openForm(fixture);
-
-      const options = [...element(fixture).querySelectorAll('app-month-price-form option')];
-      expect(options.map((option) => option.textContent?.trim())).toEqual(['CDB']);
-    });
-
-    it('sends the investment, the month and the price typed, in cents', () => {
-      const fixture = render();
-      const sent: unknown[] = [];
-      fixture.componentInstance.savePrice.subscribe((fields) => sent.push(fields));
-      openForm(fixture);
-
-      typeInto(
-        element(fixture).querySelector('input[name="month-price-month"]')!,
-        '2026-02',
-        'change',
-      );
-      typeInto(element(fixture).querySelector('input[name="month-price-price"]')!, '31,5', 'input');
-      fixture.detectChanges();
-      element(fixture).querySelector('form')!.dispatchEvent(new SubmitEvent('submit'));
-
-      expect(sent).toEqual([{ investmentId: 'cdb', month: '2026-02', cents: 3_150 }]);
-    });
-
     it('lists the prices typed, newest month first, and asks to remove one', () => {
       const fixture = render(TYPED_PRICES);
       const removed: MonthPrice[] = [];

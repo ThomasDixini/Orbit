@@ -52,7 +52,7 @@ import {
 import { BalanceEntryFields, BalanceEntryForm } from './balance-entry-form/balance-entry-form';
 import { BalanceHistory } from './balance-history/balance-history';
 import { BalanceStatement } from './balance-statement/balance-statement';
-import { MonthPriceFields } from './month-price-form/month-price-form';
+import { MonthPriceFields, MonthPriceForm } from './month-price-form/month-price-form';
 import { MonthlyAppreciation } from './monthly-appreciation/monthly-appreciation';
 import { IncomeFields, IncomeForm } from './income-form/income-form';
 import { MovementImport, MovementImportResult } from './movement-import/movement-import';
@@ -71,6 +71,7 @@ type Panel =
   | { readonly kind: 'edit'; readonly investmentId: string }
   | { readonly kind: 'trade'; readonly investmentId: string }
   | { readonly kind: 'income'; readonly investmentId: string }
+  | { readonly kind: 'monthPrice'; readonly investmentId: string }
   | { readonly kind: 'balance'; readonly investmentId: string };
 
 interface Stat {
@@ -100,6 +101,7 @@ const MOVEMENTS_PAGE_SIZE = 10;
     TradeForm,
     IncomeForm,
     BalanceEntryForm,
+    MonthPriceForm,
     BalanceStatement,
     MonthlyAppreciation,
     BalanceHistory,
@@ -308,8 +310,11 @@ export class Investments {
     void this.store.deleteBalanceEntry(entryId);
   }
 
-  protected saveMonthPrice(fields: MonthPriceFields): void {
-    void this.store.saveMonthPrice(fields.investmentId, fields.month, fields.cents);
+  /** The panel stays open after a price is saved, to type the next month. */
+  protected async addMonthPrice(fields: MonthPriceFields): Promise<void> {
+    const panel = this.panel();
+    if (panel.kind !== 'monthPrice') return;
+    await this.store.saveMonthPrice(panel.investmentId, fields.month, fields.cents);
   }
 
   protected removeMonthPrice(price: MonthPrice): void {

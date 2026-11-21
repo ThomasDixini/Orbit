@@ -1,12 +1,10 @@
 import { Component, computed, input, linkedSignal, output, signal } from '@angular/core';
-import { Investment } from '../../../../core/finances/investments';
 import { isValidAmount, parseAmountCents } from '../../../../core/finances/money';
 import { fieldValue } from '../../../../core/forms/field-value';
 import { TranslatePipe } from '../../../../core/i18n/translate.pipe';
 
-/** What the month price form fills in. */
+/** What the month price form fills in; the page adds the investment. */
 export interface MonthPriceFields {
-  readonly investmentId: string;
   /** `YYYY-MM`. */
   readonly month: string;
   readonly cents: number;
@@ -24,8 +22,9 @@ function previousMonth(today: string): string {
 }
 
 /**
- * Inline form to type what one unit of an investment was worth at the end of a month, for the months the
- * market source has no price for or gets wrong. A price already typed for the same month is replaced.
+ * Inline form, opened from the row of an investment, to type what one unit of it was worth at the end of a
+ * month, for the months the market source has no price for or gets wrong. A price already typed for the
+ * same month is replaced.
  */
 @Component({
   selector: 'app-month-price-form',
@@ -34,8 +33,7 @@ function previousMonth(today: string): string {
   styleUrl: './month-price-form.css',
 })
 export class MonthPriceForm {
-  /** The investments that have a price per unit; the ones followed by balance are left out by the page. */
-  readonly investments = input.required<readonly Investment[]>();
+  readonly investmentName = input.required<string>();
   /** Today, `YYYY-MM-DD`: a month that has not started cannot be priced. */
   readonly today = input.required<string>();
   readonly saving = input(false);
@@ -43,7 +41,6 @@ export class MonthPriceForm {
   readonly dismiss = output();
 
   protected readonly price = signal('');
-  protected readonly investmentId = linkedSignal(() => this.investments()[0]?.id ?? '');
   /** The month before the current one at first, the latest that is already closed. */
   protected readonly month = linkedSignal(() => previousMonth(this.today()));
   protected readonly lastMonth = computed(() => this.today().slice(0, MONTH_LENGTH));
@@ -57,7 +54,6 @@ export class MonthPriceForm {
   protected readonly canSave = computed(
     () =>
       isValidAmount(this.priceCents()) &&
-      this.investmentId() !== '' &&
       MONTH_PATTERN.test(this.month()) &&
       this.month() <= this.lastMonth() &&
       !this.saving(),
@@ -67,7 +63,7 @@ export class MonthPriceForm {
     event.preventDefault();
     const cents = this.priceCents();
     if (!this.canSave() || !isValidAmount(cents)) return;
-    this.save.emit({ investmentId: this.investmentId(), month: this.month(), cents });
+    this.save.emit({ month: this.month(), cents });
     // The form stays open to type the next month; saving the same month twice only replaces its price.
     this.price.set('');
   }

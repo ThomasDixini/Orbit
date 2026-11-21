@@ -14,24 +14,6 @@
     </label>
   </div>
 
-  @if (priceable().length > 0) {
-    @if (isFormOpen()) {
-      <app-month-price-form
-        [investments]="priceable()"
-        [today]="today()"
-        [saving]="saving()"
-        (save)="savePrice.emit($event)"
-        (dismiss)="isFormOpen.set(false)"
-      />
-    } @else {
-      <div class="price-actions">
-        <button class="ui-button-ghost" type="button" (click)="isFormOpen.set(true)">
-          {{ 'Type a month price' | t }}
-        </button>
-      </div>
-    }
-  }
-
   <app-line-chart
     [title]="'Appreciation per month (%)' | t"
     [labels]="labels()"

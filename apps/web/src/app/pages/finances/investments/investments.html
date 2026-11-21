@@ -84,6 +84,17 @@
         />
       }
     }
+    @case ('monthPrice') {
+      @if (panelInvestment(); as investment) {
+        <app-month-price-form
+          [investmentName]="investment.name"
+          [today]="today"
+          [saving]="isSaving()"
+          (save)="addMonthPrice($event)"
+          (dismiss)="close()"
+        />
+      }
+    }
     @case ('balance') {
       @if (panelInvestment(); as investment) {
         <app-balance-entry-form
@@ -373,6 +384,16 @@
                         >
                           {{ 'Income' | t }}
                         </button>
+                        <button
+                          class="ui-button-ghost"
+                          type="button"
+                          [attr.aria-label]="
+                            'Type a month-end price of {name}' | t: { name: line.investment.name }
+                          "
+                          (click)="open({ kind: 'monthPrice', investmentId: line.investment.id })"
+                        >
+                          {{ 'Month price' | t }}
+                        </button>
                       }
                       <button
                         class="ui-button-ghost"
@@ -416,9 +437,7 @@
         [histories]="investmentHistories()"
         [incomes]="incomes()"
         [monthPrices]="monthPrices()"
-        [today]="today"
         [saving]="isSaving()"
-        (savePrice)="saveMonthPrice($event)"
         (removePrice)="removeMonthPrice($event)"
       />
     }

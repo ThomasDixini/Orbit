@@ -7,7 +7,6 @@ import {
   MonthPrice,
   MonthlyPoint,
   formatPercent,
-  isBalanceTracked,
 } from '../../../../core/finances/investments';
 import { formatMoney, formatSignedMoney } from '../../../../core/finances/money';
 import {
@@ -17,7 +16,6 @@ import {
 import { monthLabel } from '../../../../core/finances/transaction-month';
 import { fieldValue } from '../../../../core/forms/field-value';
 import { TranslatePipe } from '../../../../core/i18n/translate.pipe';
-import { MonthPriceFields, MonthPriceForm } from '../month-price-form/month-price-form';
 
 /** The value of the investment picker that means "all the investments". */
 const ALL = '';
@@ -49,12 +47,12 @@ interface TypedPriceRow {
 
 /**
  * How much each investment appreciated in each month, sold ones included: a table for one investment or
- * all of them added up, and a chart that sets the investments' monthly appreciation side by side. The
- * month-end prices behind it can be typed here for the months the market source misses.
+ * all of them added up, and a chart that sets the investments' monthly appreciation side by side. It lists
+ * the month-end prices typed by hand (from the row of an investment) so they can be removed.
  */
 @Component({
   selector: 'app-monthly-appreciation',
-  imports: [TranslatePipe, LineChart, MonthPriceForm],
+  imports: [TranslatePipe, LineChart],
   templateUrl: './monthly-appreciation.html',
   styleUrl: './monthly-appreciation.css',
 })
@@ -62,23 +60,15 @@ export class MonthlyAppreciation {
   readonly investments = input.required<readonly Investment[]>();
   readonly histories = input.required<Readonly<Record<string, readonly MonthlyPoint[]>>>();
   readonly incomes = input.required<readonly Income[]>();
-  /** The month-end prices typed so far. */
+  /** The month-end prices typed so far, from the row of each investment. */
   readonly monthPrices = input<readonly MonthPrice[]>([]);
-  /** Today, `YYYY-MM-DD`; the month price form does not take a month that has not started. */
-  readonly today = input.required<string>();
   readonly saving = input(false);
-  readonly savePrice = output<MonthPriceFields>();
   readonly removePrice = output<MonthPrice>();
 
   private readonly locale = inject(LOCALE_ID);
 
   protected readonly all = ALL;
   protected readonly picked = signal(ALL);
-  protected readonly isFormOpen = signal(false);
-  /** The investments with a price per unit; one followed by its balance has none to type. */
-  protected readonly priceable = computed(() =>
-    this.investments().filter((investment) => !isBalanceTracked(investment)),
-  );
   protected readonly typedPrices = computed(() => this.describeTypedPrices());
   protected readonly rows = computed(() => this.describeRows());
   protected readonly labels = computed(() =>
