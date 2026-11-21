@@ -50,16 +50,16 @@
 }
 
 /*
- * The first column stays in view while the months scroll under it, so it needs a solid ground: the glass
- * of the card is see-through and the amounts would show through the names.
+ * The first column stays in view while the months scroll under it, so it has to cover them. It is frosted
+ * glass like the card: the solid near-black of the page background stood out as a dark column.
  */
 .history th[scope='row'],
 .history thead th:first-child {
   position: sticky;
   left: 0;
   z-index: 1;
-  background-color: var(--color-bg);
-  background-image: linear-gradient(var(--color-surface-glass), var(--color-surface-glass));
+  background-color: var(--color-surface-glass);
+  backdrop-filter: blur(16px);
 }
 
 .history .number {
@@ -81,12 +81,10 @@
 }
 
 .history tr.selected th[scope='row'] {
-  background-image:
-    linear-gradient(
-      color-mix(in srgb, var(--color-mint) 8%, transparent),
-      color-mix(in srgb, var(--color-mint) 8%, transparent)
-    ),
-    linear-gradient(var(--color-surface-glass), var(--color-surface-glass));
+  background-image: linear-gradient(
+    color-mix(in srgb, var(--color-mint) 8%, transparent),
+    color-mix(in srgb, var(--color-mint) 8%, transparent)
+  );
 }
 
 .name {
