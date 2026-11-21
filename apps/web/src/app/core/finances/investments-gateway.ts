@@ -6,6 +6,7 @@ import {
   IncomeDraft,
   Investment,
   InvestmentDraft,
+  MonthPrice,
   Portfolio,
   Trade,
   TradeDraft,
@@ -37,4 +38,13 @@ export abstract class InvestmentsGateway {
   abstract saveBalanceEntry(entryId: string, draft: BalanceEntryDraft): Observable<BalanceEntry>;
 
   abstract deleteBalanceEntry(entryId: string): Observable<void>;
+
+  /** Types the price of one unit at the end of a `YYYY-MM` month, replacing the one typed for it; balance-tracked investments refuse it. */
+  abstract saveMonthPrice(
+    investmentId: string,
+    month: string,
+    cents: number,
+  ): Observable<MonthPrice>;
+
+  abstract deleteMonthPrice(investmentId: string, month: string): Observable<void>;
 }

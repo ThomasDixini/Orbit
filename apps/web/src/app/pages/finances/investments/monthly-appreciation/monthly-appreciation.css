@@ -71,3 +71,42 @@
 .empty {
   margin: 0;
 }
+
+.price-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.typed {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.typed-title {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+}
+
+.typed-list {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.typed-item {
+  display: grid;
+  grid-template-columns: minmax(110px, 1fr) minmax(80px, 1fr) auto auto;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 0;
+  font-size: var(--font-size-sm);
+  border-top: var(--border-hairline) solid var(--color-border-subtle);
+}
+
+.typed-value {
+  text-align: right;
+}

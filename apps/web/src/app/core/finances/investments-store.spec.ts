@@ -125,6 +125,31 @@ describe('InvestmentsStore changes', () => {
       ['xpml11'],
     ]);
   });
+
+  it('types and removes the month-end price of an investment and reads the portfolio again', async () => {
+    const { store, gateway } = createStore();
+
+    const saved = await store.saveMonthPrice('petr4', '2026-02', 3100);
+    const removed = await store.deleteMonthPrice('petr4', '2026-02');
+
+    expect([saved, removed, gateway.savedMonthPrices, gateway.deletedMonthPrices]).toEqual([
+      true,
+      true,
+      [{ investmentId: 'petr4', month: '2026-02', cents: 3100 }],
+      [{ investmentId: 'petr4', month: '2026-02' }],
+    ]);
+    expect(gateway.askedDays.length).toBe(3);
+  });
+
+  it('reports a refused month price and says it was not stored', async () => {
+    const { store, gateway, errors } = createStore();
+    await Promise.resolve();
+    gateway.failure = new Error('Expected investment "rdb" to be followed by trades');
+
+    const stored = await store.saveMonthPrice('rdb', '2026-02', 3100);
+
+    expect([stored, errors.errors.length]).toEqual([false, 1]);
+  });
 });
 
 describe('InvestmentsStore import', () => {

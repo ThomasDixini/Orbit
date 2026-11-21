@@ -104,6 +104,18 @@ export interface BalanceEntry {
 
 export type BalanceEntryDraft = Omit<BalanceEntry, 'id'>;
 
+/**
+ * The price of one unit of an investment at the end of a month, typed by the user. It wins over the quote
+ * fetched for that month, so a month the market source gets wrong (or an asset it does not cover) can still
+ * be valued.
+ */
+export interface MonthPrice {
+  readonly investmentId: string;
+  /** `YYYY-MM`. */
+  readonly month: string;
+  readonly cents: number;
+}
+
 /** The whole portfolio at the end of one month; what the evolution and return charts plot. */
 export interface MonthlyPoint {
   /** `YYYY-MM`. */
@@ -134,6 +146,8 @@ export interface Portfolio {
   readonly incomes: readonly Income[];
   /** The statement lines of the balance-tracked investments; absent when there are none. */
   readonly balanceEntries?: readonly BalanceEntry[];
+  /** The month-end prices typed by the user, oldest month first; absent when there are none. */
+  readonly monthPrices?: readonly MonthPrice[];
 }
 
 /** One line of the movements list: a purchase, a sale or a provento. */

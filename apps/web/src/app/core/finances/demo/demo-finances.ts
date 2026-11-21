@@ -5,7 +5,7 @@ import { AccountStatement, CardPayment } from '../account-statement';
 import { Bill, BillDraft, BillsAgenda, CardInvoiceDue } from '../bills';
 import { Account, FinanceCategory } from '../finance-references';
 import { IncomeSplit } from '../income-split';
-import { BalanceEntry, Income, Investment, Portfolio, Trade } from '../investments';
+import { BalanceEntry, Income, Investment, MonthPrice, Portfolio, Trade } from '../investments';
 import { NetWorthPoint } from '../net-worth';
 import { Transaction } from '../transaction';
 import { addDays, addMonths, dayOfMonth, monthEnd } from './demo-dates';
@@ -37,6 +37,7 @@ export class DemoFinances {
   trades: Trade[];
   incomes: Income[];
   balanceEntries: BalanceEntry[] = [];
+  monthPrices: MonthPrice[] = [];
   private readonly seed: DemoData;
 
   constructor() {
@@ -75,10 +76,27 @@ export class DemoFinances {
       investments: this.investments,
       trades: this.trades,
       incomes: this.incomes,
-      priceOn: (investmentId, day) => priceOnDay(this.seed, investmentId, day),
+      priceOn: (investmentId, day) => this.priceOn(investmentId, day, asOf),
       asOf,
     });
-    return withBalanceEntries(portfolio, this.investments, this.balanceEntries, asOf);
+    return {
+      ...withBalanceEntries(portfolio, this.investments, this.balanceEntries, asOf),
+      monthPrices: [...this.monthPrices].sort((first, second) =>
+        first.month.localeCompare(second.month),
+      ),
+    };
+  }
+
+  /** A price typed for a finished month wins over the made-up one; the current month keeps the latest price. */
+  private priceOn(investmentId: string, day: string, asOf: string): number | undefined {
+    const month = day.slice(0, 7);
+    const typed =
+      month < asOf.slice(0, 7)
+        ? this.monthPrices.find(
+            (price) => price.investmentId === investmentId && price.month === month,
+          )
+        : undefined;
+    return typed?.cents ?? priceOnDay(this.seed, investmentId, day);
   }
 
   /** The open bills, the ones settled in the last 30 days, and the card invoices left to pay. */

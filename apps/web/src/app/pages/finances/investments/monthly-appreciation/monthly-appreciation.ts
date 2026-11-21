@@ -1,11 +1,13 @@
-import { Component, LOCALE_ID, computed, inject, input, signal } from '@angular/core';
+import { Component, LOCALE_ID, computed, inject, input, output, signal } from '@angular/core';
 import { ChartSeries, LineChart } from '../../../../components/line-chart/line-chart';
 import { combineHistories } from '../../../../core/finances/investments-analytics';
 import {
   Income,
   Investment,
+  MonthPrice,
   MonthlyPoint,
   formatPercent,
+  isBalanceTracked,
 } from '../../../../core/finances/investments';
 import { formatMoney, formatSignedMoney } from '../../../../core/finances/money';
 import {
@@ -15,6 +17,7 @@ import {
 import { monthLabel } from '../../../../core/finances/transaction-month';
 import { fieldValue } from '../../../../core/forms/field-value';
 import { TranslatePipe } from '../../../../core/i18n/translate.pipe';
+import { MonthPriceFields, MonthPriceForm } from '../month-price-form/month-price-form';
 
 /** The value of the investment picker that means "all the investments". */
 const ALL = '';
@@ -35,13 +38,23 @@ interface AppreciationRow {
   readonly closing: string;
 }
 
+/** One month price the user typed, ready to be listed and removed. */
+interface TypedPriceRow {
+  readonly key: string;
+  readonly price: MonthPrice;
+  readonly investmentName: string;
+  readonly label: string;
+  readonly value: string;
+}
+
 /**
  * How much each investment appreciated in each month, sold ones included: a table for one investment or
- * all of them added up, and a chart that sets the investments' monthly appreciation side by side.
+ * all of them added up, and a chart that sets the investments' monthly appreciation side by side. The
+ * month-end prices behind it can be typed here for the months the market source misses.
  */
 @Component({
   selector: 'app-monthly-appreciation',
-  imports: [TranslatePipe, LineChart],
+  imports: [TranslatePipe, LineChart, MonthPriceForm],
   templateUrl: './monthly-appreciation.html',
   styleUrl: './monthly-appreciation.css',
 })
@@ -49,11 +62,24 @@ export class MonthlyAppreciation {
   readonly investments = input.required<readonly Investment[]>();
   readonly histories = input.required<Readonly<Record<string, readonly MonthlyPoint[]>>>();
   readonly incomes = input.required<readonly Income[]>();
+  /** The month-end prices typed so far. */
+  readonly monthPrices = input<readonly MonthPrice[]>([]);
+  /** Today, `YYYY-MM-DD`; the month price form does not take a month that has not started. */
+  readonly today = input.required<string>();
+  readonly saving = input(false);
+  readonly savePrice = output<MonthPriceFields>();
+  readonly removePrice = output<MonthPrice>();
 
   private readonly locale = inject(LOCALE_ID);
 
   protected readonly all = ALL;
   protected readonly picked = signal(ALL);
+  protected readonly isFormOpen = signal(false);
+  /** The investments with a price per unit; one followed by its balance has none to type. */
+  protected readonly priceable = computed(() =>
+    this.investments().filter((investment) => !isBalanceTracked(investment)),
+  );
+  protected readonly typedPrices = computed(() => this.describeTypedPrices());
   protected readonly rows = computed(() => this.describeRows());
   protected readonly labels = computed(() =>
     this.chartMonths().map((month) => this.shortMonth(month)),
@@ -65,6 +91,27 @@ export class MonthlyAppreciation {
 
   protected pick(event: Event): void {
     this.picked.set(fieldValue(event));
+  }
+
+  protected remove(row: TypedPriceRow): void {
+    this.removePrice.emit(row.price);
+  }
+
+  // Newest month first, for the investment picked or for all of them.
+  private describeTypedPrices(): TypedPriceRow[] {
+    const names = new Map(
+      this.pickedInvestments().map((investment) => [investment.id, investment.name]),
+    );
+    return this.monthPrices()
+      .filter((price) => names.has(price.investmentId))
+      .sort((first, second) => second.month.localeCompare(first.month))
+      .map((price) => ({
+        key: `${price.investmentId}-${price.month}`,
+        price,
+        investmentName: names.get(price.investmentId) ?? '',
+        label: monthLabel(price.month, this.locale),
+        value: formatMoney(price.cents, this.locale),
+      }));
   }
 
   private pickedInvestments(): readonly Investment[] {

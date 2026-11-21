@@ -214,6 +214,17 @@ export const PT_BR_FINANCES: Readonly<Record<string, string>> = {
   Appreciation: 'Valorização',
   'Closing value': 'Valor final',
   sold: 'vendido',
+  'Add your own rate': 'Adicionar taxa própria',
+  'No rates typed for {names} in this period. Type them month by month in the Analysis tab.':
+    'Nenhuma taxa informada para {names} neste período. Informe mês a mês na aba Análise.',
+  'Type a month price': 'Informar preço de um mês',
+  'Month-end price': 'Preço no fim do mês',
+  'Record price': 'Registrar preço',
+  'Prices you typed': 'Preços que você informou',
+  'Remove price of {investmentName} in {month}': 'Remover preço de {investmentName} em {month}',
+  'Enter a price above zero, like 31.00.': 'Informe um preço acima de zero, como 31,00.',
+  'A price you type is used for the end of its month and wins over the quote fetched for it.':
+    'O preço que você informa vale para o fim do mês e tem prioridade sobre a cotação buscada para ele.',
   'Appreciation is what the value changed beyond the money put in or taken out; for an investment followed by balance, it is the yield after taxes and fees. Proventos are paid out, so they are not part of it.':
     'Valorização é quanto o valor mudou além do dinheiro aplicado ou resgatado; num investimento acompanhado por saldo, é o rendimento depois de impostos e taxas. Os proventos são pagos ao dono, então não entram nela.',
 

@@ -29,7 +29,7 @@ internal static class SqliteSchema
         "categories", "goals", "goal_progress", "routines", "routine_blocks", "routine_rotation",
         "routine_rotation_steps", "tasks", "task_completions", "block_outcomes",
         "finance_categories", "accounts", "transactions", "card_payments", "bills", "sinking_funds", "investments",
-        "investment_trades", "investment_incomes", "investment_balance_entries", "investment_notes", "investment_analyses", "period_rates", "income_split", "income_split_parts",
+        "investment_trades", "investment_incomes", "investment_balance_entries", "investment_month_prices", "investment_notes", "investment_analyses", "period_rates", "income_split", "income_split_parts",
         "income_split_categories", "notes",
     ];
 
@@ -317,6 +317,14 @@ internal static class SqliteSchema
             FOREIGN KEY (user_id, investment_id) REFERENCES investments (user_id, id)
         );
         CREATE INDEX IF NOT EXISTS ix_investment_balance_entries_investment ON investment_balance_entries (user_id, investment_id, date);
+        CREATE TABLE IF NOT EXISTS investment_month_prices (
+            user_id TEXT NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+            investment_id TEXT NOT NULL,
+            month TEXT NOT NULL,
+            price_cents INTEGER NOT NULL,
+            PRIMARY KEY (user_id, investment_id, month),
+            FOREIGN KEY (user_id, investment_id) REFERENCES investments (user_id, id)
+        );
         CREATE TABLE IF NOT EXISTS cdi_rates (
             date TEXT PRIMARY KEY,
             daily_percent TEXT NOT NULL

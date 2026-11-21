@@ -54,6 +54,45 @@ public class PortfolioHistoryTests
     }
 
     [Fact]
+    public void Build_ValuesAMonthAtThePriceTypedForIt_WhichWinsOverTheQuoteOfThatMonth()
+    {
+        var typed = new[] { InvestmentMonthPrice.Create("petr4", "2026-02", 4200) };
+
+        var points = PortfolioHistory.Build(
+            [Petr4()], [Buy100At10()], [], [Close("2026-01", 1100), Close("2026-02", 900)], NoCdi, March10,
+            monthPrices: typed);
+
+        points.Select(point => point.ValueCents).ShouldBe([110_000L, 420_000L, 420_000L]);
+    }
+
+    [Fact]
+    public void Build_ValuesAnAssetWithNoQuoteAtThePricesTypedForIt()
+    {
+        var fixedIncome = Investment.Create("cdb", "CDB Pós", InvestmentKind.Stock, null);
+        var buy = InvestmentTrade.Create("t1", "cdb", January2, TradeKind.Buy, 100_000, 1000);
+        var typed = new[]
+        {
+            InvestmentMonthPrice.Create("cdb", "2026-01", 3100),
+            InvestmentMonthPrice.Create("cdb", "2026-02", 4200),
+        };
+
+        var points = PortfolioHistory.Build([fixedIncome], [buy], [], [], NoCdi, March10, monthPrices: typed);
+
+        points.Select(point => point.ValueCents).ShouldBe([310_000L, 420_000L, 420_000L]);
+    }
+
+    [Fact]
+    public void Build_KeepsTheLatestQuoteWhenItIsNewerThanTheLastPriceTyped()
+    {
+        var typed = new[] { InvestmentMonthPrice.Create("petr4", "2026-01", 4200) };
+
+        var points = PortfolioHistory.Build(
+            [Petr4()], [Buy100At10()], [], [Close("2026-02", 900)], NoCdi, March10, monthPrices: typed);
+
+        points.Select(point => point.ValueCents).ShouldBe([420_000L, 90_000L, 90_000L]);
+    }
+
+    [Fact]
     public void Build_ValuesAtCostWhenNoPriceIsKnownForTheMonth()
     {
         var points = Build(Petr4(), []);

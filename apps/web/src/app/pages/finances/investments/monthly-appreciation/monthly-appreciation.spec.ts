@@ -1,6 +1,11 @@
 import { LOCALE_ID } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { Income, Investment, MonthlyPoint } from '../../../../core/finances/investments';
+import {
+  Income,
+  Investment,
+  MonthPrice,
+  MonthlyPoint,
+} from '../../../../core/finances/investments';
 import { MonthlyAppreciation } from './monthly-appreciation';
 
 const INVESTMENTS: readonly Investment[] = [
@@ -21,14 +26,30 @@ const INCOMES: readonly Income[] = [
   { id: 'i1', investmentId: 'cdb', date: '2026-07-10', kind: 'yield', amountCents: 879 },
 ];
 
-function render(): ComponentFixture<MonthlyAppreciation> {
+const TYPED_PRICES: readonly MonthPrice[] = [
+  { investmentId: 'cdb', month: '2026-06', cents: 3_100 },
+  { investmentId: 'cdb', month: '2026-07', cents: 4_200 },
+];
+
+function render(monthPrices: readonly MonthPrice[] = []): ComponentFixture<MonthlyAppreciation> {
   TestBed.configureTestingModule({ providers: [{ provide: LOCALE_ID, useValue: 'en-US' }] });
   const fixture = TestBed.createComponent(MonthlyAppreciation);
   fixture.componentRef.setInput('investments', INVESTMENTS);
   fixture.componentRef.setInput('histories', HISTORIES);
   fixture.componentRef.setInput('incomes', INCOMES);
+  fixture.componentRef.setInput('monthPrices', monthPrices);
+  fixture.componentRef.setInput('today', '2026-08-10');
   fixture.detectChanges();
   return fixture;
+}
+
+function element(fixture: ComponentFixture<MonthlyAppreciation>): HTMLElement {
+  return fixture.nativeElement as HTMLElement;
+}
+
+function typeInto(input: HTMLInputElement, value: string, eventName: string): void {
+  input.value = value;
+  input.dispatchEvent(new Event(eventName));
 }
 
 function rows(fixture: ComponentFixture<MonthlyAppreciation>): string[][] {
@@ -67,5 +88,58 @@ describe('MonthlyAppreciation', () => {
     expect(
       (fixture.nativeElement as HTMLElement).querySelectorAll('app-line-chart .legend li').length,
     ).toBe(2);
+  });
+
+  describe('month prices', () => {
+    function openForm(fixture: ComponentFixture<MonthlyAppreciation>): void {
+      element(fixture).querySelector<HTMLButtonElement>('.price-actions button')!.click();
+      fixture.detectChanges();
+    }
+
+    it('offers the form only for the investments that have a price per unit', () => {
+      const fixture = render();
+
+      openForm(fixture);
+
+      const options = [...element(fixture).querySelectorAll('app-month-price-form option')];
+      expect(options.map((option) => option.textContent?.trim())).toEqual(['CDB']);
+    });
+
+    it('sends the investment, the month and the price typed, in cents', () => {
+      const fixture = render();
+      const sent: unknown[] = [];
+      fixture.componentInstance.savePrice.subscribe((fields) => sent.push(fields));
+      openForm(fixture);
+
+      typeInto(
+        element(fixture).querySelector('input[name="month-price-month"]')!,
+        '2026-02',
+        'change',
+      );
+      typeInto(element(fixture).querySelector('input[name="month-price-price"]')!, '31,5', 'input');
+      fixture.detectChanges();
+      element(fixture).querySelector('form')!.dispatchEvent(new SubmitEvent('submit'));
+
+      expect(sent).toEqual([{ investmentId: 'cdb', month: '2026-02', cents: 3_150 }]);
+    });
+
+    it('lists the prices typed, newest month first, and asks to remove one', () => {
+      const fixture = render(TYPED_PRICES);
+      const removed: MonthPrice[] = [];
+      fixture.componentInstance.removePrice.subscribe((price) => removed.push(price));
+
+      const items = [...element(fixture).querySelectorAll('.typed-item')];
+      items[0].querySelector('button')!.click();
+
+      expect(items.map((item) => item.querySelector('.typed-month')?.textContent?.trim())).toEqual([
+        'July 2026',
+        'June 2026',
+      ]);
+      expect(removed).toEqual([TYPED_PRICES[1]]);
+    });
+
+    it('lists nothing when no price was typed', () => {
+      expect(element(render()).querySelector('.typed')).toBeNull();
+    });
   });
 });

@@ -103,6 +103,16 @@ export class InvestmentsStore {
     return this.write(this.gateway.deleteBalanceEntry(entryId));
   }
 
+  /** @example await store.saveMonthPrice('tots3', '2026-02', 3100) */
+  saveMonthPrice(investmentId: string, month: string, cents: number): Promise<boolean> {
+    return this.write(this.gateway.saveMonthPrice(investmentId, month, cents));
+  }
+
+  /** @example await store.deleteMonthPrice('tots3', '2026-02') */
+  deleteMonthPrice(investmentId: string, month: string): Promise<boolean> {
+    return this.write(this.gateway.deleteMonthPrice(investmentId, month));
+  }
+
   /**
    * Writes what a file import brought: the new investments first, then the trades from the oldest (a sale
    * is refused when written before the purchase behind it), then the proventos a few at a time. A refusal

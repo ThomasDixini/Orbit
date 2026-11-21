@@ -10,6 +10,7 @@ internal sealed class InMemoryInvestmentRepository : IInvestmentRepository
     private readonly List<InvestmentTrade> _trades = [];
     private readonly List<InvestmentIncome> _incomes = [];
     private readonly List<BalanceEntry> _balanceEntries = [];
+    private readonly List<InvestmentMonthPrice> _monthPrices = [];
 
     public Task<IReadOnlyList<Investment>> ListAsync(CancellationToken cancellationToken) =>
         Task.FromResult<IReadOnlyList<Investment>>(_investments.ToList());
@@ -80,6 +81,21 @@ internal sealed class InMemoryInvestmentRepository : IInvestmentRepository
     public Task DeleteBalanceEntryAsync(string entryId, CancellationToken cancellationToken)
     {
         _balanceEntries.RemoveAll(entry => entry.Id == entryId);
+        return Task.CompletedTask;
+    }
+
+    public Task<IReadOnlyList<InvestmentMonthPrice>> ListMonthPricesAsync(CancellationToken cancellationToken) =>
+        Task.FromResult<IReadOnlyList<InvestmentMonthPrice>>(_monthPrices.OrderBy(price => price.Month).ToList());
+
+    public Task SaveMonthPriceAsync(InvestmentMonthPrice price, CancellationToken cancellationToken)
+    {
+        Upsert(_monthPrices, price, stored => stored.InvestmentId == price.InvestmentId && stored.Month == price.Month);
+        return Task.CompletedTask;
+    }
+
+    public Task DeleteMonthPriceAsync(string investmentId, string month, CancellationToken cancellationToken)
+    {
+        _monthPrices.RemoveAll(price => price.InvestmentId == investmentId && price.Month == month);
         return Task.CompletedTask;
     }
 

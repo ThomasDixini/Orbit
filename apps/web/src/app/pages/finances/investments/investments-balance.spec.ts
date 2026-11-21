@@ -426,4 +426,27 @@ describe('Investments page: what the return is compared with', () => {
       ['Your investments', 'CDI'],
     ]);
   });
+
+  it('says which picked comparisons have no rates yet, and stops once they are switched off', async () => {
+    const { fixture } = await render(WITH_CDI);
+    const noted = texts(fixture, '.compare-note');
+
+    await clickButton(fixture, 'Selic');
+    await clickButton(fixture, 'IPCA');
+
+    expect([noted, texts(fixture, '.compare-note')]).toEqual([
+      [
+        'No rates typed for Selic, IPCA in this period. Type them month by month in the Analysis tab.',
+      ],
+      [],
+    ]);
+  });
+
+  it('takes the person to where the rates of their own are typed', async () => {
+    const { fixture } = await render(WITH_CDI);
+
+    await clickButton(fixture, 'Add your own rate');
+
+    expect(texts(fixture, 'app-period-rates .title')).toEqual(['Period rates']);
+  });
 });
