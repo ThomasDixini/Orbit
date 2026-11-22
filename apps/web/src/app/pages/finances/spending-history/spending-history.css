@@ -50,16 +50,39 @@
 }
 
 /*
- * The first column stays in view while the months scroll under it, so it needs a solid ground: the glass
- * of the card is see-through and the amounts would show through the names.
+ * The first column stays in view while the months scroll under it, so it has to cover them. A fill of its
+ * own, even a glass one, shows as a lighter block against the card while nothing is under it, so where
+ * scroll-driven animations exist the column is see-through at rest and takes the frosted glass as the
+ * table scrolls. Elsewhere it keeps the glass all the time.
  */
 .history th[scope='row'],
 .history thead th:first-child {
   position: sticky;
   left: 0;
   z-index: 1;
-  background-color: var(--color-bg);
-  background-image: linear-gradient(var(--color-surface-glass), var(--color-surface-glass));
+  background-color: var(--color-surface-glass);
+  backdrop-filter: blur(16px);
+}
+
+@supports (animation-timeline: scroll()) {
+  .history th[scope='row'],
+  .history thead th:first-child {
+    animation: cover-scrolled-months linear both;
+    animation-timeline: scroll(nearest inline);
+    animation-range: 0 24px;
+  }
+}
+
+@keyframes cover-scrolled-months {
+  from {
+    background-color: transparent;
+    backdrop-filter: blur(0);
+  }
+
+  to {
+    background-color: var(--color-surface-glass);
+    backdrop-filter: blur(16px);
+  }
 }
 
 .history .number {
@@ -81,12 +104,10 @@
 }
 
 .history tr.selected th[scope='row'] {
-  background-image:
-    linear-gradient(
-      color-mix(in srgb, var(--color-mint) 8%, transparent),
-      color-mix(in srgb, var(--color-mint) 8%, transparent)
-    ),
-    linear-gradient(var(--color-surface-glass), var(--color-surface-glass));
+  background-image: linear-gradient(
+    color-mix(in srgb, var(--color-mint) 8%, transparent),
+    color-mix(in srgb, var(--color-mint) 8%, transparent)
+  );
 }
 
 .name {
