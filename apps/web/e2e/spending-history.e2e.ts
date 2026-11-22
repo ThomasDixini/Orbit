@@ -48,11 +48,20 @@ test('a category spent this month shows its amount, and choosing it lists what i
   await expect(page.getByRole('region', { name: 'What the category is made of' })).toContainText(
     description,
   );
-  // The category column stays in view while the months scroll, so it must hide what passes under it.
-  const ground = await row
-    .getByRole('rowheader')
-    .evaluate((cell) => getComputedStyle(cell).backgroundColor);
-  expect(ground).toMatch(/^rgb\(/);
+  // The category column stays in view while the months scroll. It is see-through at rest, so it does not
+  // show as a block on the card, and once the months scroll it must cover what passes under it.
+  const header = row.getByRole('rowheader');
+  const scrolls = await header.evaluate((cell) => {
+    const wrap = cell.closest('.table-wrap');
+    if (wrap === null || wrap.scrollWidth <= wrap.clientWidth) return false;
+    wrap.scrollLeft = wrap.scrollWidth;
+    return true;
+  });
+  if (scrolls) {
+    await expect
+      .poll(() => header.evaluate((cell) => getComputedStyle(cell).backdropFilter))
+      .toBe('blur(16px)');
+  }
   const overflow = await page.evaluate(
     () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
   );
