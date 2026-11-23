@@ -1,13 +1,9 @@
-import { Component, LOCALE_ID, computed, inject, input, signal } from '@angular/core';
+import { Component, LOCALE_ID, computed, inject, input } from '@angular/core';
 import { monthLabel } from '../../../../core/finances/transaction-month';
 import { monthlyStatement, withheldCents } from '../../../../core/finances/balance-statement';
 import { BalanceEntry, Investment } from '../../../../core/finances/investments';
 import { formatMoney } from '../../../../core/finances/money';
-import { fieldValue } from '../../../../core/forms/field-value';
 import { TranslatePipe } from '../../../../core/i18n/translate.pipe';
-
-/** The value of the investment picker that means "all the balance-tracked investments". */
-const ALL = '';
 
 /** One row of the statement table, its figures already written as money. */
 interface StatementRow {
@@ -35,36 +31,42 @@ export class BalanceStatement {
   readonly investments = input.required<readonly Investment[]>();
   readonly entries = input.required<readonly BalanceEntry[]>();
   readonly today = input.required<string>();
+  /** The months the page filter keeps (`YYYY-MM`); every month of the entries when absent. */
+  readonly months = input<readonly string[] | undefined>(undefined);
 
   private readonly locale = inject(LOCALE_ID);
 
-  protected readonly all = ALL;
-  protected readonly picked = signal(ALL);
   protected readonly rows = computed(() => this.describeRows());
   protected readonly withheld = computed(() => this.money(withheldCents(this.pickedEntries())));
   protected readonly hasWithheld = computed(() => withheldCents(this.pickedEntries()) > 0);
 
-  protected pick(event: Event): void {
-    this.picked.set(fieldValue(event));
+  private isShown(month: string): boolean {
+    const shown = this.months();
+    return shown === undefined || shown.includes(month);
+  }
+
+  private ownEntries(): readonly BalanceEntry[] {
+    const ids = new Set(this.investments().map((investment) => investment.id));
+    return this.entries().filter((entry) => ids.has(entry.investmentId));
   }
 
   private pickedEntries(): readonly BalanceEntry[] {
-    const picked = this.picked();
-    return picked === ALL
-      ? this.entries()
-      : this.entries().filter((entry) => entry.investmentId === picked);
+    return this.ownEntries().filter((entry) => this.isShown(entry.date.slice(0, 7)));
   }
 
+  // Every month is worked out first because a month opens with the balance the one before it closed with.
   private describeRows(): StatementRow[] {
-    return monthlyStatement(this.pickedEntries(), this.today()).map((month) => ({
-      month: month.month,
-      label: monthLabel(month.month, this.locale),
-      opening: this.money(month.openingCents),
-      inflows: this.money(month.inflowsCents),
-      outflows: this.money(month.outflowsCents),
-      yielded: this.money(month.yieldCents),
-      closing: this.money(month.closingCents),
-    }));
+    return monthlyStatement(this.ownEntries(), this.today())
+      .filter((month) => this.isShown(month.month))
+      .map((month) => ({
+        month: month.month,
+        label: monthLabel(month.month, this.locale),
+        opening: this.money(month.openingCents),
+        inflows: this.money(month.inflowsCents),
+        outflows: this.money(month.outflowsCents),
+        yielded: this.money(month.yieldCents),
+        closing: this.money(month.closingCents),
+      }));
   }
 
   private money(cents: number): string {

@@ -204,10 +204,7 @@ export const PT_BR_FINANCES: Readonly<Record<string, string>> = {
   IPCA: 'IPCA',
 
   // Monthly appreciation
-  'Show appreciation of': 'Mostrar a valorização de',
-  'Show statement of': 'Mostrar o extrato de',
   'Monthly appreciation': 'Valorização mensal',
-  'All investments': 'Todos os investimentos',
   'Appreciation per month (%)': 'Valorização por mês (%)',
   'Opening value': 'Valor inicial',
   'Put in or taken out': 'Aplicado ou resgatado',
@@ -463,7 +460,6 @@ export const PT_BR_FINANCES: Readonly<Record<string, string>> = {
   'Record line': 'Registrar lançamento',
   'Enter an amount above zero, like 884.00.': 'Informe um valor acima de zero, como 884,00.',
   'Monthly statement': 'Extrato mensal',
-  'All balance investments': 'Todos os investimentos por saldo',
   Deposits: 'Aportes',
   Withdrawals: 'Resgates',
   Fees: 'Taxas',

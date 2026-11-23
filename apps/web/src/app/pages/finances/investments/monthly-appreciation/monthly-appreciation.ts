@@ -1,4 +1,4 @@
-import { Component, LOCALE_ID, computed, inject, input, output, signal } from '@angular/core';
+import { Component, LOCALE_ID, computed, inject, input, output } from '@angular/core';
 import { ChartSeries, LineChart } from '../../../../components/line-chart/line-chart';
 import { combineHistories } from '../../../../core/finances/investments-analytics';
 import {
@@ -14,14 +14,7 @@ import {
   appreciationMonths,
 } from '../../../../core/finances/monthly-appreciation';
 import { monthLabel } from '../../../../core/finances/transaction-month';
-import { fieldValue } from '../../../../core/forms/field-value';
 import { TranslatePipe } from '../../../../core/i18n/translate.pipe';
-
-/** The value of the investment picker that means "all the investments". */
-const ALL = '';
-
-/** How many of the latest months the chart draws; the table keeps every month. */
-const CHART_MONTHS = 12;
 
 /** One row of the table, its figures already written. */
 interface AppreciationRow {
@@ -62,13 +55,13 @@ export class MonthlyAppreciation {
   readonly incomes = input.required<readonly Income[]>();
   /** The month-end prices typed so far, from the row of each investment. */
   readonly monthPrices = input<readonly MonthPrice[]>([]);
+  /** The months the page filter keeps (`YYYY-MM`); every month of the histories when absent. */
+  readonly months = input<readonly string[] | undefined>(undefined);
   readonly saving = input(false);
   readonly removePrice = output<MonthPrice>();
 
   private readonly locale = inject(LOCALE_ID);
 
-  protected readonly all = ALL;
-  protected readonly picked = signal(ALL);
   protected readonly typedPrices = computed(() => this.describeTypedPrices());
   protected readonly rows = computed(() => this.describeRows());
   protected readonly labels = computed(() =>
@@ -79,19 +72,13 @@ export class MonthlyAppreciation {
     formatPercent(percent, this.locale);
   protected readonly formatAxis = (percent: number): string => `${Math.round(percent)}%`;
 
-  protected pick(event: Event): void {
-    this.picked.set(fieldValue(event));
-  }
-
   protected remove(row: TypedPriceRow): void {
     this.removePrice.emit(row.price);
   }
 
   // Newest month first, for the investment picked or for all of them.
   private describeTypedPrices(): TypedPriceRow[] {
-    const names = new Map(
-      this.pickedInvestments().map((investment) => [investment.id, investment.name]),
-    );
+    const names = new Map(this.investments().map((investment) => [investment.id, investment.name]));
     return this.monthPrices()
       .filter((price) => names.has(price.investmentId))
       .sort((first, second) => second.month.localeCompare(first.month))
@@ -104,15 +91,13 @@ export class MonthlyAppreciation {
       }));
   }
 
-  private pickedInvestments(): readonly Investment[] {
-    const picked = this.picked();
-    return picked === ALL
-      ? this.investments()
-      : this.investments().filter((investment) => investment.id === picked);
+  private isShown(month: string): boolean {
+    const shown = this.months();
+    return shown === undefined || shown.includes(month);
   }
 
   private monthsOfPicked(): AppreciationMonth[] {
-    const investments = this.pickedInvestments();
+    const investments = this.investments();
     const histories = investments.map((investment) => this.histories()[investment.id]);
     const months = this.sortedMonths(investments);
     const points = combineHistories(histories, months).filter(
@@ -135,7 +120,9 @@ export class MonthlyAppreciation {
   }
 
   private describeRows(): AppreciationRow[] {
+    // Every month is worked out first because a month opens with the one before it.
     return this.monthsOfPicked()
+      .filter((month) => this.isShown(month.month))
       .map((month) => this.rowOf(month))
       .reverse();
   }
@@ -155,12 +142,12 @@ export class MonthlyAppreciation {
   }
 
   private chartMonths(): string[] {
-    return this.sortedMonths(this.pickedInvestments()).slice(-CHART_MONTHS);
+    return this.sortedMonths(this.investments()).filter((month) => this.isShown(month));
   }
 
   private describeSeries(): ChartSeries[] {
     const months = this.chartMonths();
-    return this.pickedInvestments()
+    return this.investments()
       .map((investment) => ({
         name: investment.name,
         values: this.percentsOf(investment.id, months),

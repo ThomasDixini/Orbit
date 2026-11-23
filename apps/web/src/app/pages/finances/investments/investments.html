@@ -188,6 +188,14 @@
     @if (cdiNote(); as note) {
       <p class="ui-muted cdi-note">{{ note | t }}</p>
     }
+    @if (returnFigures(); as figures) {
+      <app-return-after-tax
+        class="tax-note"
+        [returnPercent]="figures.returnPercent"
+        [cdiPercent]="figures.cdiPercent"
+        [taxBasisPoints]="incomeTaxBasisPoints()"
+      />
+    }
 
     <div class="compare" role="group" [attr.aria-label]="'Compare the return with' | t">
       <span class="ui-muted">{{ 'Compare the return with' | t }}</span>
@@ -437,14 +445,16 @@
         [histories]="investmentHistories()"
         [incomes]="incomes()"
         [monthPrices]="monthPrices()"
+        [months]="months()"
         [saving]="isSaving()"
         (removePrice)="removeMonthPrice($event)"
       />
     }
 
-    @if (balanceInvestments().length > 0) {
+    @if (statementInvestments().length > 0) {
       <app-balance-statement
-        [investments]="balanceInvestments()"
+        [investments]="statementInvestments()"
+        [months]="months()"
         [entries]="balanceEntries()"
         [today]="today"
       />

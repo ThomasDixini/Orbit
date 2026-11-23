@@ -15,10 +15,15 @@ const ENTRIES: readonly BalanceEntry[] = [
   { id: 'd', investmentId: 'rdb', date: '2026-11-05', kind: 'opening', amountCents: 50_000 },
 ];
 
-function render(entries: readonly BalanceEntry[] = ENTRIES): ComponentFixture<BalanceStatement> {
+function render(
+  entries: readonly BalanceEntry[] = ENTRIES,
+  investments: readonly Investment[] = INVESTMENTS,
+  months?: readonly string[],
+): ComponentFixture<BalanceStatement> {
   TestBed.configureTestingModule({ providers: [{ provide: LOCALE_ID, useValue: 'en-US' }] });
   const fixture = TestBed.createComponent(BalanceStatement);
-  fixture.componentRef.setInput('investments', INVESTMENTS);
+  fixture.componentRef.setInput('investments', investments);
+  fixture.componentRef.setInput('months', months);
   fixture.componentRef.setInput('entries', entries);
   fixture.componentRef.setInput('today', '2026-11-18');
   fixture.detectChanges();
@@ -39,25 +44,20 @@ describe('BalanceStatement', () => {
     ]);
   });
 
-  it('narrows to one investment', () => {
-    const fixture = render();
-    const picker = (fixture.nativeElement as HTMLElement).querySelector<HTMLSelectElement>(
-      'select',
-    )!;
-
-    picker.value = 'rdb';
-    picker.dispatchEvent(new Event('change'));
-    fixture.detectChanges();
+  it('narrows to the investments the page filter leaves in', () => {
+    const fixture = render(ENTRIES, [INVESTMENTS[0]]);
 
     expect(rows(fixture).map((row) => [row[0], row[5]])).toEqual([['November 2026', 'R$500.00']]);
   });
 
-  it('lists the picker with every balance investment', () => {
-    const options = [...(render().nativeElement as HTMLElement).querySelectorAll('option')].map(
-      (option) => option.textContent?.trim(),
-    );
+  it('keeps only the months of the page filter, with the balance they opened with', () => {
+    const fixture = render(ENTRIES, INVESTMENTS, ['2026-11']);
 
-    expect(options).toEqual(['All balance investments', 'RDB Nubank', 'Caixinha Nubank']);
+    expect(rows(fixture).map((row) => [row[0], row[1]])).toEqual([['November 2026', 'R$1,508.50']]);
+  });
+
+  it('has no picker of its own', () => {
+    expect((render().nativeElement as HTMLElement).querySelector('select')).toBeNull();
   });
 
   it('says what to do when there are no lines yet', () => {

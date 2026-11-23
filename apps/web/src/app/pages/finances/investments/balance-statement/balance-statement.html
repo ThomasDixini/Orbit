@@ -1,19 +1,6 @@
 <section class="ui-card card" [attr.aria-label]="'Monthly statement' | t">
   <div class="card-head">
     <h2 class="card-title">{{ 'Monthly statement' | t }}</h2>
-    <label class="picker">
-      <span class="ui-visually-hidden">{{ 'Show statement of' | t }}</span>
-      <select class="ui-input" name="statement-investment" (change)="pick($event)">
-        <option [value]="all" [selected]="picked() === all">
-          {{ 'All balance investments' | t }}
-        </option>
-        @for (investment of investments(); track investment.id) {
-          <option [value]="investment.id" [selected]="picked() === investment.id">
-            {{ investment.name }}
-          </option>
-        }
-      </select>
-    </label>
   </div>
 
   @if (rows().length > 0) {
