@@ -183,14 +183,18 @@ function addUp(month: string, points: readonly MonthlyPoint[]): MonthlyPoint {
   const applied = sum((point) => point.appliedCents);
   const received = sum((point) => point.receivedCents ?? 0);
   const cdiGain = sum((point) => point.cdiGainCents ?? 0);
+  const bought = sum((point) => point.boughtCents ?? 0);
+  // Once nothing is left applied (everything redeemed), the return rests on what was put in.
+  const basis = applied > 0 ? applied : bought;
   return {
     month,
     valueCents: value,
     appliedCents: applied,
-    returnPercent: percentOf(value + received - applied, applied),
-    cdiPercent: percentOf(cdiGain, applied),
+    returnPercent: percentOf(value + received - applied, basis),
+    cdiPercent: percentOf(cdiGain, basis),
     receivedCents: received,
     cdiGainCents: cdiGain,
+    boughtCents: bought,
   };
 }
 

@@ -79,3 +79,32 @@ export function isValidCustomPeriod(from: string, to: string): boolean {
 function monthIndex(month: string): number {
   return Number(month.slice(0, 4)) * MONTHS_PER_YEAR + Number(month.slice(5, 7)) - 1;
 }
+
+/**
+ * The last day of the month before the one of `today`: the end of what is closed.
+ * @example lastClosedDay('2026-11-03') // '2026-10-31'
+ */
+export function lastClosedDay(today: string): string {
+  const firstOfMonth = new Date(Number(today.slice(0, 4)), Number(today.slice(5, 7)) - 1, 1);
+  const last = new Date(firstOfMonth.getTime() - 1);
+  const month = String(last.getMonth() + 1).padStart(2, '0');
+  return `${last.getFullYear()}-${month}-${String(last.getDate()).padStart(2, '0')}`;
+}
+
+/**
+ * The months of a period without the month of `today`, which is still open: prices, proventos and
+ * statement lines are usually typed after it ends.
+ * @example closedMonths(['2026-10', '2026-11'], '2026-11-03') // ['2026-10']
+ */
+export function closedMonths(months: readonly string[], today: string): string[] {
+  return months.filter((month) => month < today.slice(0, 7));
+}
+
+/**
+ * The days of a range up to the last closed day at most.
+ * @example closedRange({ from: '2026-09-01', to: '2026-11-03' }, '2026-11-03') // { from: '2026-09-01', to: '2026-10-31' }
+ */
+export function closedRange(range: DayRange, today: string): DayRange {
+  const limit = lastClosedDay(today);
+  return { from: range.from, to: range.to < limit ? range.to : limit };
+}

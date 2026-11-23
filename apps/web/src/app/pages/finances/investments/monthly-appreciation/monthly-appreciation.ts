@@ -1,4 +1,4 @@
-import { Component, LOCALE_ID, computed, inject, input, output } from '@angular/core';
+import { Component, LOCALE_ID, computed, inject, input, output, signal } from '@angular/core';
 import { ChartSeries, LineChart } from '../../../../components/line-chart/line-chart';
 import { combineHistories } from '../../../../core/finances/investments-analytics';
 import {
@@ -15,6 +15,9 @@ import {
 } from '../../../../core/finances/monthly-appreciation';
 import { monthLabel } from '../../../../core/finances/transaction-month';
 import { TranslatePipe } from '../../../../core/i18n/translate.pipe';
+
+/** How many typed prices the list shows at first, and how many more each press of its arrow adds. */
+const PAGE_SIZE = 10;
 
 /** One row of the table, its figures already written. */
 interface AppreciationRow {
@@ -64,6 +67,11 @@ export class MonthlyAppreciation {
 
   protected readonly typedPrices = computed(() => this.describeTypedPrices());
   protected readonly rows = computed(() => this.describeRows());
+  private readonly shownPrices = signal(PAGE_SIZE);
+  protected readonly visiblePrices = computed(() =>
+    this.typedPrices().slice(0, this.shownPrices()),
+  );
+  protected readonly hasMorePrices = computed(() => this.typedPrices().length > this.shownPrices());
   protected readonly labels = computed(() =>
     this.chartMonths().map((month) => this.shortMonth(month)),
   );
@@ -71,6 +79,10 @@ export class MonthlyAppreciation {
   protected readonly formatDetail = (percent: number): string =>
     formatPercent(percent, this.locale);
   protected readonly formatAxis = (percent: number): string => `${Math.round(percent)}%`;
+
+  protected showMorePrices(): void {
+    this.shownPrices.update((count) => count + PAGE_SIZE);
+  }
 
   protected remove(row: TypedPriceRow): void {
     this.removePrice.emit(row.price);

@@ -93,6 +93,26 @@ describe('MonthlyAppreciation', () => {
   });
 
   describe('month prices', () => {
+    it('shows ten typed prices and reveals the next ones with the arrow under the list', () => {
+      const prices = Array.from({ length: 14 }, (_, index) => ({
+        investmentId: 'cdb',
+        month: `2025-${String(index + 1).padStart(2, '0')}`,
+        cents: 1_000 + index,
+      }));
+      const fixture = render(prices);
+      const count = (): number => element(fixture).querySelectorAll('.typed-item').length;
+
+      const first = count();
+      element(fixture).querySelector<HTMLButtonElement>('button.more')!.click();
+      fixture.detectChanges();
+
+      expect([first, count()]).toEqual([10, 14]);
+    });
+
+    it('has no arrow while the typed prices fit', () => {
+      expect(element(render(TYPED_PRICES)).querySelector('button.more')).toBeNull();
+    });
+
     it('lists the prices typed, newest month first, and asks to remove one', () => {
       const fixture = render(TYPED_PRICES);
       const removed: MonthPrice[] = [];

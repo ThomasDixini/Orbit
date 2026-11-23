@@ -179,6 +179,25 @@ describe('combineHistories', () => {
     expect([september?.returnPercent, september?.cdiPercent]).toEqual([0, 2]);
   });
 
+  it('rests the percentages on what was put in once everything was redeemed', () => {
+    const redeemed: MonthlyPoint[] = [
+      {
+        month: '2026-07',
+        valueCents: 0,
+        appliedCents: -879,
+        returnPercent: 5.86,
+        cdiPercent: 14,
+        receivedCents: 0,
+        cdiGainCents: 2100,
+        boughtCents: 15000,
+      },
+    ];
+
+    const [july] = combineHistories([redeemed], ['2026-07']);
+
+    expect([july?.returnPercent, july?.cdiPercent]).toEqual([5.86, 14]);
+  });
+
   it('leaves a month with no figures undefined', () => {
     expect(combineHistories([rdb, undefined], ['2026-07'])).toEqual([undefined]);
   });

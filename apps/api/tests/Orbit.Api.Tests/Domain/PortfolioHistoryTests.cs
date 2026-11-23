@@ -130,4 +130,17 @@ public class PortfolioHistoryTests
 
         points[0].ValueCents.ShouldBe(100_000);
     }
+
+    [Fact]
+    public void Build_ReturnOfAFullyRedeemedInvestmentIsWorkedOutOnWhatWasPutIn()
+    {
+        var cdb = Investment.Create("cdb", "CDB", InvestmentKind.FixedIncome, null);
+        var buy = InvestmentTrade.Create("t1", "cdb", January2, TradeKind.Buy, 1000, 15_000);
+        var sell = InvestmentTrade.Create("t2", "cdb", new DateOnly(2026, 3, 5), TradeKind.Sell, 1000, 15_879);
+
+        var points = PortfolioHistory.Build([cdb], [buy, sell], [], [], NoCdi, March10);
+
+        points[^1].ValueCents.ShouldBe(0);
+        points[^1].ReturnPercent.ShouldBe(5.86m);
+    }
 }

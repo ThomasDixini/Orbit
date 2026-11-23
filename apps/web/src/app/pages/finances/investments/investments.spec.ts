@@ -193,6 +193,7 @@ describe('Investments page', () => {
 
   it('charts proventos by month over the period and leaves the history charts empty', async () => {
     const { fixture } = await render();
+    await clickButton(fixture, 'Include the current month');
 
     expect([
       texts(fixture, 'app-bar-chart .title'),
@@ -207,8 +208,20 @@ describe('Investments page', () => {
     ]);
   });
 
+  it('leaves the month still open out of the charts until asked, so they end at the last closed month', async () => {
+    const { fixture } = await render();
+    const bars = (): number =>
+      (fixture.nativeElement as HTMLElement).querySelectorAll('app-bar-chart .bar').length;
+
+    const closed = bars();
+    await clickButton(fixture, 'Include the current month');
+
+    expect([closed, bars() / 2]).toEqual([11, 6]);
+  });
+
   it('shortens the period of the charts', async () => {
     const { fixture } = await render();
+    await clickButton(fixture, 'Include the current month');
 
     await clickButton(fixture, '3M');
 
@@ -219,6 +232,7 @@ describe('Investments page', () => {
 
   it('covers a period of days picked by the person, in the cards and the charts', async () => {
     const { fixture } = await render();
+    await clickButton(fixture, 'Include the current month');
     await clickButton(fixture, 'Custom');
 
     fill(fixture, 'input[name="from"]', '2026-10-29');
@@ -307,6 +321,7 @@ describe('Investments page', () => {
       ],
     };
     const { fixture } = await render(gateway);
+    await clickButton(fixture, 'Include the current month');
     const hits = (): NodeListOf<SVGRectElement> =>
       (fixture.nativeElement as HTMLElement).querySelectorAll<SVGRectElement>('.hit');
 

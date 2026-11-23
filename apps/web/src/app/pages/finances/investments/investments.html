@@ -165,6 +165,14 @@
           }
         </select>
       </label>
+      <button
+        class="ui-chip"
+        type="button"
+        [attr.aria-pressed]="includeCurrentMonth()"
+        (click)="toggleCurrentMonth()"
+      >
+        {{ 'Include the current month' | t }}
+      </button>
       <app-period-filter
         class="periods"
         [shortLabels]="true"
@@ -187,14 +195,6 @@
     </section>
     @if (cdiNote(); as note) {
       <p class="ui-muted cdi-note">{{ note | t }}</p>
-    }
-    @if (returnFigures(); as figures) {
-      <app-return-after-tax
-        class="tax-note"
-        [returnPercent]="figures.returnPercent"
-        [cdiPercent]="figures.cdiPercent"
-        [taxBasisPoints]="incomeTaxBasisPoints()"
-      />
     }
 
     <div class="compare" role="group" [attr.aria-label]="'Compare the return with' | t">
