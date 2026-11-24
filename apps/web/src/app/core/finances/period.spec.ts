@@ -1,4 +1,13 @@
-import { isValidCustomPeriod, monthKeys, monthsBetween, periodMonths, periodRange } from './period';
+import {
+  closedMonths,
+  closedRange,
+  isValidCustomPeriod,
+  lastClosedDay,
+  monthKeys,
+  monthsBetween,
+  periodMonths,
+  periodRange,
+} from './period';
 
 describe('periods', () => {
   it('lists the months ending at the current one, across a year change', () => {
@@ -37,5 +46,32 @@ describe('periods', () => {
       isValidCustomPeriod('', '2026-03-01'),
       isValidCustomPeriod('2010-01-01', '2026-03-01'),
     ]).toEqual([true, false, false, false, false]);
+  });
+});
+
+describe('the month still open', () => {
+  it('ends the closed days at the last day of the month before', () => {
+    expect([
+      lastClosedDay('2026-11-03'),
+      lastClosedDay('2026-01-15'),
+      lastClosedDay('2024-03-01'),
+    ]).toEqual(['2026-10-31', '2025-12-31', '2024-02-29']);
+  });
+
+  it('leaves the month of today out of the months', () => {
+    expect(closedMonths(['2026-09', '2026-10', '2026-11'], '2026-11-03')).toEqual([
+      '2026-09',
+      '2026-10',
+    ]);
+  });
+
+  it('caps a range at the last closed day but keeps one that ended before it', () => {
+    expect([
+      closedRange({ from: '2026-09-01', to: '2026-11-03' }, '2026-11-03'),
+      closedRange({ from: '2026-08-01', to: '2026-09-10' }, '2026-11-03'),
+    ]).toEqual([
+      { from: '2026-09-01', to: '2026-10-31' },
+      { from: '2026-08-01', to: '2026-09-10' },
+    ]);
   });
 });

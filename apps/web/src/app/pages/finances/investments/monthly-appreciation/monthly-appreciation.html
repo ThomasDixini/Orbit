@@ -1,17 +1,6 @@
 <section class="ui-card card" [attr.aria-label]="'Monthly appreciation' | t">
   <div class="card-head">
     <h2 class="card-title">{{ 'Monthly appreciation' | t }}</h2>
-    <label class="picker">
-      <span class="ui-visually-hidden">{{ 'Show appreciation of' | t }}</span>
-      <select class="ui-input" name="appreciation-investment" (change)="pick($event)">
-        <option [value]="all" [selected]="picked() === all">{{ 'All investments' | t }}</option>
-        @for (investment of investments(); track investment.id) {
-          <option [value]="investment.id" [selected]="picked() === investment.id">
-            {{ investment.name }}
-          </option>
-        }
-      </select>
-    </label>
   </div>
 
   <app-line-chart
@@ -68,7 +57,7 @@
     <section class="typed" [attr.aria-label]="'Prices you typed' | t">
       <h3 class="typed-title">{{ 'Prices you typed' | t }}</h3>
       <ul class="typed-list">
-        @for (row of typedPrices(); track row.key) {
+        @for (row of visiblePrices(); track row.key) {
           <li class="typed-item">
             <span class="typed-month">{{ row.label }}</span>
             <span class="typed-name">{{ row.investmentName }}</span>
@@ -88,6 +77,28 @@
           </li>
         }
       </ul>
+      @if (hasMorePrices()) {
+        <button
+          class="ui-button-ghost more"
+          type="button"
+          [attr.aria-label]="'Show more prices' | t"
+          (click)="showMorePrices()"
+        >
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M6 9l6 6 6-6"></path>
+          </svg>
+        </button>
+      }
       <p class="ui-muted note">
         {{
           'A price you type is used for the end of its month and wins over the quote fetched for it.'

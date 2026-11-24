@@ -22,10 +22,6 @@
   font-weight: var(--font-weight-medium);
 }
 
-.picker {
-  min-width: 220px;
-}
-
 .table-wrap {
   overflow-x: auto;
 }
@@ -104,4 +100,11 @@
 
 .typed-value {
   text-align: right;
+}
+
+/* The arrow under the typed prices: centred, one press reveals the next ones. */
+.more {
+  display: flex;
+  margin: 8px auto 0;
+  padding: 6px 18px;
 }

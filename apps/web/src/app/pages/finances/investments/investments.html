@@ -165,6 +165,14 @@
           }
         </select>
       </label>
+      <button
+        class="ui-chip"
+        type="button"
+        [attr.aria-pressed]="includeCurrentMonth()"
+        (click)="toggleCurrentMonth()"
+      >
+        {{ 'Include the current month' | t }}
+      </button>
       <app-period-filter
         class="periods"
         [shortLabels]="true"
@@ -437,14 +445,16 @@
         [histories]="investmentHistories()"
         [incomes]="incomes()"
         [monthPrices]="monthPrices()"
+        [months]="months()"
         [saving]="isSaving()"
         (removePrice)="removeMonthPrice($event)"
       />
     }
 
-    @if (balanceInvestments().length > 0) {
+    @if (statementInvestments().length > 0) {
       <app-balance-statement
-        [investments]="balanceInvestments()"
+        [investments]="statementInvestments()"
+        [months]="months()"
         [entries]="balanceEntries()"
         [today]="today"
       />

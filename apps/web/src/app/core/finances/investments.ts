@@ -129,6 +129,8 @@ export interface MonthlyPoint {
   /** Proventos received up to the month; with the CDI gain, it lets the percentages be worked out again when points are added up. */
   readonly receivedCents?: number;
   readonly cdiGainCents?: number;
+  /** Everything put in up to the month; the percentages rest on it once the money still applied is gone. */
+  readonly boughtCents?: number;
 }
 
 /** What the page reads. */

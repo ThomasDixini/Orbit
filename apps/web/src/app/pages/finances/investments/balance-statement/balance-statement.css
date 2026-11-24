@@ -22,10 +22,6 @@
   font-weight: var(--font-weight-medium);
 }
 
-.picker {
-  min-width: 220px;
-}
-
 .table-wrap {
   overflow-x: auto;
 }

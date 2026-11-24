@@ -31,10 +31,15 @@ const TYPED_PRICES: readonly MonthPrice[] = [
   { investmentId: 'cdb', month: '2026-07', cents: 4_200 },
 ];
 
-function render(monthPrices: readonly MonthPrice[] = []): ComponentFixture<MonthlyAppreciation> {
+function render(
+  monthPrices: readonly MonthPrice[] = [],
+  investments: readonly Investment[] = INVESTMENTS,
+  months?: readonly string[],
+): ComponentFixture<MonthlyAppreciation> {
   TestBed.configureTestingModule({ providers: [{ provide: LOCALE_ID, useValue: 'en-US' }] });
   const fixture = TestBed.createComponent(MonthlyAppreciation);
-  fixture.componentRef.setInput('investments', INVESTMENTS);
+  fixture.componentRef.setInput('investments', investments);
+  fixture.componentRef.setInput('months', months);
   fixture.componentRef.setInput('histories', HISTORIES);
   fixture.componentRef.setInput('incomes', INCOMES);
   fixture.componentRef.setInput('monthPrices', monthPrices);
@@ -60,20 +65,23 @@ describe('MonthlyAppreciation', () => {
     ]);
   });
 
-  it('narrows to one investment, such as the sold one', () => {
-    const fixture = render();
-    const picker = (fixture.nativeElement as HTMLElement).querySelector<HTMLSelectElement>(
-      'select',
-    )!;
-
-    picker.value = 'cdb';
-    picker.dispatchEvent(new Event('change'));
-    fixture.detectChanges();
+  it('narrows to the investments the page filter leaves in, such as the sold one', () => {
+    const fixture = render([], [INVESTMENTS[0]]);
 
     expect(rows(fixture).map((row) => [row[0], row[1], row[3], row[4]])).toEqual([
       ['July 2026', 'R$105.00', '−R$5.00', '-4.76%'],
       ['June 2026', 'R$0.00', '+R$5.00', '+5.00%'],
     ]);
+  });
+
+  it('keeps only the months of the page filter, with the value they opened with', () => {
+    const fixture = render([], INVESTMENTS, ['2026-07']);
+
+    expect(rows(fixture).map((row) => [row[0], row[1]])).toEqual([['July 2026', 'R$615.00']]);
+  });
+
+  it('has no picker of its own', () => {
+    expect(element(render()).querySelector('select')).toBeNull();
   });
 
   it('draws one line per investment to compare them', () => {
@@ -85,6 +93,26 @@ describe('MonthlyAppreciation', () => {
   });
 
   describe('month prices', () => {
+    it('shows ten typed prices and reveals the next ones with the arrow under the list', () => {
+      const prices = Array.from({ length: 14 }, (_, index) => ({
+        investmentId: 'cdb',
+        month: `2025-${String(index + 1).padStart(2, '0')}`,
+        cents: 1_000 + index,
+      }));
+      const fixture = render(prices);
+      const count = (): number => element(fixture).querySelectorAll('.typed-item').length;
+
+      const first = count();
+      element(fixture).querySelector<HTMLButtonElement>('button.more')!.click();
+      fixture.detectChanges();
+
+      expect([first, count()]).toEqual([10, 14]);
+    });
+
+    it('has no arrow while the typed prices fit', () => {
+      expect(element(render(TYPED_PRICES)).querySelector('button.more')).toBeNull();
+    });
+
     it('lists the prices typed, newest month first, and asks to remove one', () => {
       const fixture = render(TYPED_PRICES);
       const removed: MonthPrice[] = [];

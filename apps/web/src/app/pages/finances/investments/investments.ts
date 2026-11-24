@@ -43,7 +43,13 @@ import {
   rateSeries,
 } from '../../../core/finances/period-rates';
 import { PeriodRatesStore } from '../../../core/finances/period-rates-store';
-import { Period, periodMonths, periodRange } from '../../../core/finances/period';
+import {
+  Period,
+  closedMonths,
+  closedRange,
+  periodMonths,
+  periodRange,
+} from '../../../core/finances/period';
 import { PeriodFilter } from '../../../components/period-filter/period-filter';
 import {
   INVESTMENTS_SECTION_OPTIONS,
@@ -148,7 +154,12 @@ export class Investments {
   protected readonly filters = signal<InvestmentFilters>(DEFAULT_FILTERS);
   protected readonly kindOptions = INVESTMENT_KIND_OPTIONS;
   protected readonly riskLabel = investmentRiskLabel;
-  protected readonly range = computed(() => periodRange(this.filters().period, this.today));
+  /** Whether the month still open counts; off by default, since its prices and proventos come after it ends. */
+  protected readonly includeCurrentMonth = signal(false);
+  protected readonly range = computed(() => {
+    const range = periodRange(this.filters().period, this.today);
+    return this.includeCurrentMonth() ? range : closedRange(range, this.today);
+  });
   protected readonly lines = computed(() => this.store.portfolio()?.lines ?? []);
   protected readonly tableLines = computed(() => this.visibleTableLines());
   /** The investments that were held and are gone; hidden from the assets, kept in the histories. */
@@ -159,7 +170,7 @@ export class Investments {
   /** What the asset picker offers: the assets of the class, with the sold ones, so their history can be read. */
   protected readonly pickerLines = computed(() => this.sortedTableLines());
   protected readonly appreciationInvestments = computed(() =>
-    this.lines().map((line) => line.investment),
+    this.selected().map((line) => line.investment),
   );
   protected readonly investmentHistories = computed(
     () => this.store.portfolio()?.investmentHistories ?? {},
@@ -176,6 +187,12 @@ export class Investments {
   protected readonly balanceEntries = computed(() => this.store.portfolio()?.balanceEntries ?? []);
   protected readonly balanceInvestments = computed(() =>
     this.lines()
+      .map((line) => line.investment)
+      .filter(isBalanceTracked),
+  );
+  /** The balance-tracked investments the filters leave in, for the monthly statement. */
+  protected readonly statementInvestments = computed(() =>
+    this.selected()
       .map((line) => line.investment)
       .filter(isBalanceTracked),
   );
@@ -227,7 +244,10 @@ export class Investments {
     formatSignedMoney(cents, this.locale);
   protected readonly formatCentsAxis = (cents: number): string => this.compact(cents / 100);
 
-  private readonly months = computed(() => periodMonths(this.filters().period, this.today));
+  protected readonly months = computed(() => {
+    const months = periodMonths(this.filters().period, this.today);
+    return this.includeCurrentMonth() ? months : closedMonths(months, this.today);
+  });
 
   protected open(panel: Panel): void {
     this.isImportOpen.set(false);
@@ -265,6 +285,10 @@ export class Investments {
       if (!next.delete(id)) next.add(id);
       return next;
     });
+  }
+
+  protected toggleCurrentMonth(): void {
+    this.includeCurrentMonth.update((included) => !included);
   }
 
   protected pickPeriod(period: Period): void {
@@ -497,7 +521,7 @@ export class Investments {
   }
 
   private describeIncomeNote(): string {
-    const average = Math.round(this.incomeInPeriod() / this.months().length);
+    const average = Math.round(this.incomeInPeriod() / Math.max(this.months().length, 1));
     return `Average ${formatMoney(average, this.locale)} per month`;
   }
 
