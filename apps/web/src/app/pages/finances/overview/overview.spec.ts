@@ -15,6 +15,7 @@ import {
   FinanceReferencesGateway,
   TransactionsGateway,
 } from '../../../core/finances/transactions-gateway';
+import { FinanceReferencesStore } from '../../../core/finances/finance-references-store';
 import { Overview } from './overview';
 
 /** Tuesday, November 3, 2026. */
@@ -122,6 +123,26 @@ describe('Finances Overview page', () => {
 
     expect(texts(fixture, '[aria-label="Spending by category"] .empty')).toEqual([
       'Nothing spent in September.',
+    ]);
+  });
+
+  it('leaves a category marked as a transfer out of received, spent and the month picked', () => {
+    const fixture = render();
+    TestBed.inject(FinanceReferencesStore).setCategoryKind('health', 'transfer');
+    fixture.detectChanges();
+
+    pickColumn(fixture, 'Oct');
+
+    expect([
+      texts(fixture, '.chart .column')[4],
+      texts(fixture, '.month-detail dd'),
+      (fixture.nativeElement as HTMLElement)
+        .querySelectorAll('.chart .column')[4]
+        .getAttribute('aria-label'),
+    ]).toEqual([
+      'Oct',
+      ['R$9,500.00', 'R$286.40', '+R$9,213.60'],
+      'Oct: received R$9,500.00, spent R$286.40',
     ]);
   });
 
