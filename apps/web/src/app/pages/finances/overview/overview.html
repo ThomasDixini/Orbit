@@ -22,14 +22,14 @@
     <div class="stat">
       <p class="label">
         <span class="mark income" aria-hidden="true"></span
-        >{{ 'Received in {monthName}' | t: { monthName: monthName } }}
+        >{{ 'Received in {monthName}' | t: { monthName: currentMonthName } }}
       </p>
       <p class="value ui-tabular">{{ received() }}</p>
     </div>
     <div class="stat">
       <p class="label">
         <span class="mark expense" aria-hidden="true"></span
-        >{{ 'Spent in {monthName}' | t: { monthName: monthName } }}
+        >{{ 'Spent in {monthName}' | t: { monthName: currentMonthName } }}
       </p>
       <p class="value ui-tabular">{{ spent() }}</p>
     </div>
@@ -39,21 +39,58 @@
     <h2 class="card-title">{{ 'Received and spent · last 6 months' | t }}</h2>
     <ul class="chart">
       @for (column of columns(); track column.label + $index) {
-        <li class="column" [attr.aria-label]="column.description | t">
-          <span class="bars" aria-hidden="true">
-            <span class="bar income" [style.height.%]="column.incomeHeight"></span>
-            <span class="bar expense" [style.height.%]="column.expenseHeight"></span>
-          </span>
-          <span class="month" aria-hidden="true">{{ column.label | t }}</span>
+        <li>
+          <button
+            class="column"
+            type="button"
+            [class.selected]="column.isSelected"
+            [class.dimmed]="column.isDimmed"
+            [attr.aria-pressed]="column.isSelected"
+            [attr.aria-label]="column.description | t"
+            (click)="pickMonth($index)"
+          >
+            <span class="bars" aria-hidden="true">
+              <span class="bar income" [style.height.%]="column.incomeHeight"></span>
+              <span class="bar expense" [style.height.%]="column.expenseHeight"></span>
+            </span>
+            <span class="month" aria-hidden="true">{{ column.label | t }}</span>
+          </button>
         </li>
       }
     </ul>
+    @if (monthDetail(); as detail) {
+      <dl class="month-detail" aria-live="polite">
+        <dt class="month-title">{{ detail.title }}</dt>
+        <div>
+          <dt><span class="mark income" aria-hidden="true"></span>{{ 'Received' | t }}</dt>
+          <dd class="ui-tabular">{{ detail.received }}</dd>
+        </div>
+        <div>
+          <dt><span class="mark expense" aria-hidden="true"></span>{{ 'Spent' | t }}</dt>
+          <dd class="ui-tabular">{{ detail.spent }}</dd>
+        </div>
+        <div>
+          <dt>{{ 'Net' | t }}</dt>
+          <dd
+            class="ui-tabular"
+            [class.gain]="detail.netCents > 0"
+            [class.loss]="detail.netCents < 0"
+          >
+            {{ detail.net }}
+          </dd>
+        </div>
+      </dl>
+    } @else {
+      <p class="ui-muted month-hint">
+        {{ 'Click a bar to see that month. Click it again to clear.' | t }}
+      </p>
+    }
   </section>
 
   <div class="columns">
     <section class="ui-card card" [attr.aria-label]="'Spending by category' | t">
       <h2 class="card-title">
-        {{ 'Spending by category · {monthName}' | t: { monthName: monthName } }}
+        {{ 'Spending by category · {monthName}' | t: { monthName: spendingMonthName() } }}
       </h2>
       @if (spending().length > 0) {
         <ul class="list">
@@ -70,7 +107,13 @@
           }
         </ul>
       } @else if (isLoaded()) {
-        <p class="ui-muted empty">{{ 'Nothing spent this month yet.' | t }}</p>
+        <p class="ui-muted empty">
+          @if (isCurrentSpending()) {
+            {{ 'Nothing spent this month yet.' | t }}
+          } @else {
+            {{ 'Nothing spent in {monthName}.' | t: { monthName: spendingMonthName() } }}
+          }
+        </p>
       }
     </section>
 

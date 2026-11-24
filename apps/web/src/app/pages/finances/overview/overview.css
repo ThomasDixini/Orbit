@@ -85,10 +85,96 @@
 }
 
 .column {
+  width: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 8px;
+  padding: 6px 0;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  transition: opacity 120ms ease;
+}
+
+.column:hover,
+.column.selected {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.column:focus-visible {
+  outline: 1.5px solid var(--color-focus);
+}
+
+/* Another month is picked: this one steps back, as on the investments charts. */
+.column.dimmed {
+  opacity: 0.35;
+}
+
+.column.selected .month {
+  color: var(--color-text);
+}
+
+.month-detail {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px 24px;
+  margin: 12px 0 0;
+  padding-top: 12px;
+  border-top: var(--border-hairline) solid var(--color-border-subtle);
+  font-size: var(--font-size-sm);
+}
+
+.month-title {
+  flex-basis: 100%;
+  font-weight: var(--font-weight-medium);
+}
+
+/* Only the first letter: capitalizing every word would turn "março de 2026" into "Março De 2026". */
+.month-title::first-letter {
+  text-transform: uppercase;
+}
+
+.month-detail div {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.month-detail dt {
+  color: var(--color-text-muted);
+}
+
+/* Only the figures: the title stays a block, which ::first-letter needs. */
+.month-detail div dt {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.month-detail .month-title {
+  color: var(--color-text);
+}
+
+.month-detail dd {
+  margin: 0;
+}
+
+.gain {
+  color: var(--color-income);
+}
+
+.loss {
+  color: var(--color-expense);
+}
+
+.month-hint {
+  margin: 12px 0 0;
+  font-size: var(--font-size-xs);
 }
 
 .bars {
