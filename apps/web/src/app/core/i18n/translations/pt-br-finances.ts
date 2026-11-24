@@ -35,6 +35,7 @@ export const PT_BR_FINANCES: Readonly<Record<string, string>> = {
   'Spending by category · {monthName}': 'Gastos por categoria · {monthName}',
   'No spending yet.': 'Nenhum gasto ainda.',
   'Nothing spent this month yet.': 'Nada gasto neste mês ainda.',
+  'Nothing spent in {monthName}.': 'Nada gasto em {monthName}.',
   Upcoming: 'Próximos vencimentos',
   'Nothing to pay or receive.': 'Nada a pagar ou receber.',
   'Latest transactions': 'Últimas transações',

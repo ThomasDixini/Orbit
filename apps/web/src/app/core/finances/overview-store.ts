@@ -69,9 +69,13 @@ export class OverviewStore {
   readonly flow = computed(() => monthlyFlow(this.months, this.countedMonths()));
   readonly flowPeak = computed(() => flowPeak(this.flow()));
   readonly thisMonth = computed(() => this.flow()[this.flow().length - 1]);
-  readonly spending = computed(() =>
-    spendingByCategory(this.countedMonths().at(-1) ?? [], this.categoryNames()),
+  /** What each month of the chart spent by category, in the same order as `months`. */
+  readonly spendingByMonth = computed(() =>
+    this.countedMonths().map((transactions) =>
+      spendingByCategory(transactions, this.categoryNames()),
+    ),
   );
+  readonly spending = computed(() => this.spendingByMonth().at(-1) ?? []);
   readonly latest = computed(() =>
     latestTransactions(this.monthTransactions().slice(-2).flat(), LATEST_TRANSACTIONS),
   );
