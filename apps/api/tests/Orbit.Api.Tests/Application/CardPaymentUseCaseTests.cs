@@ -49,6 +49,29 @@ public class CardPaymentUseCaseTests
     }
 
     [Fact]
+    public async Task Save_StoresAPaymentSomeoneElseMadeWithoutAnAccount()
+    {
+        var command = new SaveCardPaymentCommand("p2", "visa", null, November10, 82359, PaidBy: "Sister");
+
+        var payment = await SaveCardPayment.ExecuteAsync(command, CancellationToken.None);
+
+        (payment.FromAccountId, payment.PaidBy).ShouldBe((null, "Sister"));
+    }
+
+    [Theory]
+    [InlineData(null, null)]
+    [InlineData("checking-account", "Sister")]
+    public async Task Save_RejectsNeitherOrBothSources(string? fromAccountId, string? paidBy)
+    {
+        var command = new SaveCardPaymentCommand("p2", "visa", fromAccountId, November10, 100, paidBy);
+
+        var exception = await Should.ThrowAsync<DomainRuleException>(() =>
+            SaveCardPayment.ExecuteAsync(command, CancellationToken.None));
+
+        exception.Message.ShouldContain("exactly one");
+    }
+
+    [Fact]
     public async Task Delete_RemovesThePaymentAndIgnoresOneAlreadyGone()
     {
         await SaveCardPayment.ExecuteAsync(PayVisa(), CancellationToken.None);

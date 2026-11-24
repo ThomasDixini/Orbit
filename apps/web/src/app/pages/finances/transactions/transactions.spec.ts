@@ -1,3 +1,5 @@
+import { AccountStatementsGateway } from '../../../core/finances/account-statements-gateway';
+import { FakeAccountStatementsGateway } from '../../../core/finances/fake-account-statements-gateway';
 import { ErrorHandler } from '@angular/core';
 import { Observable, of } from 'rxjs';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
@@ -49,6 +51,7 @@ function render(
     providers: [
       provideRouter([]),
       { provide: TransactionsGateway, useValue: gateway },
+      { provide: AccountStatementsGateway, useValue: new FakeAccountStatementsGateway() },
       { provide: FinanceReferencesGateway, useValue: references },
       { provide: BillsGateway, useValue: bills },
       { provide: Clock, useValue: new FixedClock(HALLOWEEN) },

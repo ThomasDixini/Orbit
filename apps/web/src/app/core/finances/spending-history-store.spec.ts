@@ -8,6 +8,7 @@ import {
   FakeTransactionsGateway,
   SAMPLE_OCTOBER,
 } from './fake-finances-gateways';
+import { FinanceReferencesStore } from './finance-references-store';
 import { SpendingHistoryStore } from './spending-history-store';
 import { Transaction } from './transaction';
 import { FinanceReferencesGateway, TransactionsGateway } from './transactions-gateway';
@@ -81,6 +82,15 @@ describe('SpendingHistoryStore', () => {
       ['Food', 28640],
       ['Health', 5890],
     ]);
+  });
+
+  it('leaves out a category marked as a transfer: moving money is not spending', () => {
+    const { store } = setUp(new FakeTransactionsGateway());
+    TestBed.inject(FinanceReferencesStore).setCategoryKind('health', 'transfer');
+
+    store.show(['2026-10']);
+
+    expect(store.history().categories.map((category) => category.name)).toEqual(['Food']);
   });
 
   it('knows the month still running and offers what a category is made of', () => {

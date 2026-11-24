@@ -52,6 +52,25 @@ internal static class SqliteSchema
         );
         """;
 
+    /// <summary>
+    /// Payments of card invoices. A payment comes either from one of the person's bank accounts
+    /// (<c>from_account_id</c>) or from someone else (<c>paid_by</c>, who paid it), never both.
+    /// </summary>
+    internal const string CardPaymentsTable = """
+        CREATE TABLE IF NOT EXISTS card_payments (
+            user_id TEXT NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+            id TEXT NOT NULL,
+            card_id TEXT NOT NULL,
+            from_account_id TEXT NULL,
+            paid_by TEXT NULL,
+            date TEXT NOT NULL,
+            amount_cents INTEGER NOT NULL,
+            PRIMARY KEY (user_id, id),
+            FOREIGN KEY (user_id, card_id) REFERENCES accounts (user_id, id),
+            FOREIGN KEY (user_id, from_account_id) REFERENCES accounts (user_id, id)
+        );
+        """;
+
     private const string CreateTables = $"""
         CREATE TABLE IF NOT EXISTS users (
             id TEXT PRIMARY KEY,
@@ -171,6 +190,7 @@ internal static class SqliteSchema
             user_id TEXT NOT NULL REFERENCES users (id) ON DELETE CASCADE,
             id TEXT NOT NULL,
             name TEXT NOT NULL,
+            kind TEXT NOT NULL DEFAULT 'Regular',
             PRIMARY KEY (user_id, id)
         );
         CREATE TABLE IF NOT EXISTS accounts (
@@ -198,17 +218,7 @@ internal static class SqliteSchema
         );
         CREATE INDEX IF NOT EXISTS ix_transactions_date ON transactions (user_id, date);
         CREATE INDEX IF NOT EXISTS ix_transactions_account_date ON transactions (user_id, account_id, date);
-        CREATE TABLE IF NOT EXISTS card_payments (
-            user_id TEXT NOT NULL REFERENCES users (id) ON DELETE CASCADE,
-            id TEXT NOT NULL,
-            card_id TEXT NOT NULL,
-            from_account_id TEXT NOT NULL,
-            date TEXT NOT NULL,
-            amount_cents INTEGER NOT NULL,
-            PRIMARY KEY (user_id, id),
-            FOREIGN KEY (user_id, card_id) REFERENCES accounts (user_id, id),
-            FOREIGN KEY (user_id, from_account_id) REFERENCES accounts (user_id, id)
-        );
+        {CardPaymentsTable}
         CREATE INDEX IF NOT EXISTS ix_card_payments_date ON card_payments (user_id, date);
         CREATE TABLE IF NOT EXISTS bills (
             user_id TEXT NOT NULL REFERENCES users (id) ON DELETE CASCADE,
@@ -374,7 +384,9 @@ internal static class SqliteSchema
             await SqliteMultiUserMigration.ApplyAsync(connection, CreateTables, cancellationToken);
         }
         await SqliteHistoryMigration.DetachBlockOutcomesAsync(connection, cancellationToken);
+        await SqliteFinanceMigration.AllowPaymentsByOthersAsync(connection, cancellationToken);
         await SqliteCommands.ExecuteAsync(connection, CreateTables, cancellationToken);
+        await SqliteFinanceMigration.AddCategoryKindAsync(connection, cancellationToken);
         await AddInvestmentRiskColumnAsync(connection, cancellationToken);
         await AddInvestmentTrackingColumnAsync(connection, cancellationToken);
         await SqliteHistoryMigration.KeepHistoryAsync(connection, cancellationToken);

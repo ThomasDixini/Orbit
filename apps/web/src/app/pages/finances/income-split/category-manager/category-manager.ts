@@ -2,13 +2,16 @@ import { Component, computed, input, output, signal } from '@angular/core';
 import { fieldValue } from '../../../../core/forms/field-value';
 import {
   FinanceCategory,
+  FinanceCategoryKind,
   MAX_CATEGORY_NAME_LENGTH,
   isCategoryNameTaken,
+  isTransferCategory,
 } from '../../../../core/finances/finance-references';
 import { TranslatePipe } from '../../../../core/i18n/translate.pipe';
 
 /**
- * Where finance categories are created, renamed and deleted. A category with transactions cannot be
+ * Where finance categories are created, renamed and deleted, and marked as transfers (money that only
+ * moves between accounts, never income nor an expense). A category with transactions cannot be
  * deleted: the API refuses it and says so.
  */
 @Component({
@@ -21,6 +24,8 @@ export class CategoryManager {
   readonly categories = input.required<readonly FinanceCategory[]>();
   readonly add = output<string>();
   readonly rename = output<{ categoryId: string; name: string }>();
+  /** A category switched between counting as income and expenses, and only moving money. */
+  readonly changeKind = output<{ categoryId: string; kind: FinanceCategoryKind }>();
   readonly remove = output<string>();
 
   protected readonly maxNameLength = MAX_CATEGORY_NAME_LENGTH;
@@ -73,6 +78,14 @@ export class CategoryManager {
 
   protected cancelRename(): void {
     this.renaming.set(undefined);
+  }
+
+  protected readonly isTransfer = isTransferCategory;
+
+  /** Flips the category between a transfer (money that only moves) and a regular one. */
+  protected toggleKind(category: FinanceCategory): void {
+    const kind: FinanceCategoryKind = isTransferCategory(category) ? 'regular' : 'transfer';
+    this.changeKind.emit({ categoryId: category.id, kind });
   }
 
   protected readonly valueOf = fieldValue;

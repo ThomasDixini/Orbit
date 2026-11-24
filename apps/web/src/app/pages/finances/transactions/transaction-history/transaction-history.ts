@@ -5,7 +5,10 @@ import { Transaction } from '../../../../core/finances/transaction';
 import { TransactionDay } from '../../../../core/finances/transaction-days';
 import { TranslatePipe } from '../../../../core/i18n/translate.pipe';
 
-/** The month's transactions grouped by day, each day with its total; a row opens it for editing. */
+/**
+ * The month's transactions grouped by day, each day with its total; a row opens it for editing. A
+ * transfer (money that only moved between accounts) shows muted: it is neither income nor an expense.
+ */
 @Component({
   selector: 'app-transaction-history',
   imports: [TranslatePipe],
@@ -16,7 +19,13 @@ export class TransactionHistory {
   readonly days = input.required<readonly TransactionDay[]>();
   readonly categoryNames = input.required<ReadonlyMap<string, string>>();
   readonly accountNames = input.required<ReadonlyMap<string, string>>();
+  /** The categories that only move money. */
+  readonly transferIds = input<ReadonlySet<string>>(new Set());
   readonly edit = output<Transaction>();
+
+  protected isTransfer(transaction: Transaction): boolean {
+    return this.transferIds().has(transaction.categoryId);
+  }
 
   private readonly locale = inject(LOCALE_ID);
 

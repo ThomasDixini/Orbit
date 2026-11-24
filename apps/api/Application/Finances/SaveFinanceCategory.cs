@@ -2,7 +2,8 @@ using Orbit.Api.Domain.Finances;
 
 namespace Orbit.Api.Application.Finances;
 
-public sealed record SaveFinanceCategoryCommand(string Id, string Name);
+public sealed record SaveFinanceCategoryCommand(
+    string Id, string Name, FinanceCategoryKind Kind = FinanceCategoryKind.Regular);
 
 /// <summary>
 /// Creates or renames a finance category; saving the same one twice leaves the same state. Names are
@@ -16,7 +17,7 @@ public sealed class SaveFinanceCategory(IFinanceCategoryRepository categories)
     /// <example><code>await saveFinanceCategory.ExecuteAsync(new SaveFinanceCategoryCommand("courses", "Courses"), ct);</code></example>
     public async Task<FinanceCategory> ExecuteAsync(SaveFinanceCategoryCommand command, CancellationToken cancellationToken)
     {
-        var category = FinanceCategory.Create(command.Id, command.Name);
+        var category = FinanceCategory.Create(command.Id, command.Name, command.Kind);
         await RequireFreeNameAsync(category, cancellationToken);
         await categories.SaveAsync(category, cancellationToken);
         return category;

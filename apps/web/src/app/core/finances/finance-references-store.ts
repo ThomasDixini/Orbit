@@ -3,7 +3,8 @@ import { Observable, Observer } from 'rxjs';
 import { IdGenerator } from '../ids/id-generator';
 import { DataRefresh } from '../refresh/data-refresh';
 import { Positioned, positionOf, restoredAt, sameId } from '../lists/list-positions';
-import { Account, AccountDraft, FinanceCategory } from './finance-references';
+import { Account, AccountDraft, FinanceCategory, FinanceCategoryKind } from './finance-references';
+import { transferCategoryIds } from './transfers';
 import { FinanceReferencesGateway } from './transactions-gateway';
 
 /** Called once the API stored a change, for whatever depends on the stored data (e.g. balances). */
@@ -28,6 +29,8 @@ export class FinanceReferencesStore {
   private readonly loadFailed = signal(false);
 
   readonly categories = this.categoryList.asReadonly();
+  /** The categories that only move money, whose transactions stay out of income and expenses. */
+  readonly transferCategoryIds = computed(() => transferCategoryIds(this.categoryList()));
   /** Bank accounts and credit cards, in creation order. */
   readonly accounts = this.accountList.asReadonly();
   /** Whether both lists arrived, so "empty" can be told apart from "still loading". */
@@ -80,12 +83,18 @@ export class FinanceReferencesStore {
   renameCategory(categoryId: string, name: string): FinanceCategory | undefined {
     const previous = positionOf(this.categoryList(), (current) => current.id === categoryId);
     if (previous === undefined) return undefined;
-    const category: FinanceCategory = { id: categoryId, name: name.trim() };
-    this.replaceCategory(previous.record, category);
-    this.send(this.gateway.saveCategory(category), NOTHING_TO_DO, () =>
-      this.replaceCategory(category, previous.record),
-    );
-    return category;
+    return this.saveCategoryEdit(previous.record, { ...previous.record, name: name.trim() });
+  }
+
+  /**
+   * Says whether a category only moves money ('transfer') or counts as income and expenses
+   * ('regular'). A failed save puts the previous kind back only if this change is still the one shown.
+   * @example store.setCategoryKind('transfers', 'transfer')
+   */
+  setCategoryKind(categoryId: string, kind: FinanceCategoryKind): FinanceCategory | undefined {
+    const previous = positionOf(this.categoryList(), (current) => current.id === categoryId);
+    if (previous === undefined) return undefined;
+    return this.saveCategoryEdit(previous.record, { ...previous.record, kind });
   }
 
   /**
@@ -178,6 +187,14 @@ export class FinanceReferencesStore {
         this.errorHandler.handleError(error);
       },
     });
+  }
+
+  private saveCategoryEdit(previous: FinanceCategory, category: FinanceCategory): FinanceCategory {
+    this.replaceCategory(previous, category);
+    this.send(this.gateway.saveCategory(category), NOTHING_TO_DO, () =>
+      this.replaceCategory(category, previous),
+    );
+    return category;
   }
 
   private sortedByName(categories: FinanceCategory[]): FinanceCategory[] {

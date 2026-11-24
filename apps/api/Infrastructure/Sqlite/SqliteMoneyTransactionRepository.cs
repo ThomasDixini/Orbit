@@ -12,6 +12,32 @@ namespace Orbit.Api.Infrastructure.Sqlite;
 public sealed class SqliteMoneyTransactionRepository(SqliteConnectionFactory connections) : IMoneyTransactionRepository
 {
     private const string DateFormat = "yyyy-MM-dd";
+    private const string SelectColumns =
+        "SELECT id, date, description, category_id, account_id, amount_cents FROM transactions";
+
+    public async Task<IReadOnlyList<MoneyTransaction>> ListOnAccountAsync(
+        string accountId, CancellationToken cancellationToken)
+    {
+        await using var lease = await connections.LeaseAsync(cancellationToken);
+        return await SqliteCommands.QueryAsync(
+            lease.Connection,
+            $"{SelectColumns} WHERE user_id = $user AND account_id = $accountId ORDER BY date, rowid",
+            ToTransaction,
+            cancellationToken,
+            ("$user", connections.UserId), ("$accountId", accountId));
+    }
+
+    public async Task<MoneyTransaction?> FindAsync(string transactionId, CancellationToken cancellationToken)
+    {
+        await using var lease = await connections.LeaseAsync(cancellationToken);
+        var rows = await SqliteCommands.QueryAsync(
+            lease.Connection,
+            $"{SelectColumns} WHERE user_id = $user AND id = $id",
+            ToTransaction,
+            cancellationToken,
+            ("$user", connections.UserId), ("$id", transactionId));
+        return rows.FirstOrDefault();
+    }
 
     public async Task<IReadOnlyList<MoneyTransaction>> ListInMonthAsync(
         TransactionMonth month, CancellationToken cancellationToken)
@@ -20,8 +46,8 @@ public sealed class SqliteMoneyTransactionRepository(SqliteConnectionFactory con
         // rowid follows creation; the upsert in SaveAsync keeps it, so an edit does not move the row.
         return await SqliteCommands.QueryAsync(
             lease.Connection,
-            """
-            SELECT id, date, description, category_id, account_id, amount_cents FROM transactions
+            $"""
+            {SelectColumns}
             WHERE user_id = $user AND date >= $from AND date < $until ORDER BY date DESC, rowid DESC
             """,
             ToTransaction,

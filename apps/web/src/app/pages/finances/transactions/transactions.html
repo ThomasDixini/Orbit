@@ -122,6 +122,7 @@
       (settleBill)="settleBill($event)"
       (dismiss)="closeForm()"
       (remove)="remove()"
+      (convertToCardPayment)="convertToCardPayment($event)"
     />
   }
 
@@ -142,6 +143,7 @@
       [days]="days()"
       [categoryNames]="categoryNames()"
       [accountNames]="accountNames()"
+      [transferIds]="transferIds()"
       (edit)="openEdit($event)"
     />
   } @else if (isLoaded()) {
