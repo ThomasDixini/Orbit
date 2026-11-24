@@ -3,16 +3,23 @@ using Orbit.Api.Domain.Finances;
 
 namespace Orbit.Api.Endpoints;
 
-/// <summary>Body of <c>PUT /card-payments/{paymentId}</c>; the id comes from the route.</summary>
-public sealed record SaveCardPaymentRequest(string CardId, string FromAccountId, DateOnly Date, long AmountCents)
+/// <summary>
+/// Body of <c>PUT /card-payments/{paymentId}</c>; the id comes from the route. A payment comes from a bank
+/// account (<c>fromAccountId</c>) or was made by someone else (<c>paidBy</c>), exactly one of the two.
+/// </summary>
+public sealed record SaveCardPaymentRequest(
+    string CardId, DateOnly Date, long AmountCents, string? FromAccountId = null, string? PaidBy = null)
 {
-    public SaveCardPaymentCommand ToCommand(string paymentId) => new(paymentId, CardId, FromAccountId, Date, AmountCents);
+    public SaveCardPaymentCommand ToCommand(string paymentId) =>
+        new(paymentId, CardId, FromAccountId, Date, AmountCents, PaidBy);
 }
 
-public sealed record CardPaymentResponse(string Id, string CardId, string FromAccountId, DateOnly Date, long AmountCents)
+/// <summary>A stored card payment; <c>fromAccountId</c> or <c>paidBy</c> is left out when absent.</summary>
+public sealed record CardPaymentResponse(
+    string Id, string CardId, string? FromAccountId, DateOnly Date, long AmountCents, string? PaidBy)
 {
     public static CardPaymentResponse From(CardPayment payment) =>
-        new(payment.Id, payment.CardId, payment.FromAccountId, payment.Date, payment.AmountCents);
+        new(payment.Id, payment.CardId, payment.FromAccountId, payment.Date, payment.AmountCents, payment.PaidBy);
 }
 
 /// <summary>HTTP routes for credit card invoice payments.</summary>

@@ -1,0 +1,134 @@
+:host {
+  display: block;
+}
+
+.invoices {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.owed {
+  font-size: var(--font-size-sm);
+  color: var(--color-warning-text);
+}
+
+.hint {
+  margin: 0;
+  font-size: var(--font-size-xs);
+}
+
+.list,
+.payments {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+}
+
+.invoice {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 0;
+  border-top: var(--border-hairline) solid var(--color-border-card);
+}
+
+.summary {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: 12px;
+}
+
+.when,
+.figures {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.figures {
+  align-items: flex-end;
+}
+
+.period,
+.left {
+  font-size: var(--font-size-xs);
+}
+
+.left {
+  color: var(--color-warning-text);
+}
+
+.status {
+  align-self: center;
+}
+
+.paid .status {
+  color: var(--color-income);
+}
+
+.unpaid .status,
+.partlyPaid .status {
+  color: var(--color-warning-text);
+  background: rgba(var(--color-amber-rgb), 0.08);
+}
+
+.upcoming {
+  opacity: 0.6;
+}
+
+.payments {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-left: 12px;
+  border-left: var(--border-hairline) solid var(--color-border-card);
+}
+
+.payment {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-soft);
+}
+
+.mark {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.grow {
+  flex: 1 1 220px;
+}
+
+.mark-button {
+  align-self: flex-start;
+}
+
+.small {
+  height: 36px;
+  padding: 0 12px;
+  font-size: var(--font-size-xs);
+}
+
+.small:disabled {
+  opacity: 0.45;
+  cursor: default;
+}

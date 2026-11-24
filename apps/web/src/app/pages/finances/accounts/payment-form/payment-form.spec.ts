@@ -72,12 +72,30 @@ describe('PaymentForm', () => {
     expect([amount.value, submitButton(fixture).disabled]).toEqual(['', true]);
   });
 
-  it('asks for a bank account to pay from when there is none', () => {
+  it('asks who paid when there is no bank account, and waits for a name', () => {
     const { fixture } = createForm([]);
 
-    expect([element(fixture).textContent, submitButton(fixture).disabled]).toEqual([
-      expect.stringContaining('Add a bank account to pay the invoice from.'),
-      true,
+    expect([
+      element(fixture).querySelector('input[name="paidBy"]') !== null,
+      submitButton(fixture).disabled,
+    ]).toEqual([true, true]);
+  });
+
+  it('records a payment someone else made, with who paid it and no account', () => {
+    const { fixture, saved } = createForm([CHECKING]);
+    const select = element(fixture).querySelector<HTMLSelectElement>('select[name="paidFrom"]')!;
+    select.value = 'paid-by-others';
+    select.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+    const paidBy = element(fixture).querySelector<HTMLInputElement>('input[name="paidBy"]')!;
+    paidBy.value = ' Sister ';
+    paidBy.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+
+    submitButton(fixture).click();
+
+    expect(saved).toEqual([
+      { cardId: 'credit-card', paidBy: 'Sister', date: '2026-10-31', amountCents: 28640 },
     ]);
   });
 });

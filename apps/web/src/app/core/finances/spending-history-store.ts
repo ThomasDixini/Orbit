@@ -7,6 +7,7 @@ import { FinanceReferencesStore } from './finance-references-store';
 import { DescriptionHistory, descriptionHistory, spendingHistory } from './spending-history';
 import { Transaction } from './transaction';
 import { monthOfDay } from './transaction-month';
+import { countedByMonth } from './transfers';
 import { TransactionsGateway } from './transactions-gateway';
 
 /**
@@ -35,7 +36,8 @@ export class SpendingHistoryStore {
   readonly history = computed(() =>
     spendingHistory(
       this.shownMonths(),
-      this.monthTransactions(),
+      // Transfers move money between accounts: they are not spending.
+      countedByMonth(this.monthTransactions(), this.references.transferCategoryIds()),
       namesById(this.references.categories()),
       this.currentMonth,
     ),

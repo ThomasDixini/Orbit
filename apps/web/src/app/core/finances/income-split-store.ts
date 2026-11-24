@@ -2,6 +2,7 @@ import { ErrorHandler, Injectable, computed, inject, signal } from '@angular/cor
 import { forkJoin } from 'rxjs';
 import { Clock } from '../calendar/clock';
 import { IdGenerator } from '../ids/id-generator';
+import { FinanceCategoryKind } from './finance-references';
 import { FinanceReferencesStore } from './finance-references-store';
 import {
   EMPTY_SPLIT,
@@ -26,6 +27,7 @@ import {
 import { IncomeSplitGateway } from './income-split-gateway';
 import { Transaction } from './transaction';
 import { monthOf, shiftMonth } from './transaction-month';
+import { countedTransactions } from './transfers';
 import { TransactionsGateway } from './transactions-gateway';
 
 /** The starter category salary comes in under, which "salary only" reads. */
@@ -69,9 +71,13 @@ export class IncomeSplitStore {
   /** Whether the split on screen differs from the stored one. */
   readonly hasChanges = computed(() => !sameSplit(this.draftSplit(), this.savedSplit()));
   readonly status = computed(() => splitStatus(this.draftSplit()));
-  readonly progress = computed(() => partProgress(this.draftSplit(), this.thisMonth()));
-  /** Everything that came in last month. */
-  readonly lastMonthIncomeCents = computed(() => incomeReceivedCents(this.lastMonth()));
+  readonly progress = computed(() =>
+    partProgress(this.draftSplit(), this.counted(this.thisMonth())),
+  );
+  /** Everything that came in last month, without money moved in from one's own accounts. */
+  readonly lastMonthIncomeCents = computed(() =>
+    incomeReceivedCents(this.counted(this.lastMonth())),
+  );
   /** The salary that came in last month. */
   readonly lastMonthSalaryCents = computed(() =>
     incomeReceivedIn(this.lastMonth(), SALARY_CATEGORY_ID),
@@ -80,6 +86,10 @@ export class IncomeSplitStore {
   constructor() {
     this.loadSplit();
     this.loadTransactions();
+  }
+
+  private counted(transactions: readonly Transaction[]): Transaction[] {
+    return countedTransactions(transactions, this.references.transferCategoryIds());
   }
 
   /**
@@ -171,6 +181,11 @@ export class IncomeSplitStore {
   /** @example store.renameCategory('courses', 'Study') */
   renameCategory(categoryId: string, name: string): void {
     this.references.renameCategory(categoryId, name);
+  }
+
+  /** @example store.setCategoryKind('transfers', 'transfer') */
+  setCategoryKind(categoryId: string, kind: FinanceCategoryKind): void {
+    this.references.setCategoryKind(categoryId, kind);
   }
 
   /**

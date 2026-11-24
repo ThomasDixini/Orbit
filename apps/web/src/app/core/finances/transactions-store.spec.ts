@@ -1,3 +1,5 @@
+import { AccountStatementsGateway } from './account-statements-gateway';
+import { FakeAccountStatementsGateway } from './fake-account-statements-gateway';
 import { ErrorHandler } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { Observable, Subject } from 'rxjs';
@@ -61,18 +63,25 @@ class ControlledSaveTransactionsGateway extends FakeTransactionsGateway {
 function createStore(
   gateway: FakeTransactionsGateway = new FakeTransactionsGateway(),
   references = new FakeFinanceReferencesGateway(),
-): { store: TransactionsStore; gateway: FakeTransactionsGateway; errors: RecordingErrorHandler } {
+  statementsGateway = new FakeAccountStatementsGateway(),
+): {
+  store: TransactionsStore;
+  gateway: FakeTransactionsGateway;
+  statementsGateway: FakeAccountStatementsGateway;
+  errors: RecordingErrorHandler;
+} {
   const errors = new RecordingErrorHandler();
   TestBed.configureTestingModule({
     providers: [
       { provide: TransactionsGateway, useValue: gateway },
+      { provide: AccountStatementsGateway, useValue: statementsGateway },
       { provide: FinanceReferencesGateway, useValue: references },
       { provide: Clock, useValue: new FixedClock(HALLOWEEN) },
       { provide: IdGenerator, useValue: new SequentialIdGenerator() },
       { provide: ErrorHandler, useValue: errors },
     ],
   });
-  return { store: TestBed.inject(TransactionsStore), gateway, errors };
+  return { store: TestBed.inject(TransactionsStore), gateway, statementsGateway, errors };
 }
 
 function ids(store: TransactionsStore): string[] {
@@ -191,6 +200,29 @@ describe('TransactionsStore writes', () => {
     gateway.pendingSaves[0].error(new Error('offline'));
 
     expect(store.transactions()[0].description).toBe('Supermarket');
+  });
+
+  it('turns an expense into a card payment, taking it out of the list', () => {
+    const { store, statementsGateway } = createStore();
+    let stored = false;
+
+    store.convertToCardPayment('pharmacy', 'credit-card', () => (stored = true));
+
+    expect([ids(store), statementsGateway.convertedTransactions, stored]).toEqual([
+      ['groceries', 'salary'],
+      [{ transactionId: 'pharmacy', cardId: 'credit-card' }],
+      true,
+    ]);
+  });
+
+  it('puts the expense back in place when turning it into a card payment fails', () => {
+    const statementsGateway = new FakeAccountStatementsGateway();
+    statementsGateway.failure = new Error('offline');
+    const { store, errors } = createStore(undefined, undefined, statementsGateway);
+
+    store.convertToCardPayment('pharmacy', 'credit-card', () => undefined);
+
+    expect([ids(store), errors.errors.length]).toEqual([['groceries', 'pharmacy', 'salary'], 1]);
   });
 
   it('deletes a transaction and puts it back in place if the gateway rejects it', () => {

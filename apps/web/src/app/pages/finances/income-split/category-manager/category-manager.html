@@ -68,7 +68,28 @@
         } @else {
           <span class="name">{{ category.name | t }}</span>
         }
+        @if (isTransfer(category)) {
+          <span class="ui-tag">{{ 'Transfer' | t }}</span>
+        }
         <span class="actions">
+          <button
+            class="ui-button-ghost small"
+            type="button"
+            [attr.aria-pressed]="isTransfer(category)"
+            [attr.aria-label]="
+              (isTransfer(category)
+                ? 'Count {name} as income and expenses'
+                : 'Mark {name} as a transfer between accounts'
+              ) | t: { name: category.name }
+            "
+            [title]="
+              'Transfers move money between accounts: they are not counted as income or expenses.'
+                | t
+            "
+            (click)="toggleKind(category)"
+          >
+            {{ (isTransfer(category) ? 'Count as income/expense' : 'Mark as transfer') | t }}
+          </button>
           <button
             class="ui-button-ghost small"
             type="button"

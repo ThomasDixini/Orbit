@@ -20,6 +20,17 @@ internal sealed class InMemoryMoneyTransactionRepository : IMoneyTransactionRepo
         return Task.FromResult<IReadOnlyList<MoneyTransaction>>(inMonth.ToList());
     }
 
+    public Task<IReadOnlyList<MoneyTransaction>> ListOnAccountAsync(string accountId, CancellationToken cancellationToken)
+    {
+        var onAccount = _transactions.Where(transaction => transaction.AccountId == accountId).OrderBy(transaction => transaction.Date);
+        return Task.FromResult<IReadOnlyList<MoneyTransaction>>(onAccount.ToList());
+    }
+
+    public Task<MoneyTransaction?> FindAsync(string transactionId, CancellationToken cancellationToken)
+    {
+        return Task.FromResult(_transactions.Find(transaction => transaction.Id == transactionId));
+    }
+
     public Task SaveAsync(MoneyTransaction transaction, CancellationToken cancellationToken)
     {
         var index = _transactions.FindIndex(stored => stored.Id == transaction.Id);

@@ -31,13 +31,17 @@ export interface AccountStatement {
 }
 
 /**
- * Money moved from a bank account to a credit card to pay its invoice. Neither income nor an expense:
- * the purchases on the card already counted as expenses.
+ * Money paid to a credit card to settle its invoice. Neither income nor an expense: the purchases on
+ * the card already counted as expenses. It comes from one of the person's bank accounts
+ * (`fromAccountId`) or from someone else (`paidBy`, a relative who paid it), exactly one of the two.
  */
 export interface CardPayment {
   readonly id: string;
   readonly cardId: string;
-  readonly fromAccountId: string;
+  /** The bank account the money left; absent when someone else paid. */
+  readonly fromAccountId?: string;
+  /** Who paid when it was not one of the person's accounts; absent otherwise. */
+  readonly paidBy?: string;
   /** Local calendar day, `YYYY-MM-DD`. */
   readonly date: string;
   /** Always above zero. */

@@ -1,4 +1,4 @@
-import { Component, LOCALE_ID, computed, inject, signal } from '@angular/core';
+import { Component, LOCALE_ID, computed, effect, inject, signal, untracked } from '@angular/core';
 import { formatDate } from '@angular/common';
 import { LoadFailed } from '../../../components/load-failed/load-failed';
 import { PageHeading } from '../../../components/page-heading/page-heading';
@@ -11,6 +11,7 @@ import {
 } from '../../../core/finances/account-activity';
 import { CardPaymentDraft, suggestedPaymentCents } from '../../../core/finances/account-statement';
 import { BanksAndCardsStore } from '../../../core/finances/banks-and-cards-store';
+import { CardInvoicesStore } from '../../../core/finances/card-invoices-store';
 import { Account, AccountDraft, namesById } from '../../../core/finances/finance-references';
 import { InvoicePeriod, invoicesBack } from '../../../core/finances/invoice-cycle';
 import { formatBalance, formatMoney } from '../../../core/finances/money';
@@ -18,6 +19,7 @@ import { monthOfDay, shiftMonth } from '../../../core/finances/transaction-month
 import { AccountDetail } from './account-detail/account-detail';
 import { AccountForm } from './account-form/account-form';
 import { AccountTiles } from './account-tiles/account-tiles';
+import { CardInvoices, PaidByOthers } from './card-invoices/card-invoices';
 import { PaymentForm } from './payment-form/payment-form';
 import { TranslatePipe } from '../../../core/i18n/translate.pipe';
 
@@ -38,14 +40,17 @@ type AccountFormMode = 'closed' | 'new' | 'edit';
     AccountDetail,
     AccountForm,
     PaymentForm,
+    CardInvoices,
   ],
-  providers: [BanksAndCardsStore],
+  providers: [BanksAndCardsStore, CardInvoicesStore],
   templateUrl: './accounts.html',
   styleUrl: './accounts.css',
 })
 export class Accounts {
   private readonly store = inject(BanksAndCardsStore);
   private readonly locale = inject(LOCALE_ID);
+  /** The selected card's invoice history. */
+  protected readonly invoices = inject(CardInvoicesStore);
 
   protected readonly today = this.store.today;
   protected readonly accounts = this.store.accounts;
@@ -68,6 +73,19 @@ export class Accounts {
     this.accounts().filter((account) => account.kind === 'bankAccount'),
   );
   protected readonly categoryNames = computed(() => namesById(this.store.categories()));
+  protected readonly accountNames = computed(() => namesById(this.accounts()));
+  /** The card whose invoices are listed; none while a bank account is selected. */
+  private readonly selectedCardId = computed(() => {
+    const account = this.selected();
+    return account?.kind === 'creditCard' ? account.id : undefined;
+  });
+
+  constructor() {
+    effect(() => {
+      const cardId = this.selectedCardId();
+      if (cardId !== undefined) untracked(() => this.invoices.show(cardId));
+    });
+  }
   /** The `YYYY-MM` month the bank accounts list. */
   protected readonly month = this.store.month;
   protected readonly isMonthLoading = this.store.isMonthLoading;
@@ -145,12 +163,19 @@ export class Accounts {
   }
 
   protected pay(draft: CardPaymentDraft): void {
-    this.store.payInvoice(draft);
+    this.store.payInvoice(draft, () => this.invoices.reload());
     this.closePayment();
   }
 
   protected removePayment(paymentId: string): void {
-    this.store.deletePayment(paymentId);
+    this.store.deletePayment(paymentId, () => this.invoices.reload());
+  }
+
+  /** Records that someone else paid what is left of the invoice; balances follow once it is stored. */
+  protected markPaidByOthers(marked: PaidByOthers): void {
+    this.invoices.markPaidByOthers(marked.invoice, marked.paidBy, () =>
+      this.store.refreshBalances(),
+    );
   }
 
   protected reload(): void {

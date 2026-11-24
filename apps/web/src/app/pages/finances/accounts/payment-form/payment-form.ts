@@ -7,16 +7,21 @@ import {
   input,
   linkedSignal,
   output,
+  signal,
 } from '@angular/core';
 import { fieldValue } from '../../../../core/forms/field-value';
 import { CardPaymentDraft } from '../../../../core/finances/account-statement';
+import { MAX_PAID_BY_LENGTH } from '../../../../core/finances/card-invoices';
 import { Account } from '../../../../core/finances/finance-references';
 import { amountText, isValidAmount, parseAmountCents } from '../../../../core/finances/money';
 import { TranslatePipe } from '../../../../core/i18n/translate.pipe';
 
+/** The "paid from" choice for a payment someone else made, from none of the person's accounts. */
+const PAID_BY_OTHERS = 'paid-by-others';
+
 /**
- * Inline form to pay a credit card's invoice from a bank account: which account, how much (the
- * suggested amount to start with) and on which day.
+ * Inline form to pay a credit card's invoice: from which bank account, or by whom when someone else
+ * paid it (a relative); how much (the suggested amount to start with) and on which day.
  */
 @Component({
   selector: 'app-payment-form',
@@ -43,7 +48,13 @@ export class PaymentForm {
     );
   }
 
-  protected readonly fromAccountId = linkedSignal(() => this.bankAccounts()[0]?.id ?? '');
+  protected readonly paidByOthers = PAID_BY_OTHERS;
+  protected readonly maxPaidByLength = MAX_PAID_BY_LENGTH;
+  protected readonly fromAccountId = linkedSignal(
+    () => this.bankAccounts()[0]?.id ?? PAID_BY_OTHERS,
+  );
+  protected readonly paidBy = signal('');
+  protected readonly isPaidByOthers = computed(() => this.fromAccountId() === PAID_BY_OTHERS);
   protected readonly amount = linkedSignal(() =>
     this.suggestedCents() > 0 ? amountText(this.suggestedCents()) : '',
   );
@@ -55,8 +66,11 @@ export class PaymentForm {
       ? 'Enter an amount above zero, like 286.40.'
       : undefined,
   );
+  private readonly hasSource = computed(() =>
+    this.isPaidByOthers() ? this.paidBy().trim() !== '' : this.fromAccountId() !== '',
+  );
   protected readonly canSave = computed(
-    () => isValidAmount(this.amountCents()) && this.fromAccountId() !== '' && this.date() !== '',
+    () => isValidAmount(this.amountCents()) && this.hasSource() && this.date() !== '',
   );
 
   protected submit(event: SubmitEvent): void {
@@ -64,11 +78,17 @@ export class PaymentForm {
     const cents = this.amountCents();
     if (!this.canSave() || !isValidAmount(cents)) return;
     this.save.emit({
+      ...this.source(),
       cardId: this.card().id,
-      fromAccountId: this.fromAccountId(),
       date: this.date(),
       amountCents: cents,
     });
+  }
+
+  private source(): Pick<CardPaymentDraft, 'fromAccountId' | 'paidBy'> {
+    return this.isPaidByOthers()
+      ? { paidBy: this.paidBy().trim() }
+      : { fromAccountId: this.fromAccountId() };
   }
 
   protected readonly valueOf = fieldValue;

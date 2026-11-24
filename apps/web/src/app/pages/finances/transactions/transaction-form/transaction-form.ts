@@ -71,6 +71,8 @@ export class TransactionForm {
   readonly settleBill = output<BillLink>();
   readonly dismiss = output();
   readonly remove = output();
+  /** The edited expense was really the payment of this card's invoice. */
+  readonly convertToCardPayment = output<string>();
 
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
 
@@ -126,6 +128,23 @@ export class TransactionForm {
       : undefined,
   );
   protected readonly canSave = computed(() => this.hasDetails() && this.hasPlace());
+  protected readonly cards = computed(() =>
+    this.accounts().filter((account) => account.kind === 'creditCard'),
+  );
+  /** An expense stored on a bank account can turn out to be a card invoice payment. */
+  protected readonly canBeInvoicePayment = computed(() => {
+    const stored = this.transaction();
+    const account = this.accounts().find((current) => current.id === stored?.accountId);
+    const isBankExpense = stored !== undefined && stored.amountCents < 0;
+    return isBankExpense && account?.kind === 'bankAccount' && this.cards().length > 0;
+  });
+  protected readonly isPickingCard = signal(false);
+  protected readonly paidCardId = linkedSignal(() => this.cards()[0]?.id ?? '');
+
+  protected confirmCardPayment(): void {
+    if (this.paidCardId() === '') return;
+    this.convertToCardPayment.emit(this.paidCardId());
+  }
   protected readonly submitLabel = computed(() => {
     if (this.isEditing()) return 'Save transaction';
     if (this.isInstallments()) return 'Add installments';

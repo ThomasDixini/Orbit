@@ -1,5 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using Orbit.Api.Endpoints;
 using Shouldly;
 
@@ -7,6 +9,11 @@ namespace Orbit.Api.Tests.Endpoints;
 
 public sealed class TransactionEndpointsTests : IDisposable
 {
+    private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web)
+    {
+        Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) },
+    };
+
     private readonly ApiFactory _factory = new();
     private readonly HttpClient _client;
 
@@ -108,7 +115,7 @@ public sealed class TransactionEndpointsTests : IDisposable
     [Fact]
     public async Task GetFinanceCategories_ListsTheStarterSet()
     {
-        var categories = await _client.GetFromJsonAsync<FinanceCategoryResponse[]>("/finance-categories");
+        var categories = await _client.GetFromJsonAsync<FinanceCategoryResponse[]>("/finance-categories", Json);
 
         categories!.ShouldContain(category => category.Id == "food" && category.Name == "Food");
     }

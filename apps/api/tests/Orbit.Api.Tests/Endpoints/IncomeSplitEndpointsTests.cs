@@ -1,5 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using Orbit.Api.Endpoints;
 using Shouldly;
 
@@ -7,6 +9,11 @@ namespace Orbit.Api.Tests.Endpoints;
 
 public sealed class IncomeSplitEndpointsTests : IDisposable
 {
+    private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web)
+    {
+        Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) },
+    };
+
     private readonly ApiFactory _factory = new();
     private readonly HttpClient _client;
 
@@ -70,8 +77,21 @@ public sealed class IncomeSplitEndpointsTests : IDisposable
 
         (created.StatusCode, renamed.StatusCode, taken.StatusCode)
             .ShouldBe((HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.Conflict));
-        var categories = await _client.GetFromJsonAsync<FinanceCategoryResponse[]>("/finance-categories");
+        var categories = await _client.GetFromJsonAsync<FinanceCategoryResponse[]>("/finance-categories", Json);
         categories!.ShouldContain(category => category.Id == "courses" && category.Name == "Study");
+    }
+
+    [Fact]
+    public async Task PutCategory_KeepsATransferKindAndDefaultsToRegular()
+    {
+        (await _client.PutAsJsonAsync("/finance-categories/transfers", new { name = "Transfers", kind = "transfer" }))
+            .EnsureSuccessStatusCode();
+        (await _client.PutAsJsonAsync("/finance-categories/courses", new { name = "Courses" })).EnsureSuccessStatusCode();
+
+        var categories = await _client.GetFromJsonAsync<FinanceCategoryResponse[]>("/finance-categories", Json);
+
+        categories!.Single(category => category.Id == "transfers").Kind.ShouldBe(Orbit.Api.Domain.Finances.FinanceCategoryKind.Transfer);
+        categories!.Single(category => category.Id == "courses").Kind.ShouldBe(Orbit.Api.Domain.Finances.FinanceCategoryKind.Regular);
     }
 
     [Fact]

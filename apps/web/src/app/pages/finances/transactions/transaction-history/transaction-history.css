@@ -94,6 +94,12 @@
   font-size: var(--font-size-md);
 }
 
+/* A transfer only moved money: neither the income green nor the expense orange. */
+.transfer .mark,
+.transfer .amount {
+  color: var(--color-text-muted);
+}
+
 /* Phones: the row keeps its arrow and text on the first line, category and amount below. */
 @media (max-width: 479px) {
   .history {

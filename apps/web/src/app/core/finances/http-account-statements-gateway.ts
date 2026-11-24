@@ -3,10 +3,11 @@ import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { AccountStatement, CardPayment } from './account-statement';
 import { AccountStatementsGateway } from './account-statements-gateway';
+import { CardInvoice } from './card-invoices';
 
 const CARD_PAYMENTS_URL = '/api/card-payments';
 
-/** Account statements and card payments served by the Orbit API. */
+/** Account statements, card invoices and card payments served by the Orbit API. */
 @Injectable()
 export class HttpAccountStatementsGateway extends AccountStatementsGateway {
   private readonly httpClient = inject(HttpClient);
@@ -29,6 +30,20 @@ export class HttpAccountStatementsGateway extends AccountStatementsGateway {
 
   override deletePayment(paymentId: string): Observable<void> {
     return this.httpClient.delete<void>(paymentUrl(paymentId));
+  }
+
+  override invoices(cardId: string, asOf: string): Observable<readonly CardInvoice[]> {
+    return this.httpClient.get<readonly CardInvoice[]>(
+      `/api/accounts/${encodeURIComponent(cardId)}/invoices`,
+      { params: { date: asOf } },
+    );
+  }
+
+  override convertToCardPayment(transactionId: string, cardId: string): Observable<CardPayment> {
+    return this.httpClient.post<CardPayment>(
+      `/api/transactions/${encodeURIComponent(transactionId)}/card-payment`,
+      { cardId },
+    );
   }
 }
 

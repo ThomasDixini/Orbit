@@ -159,6 +159,36 @@
     }
   </div>
 
+  @if (canBeInvoicePayment()) {
+    <div class="card-payment">
+      @if (isPickingCard()) {
+        <label class="ui-field">
+          {{ 'Card whose invoice it paid' | t }}
+          <select class="ui-input" name="paidCard" (change)="paidCardId.set(valueOf($event))">
+            @for (card of cards(); track card.id) {
+              <option [value]="card.id" [selected]="card.id === paidCardId()">
+                {{ card.name | t }}
+              </option>
+            }
+          </select>
+        </label>
+        <button class="ui-button-primary" type="button" (click)="confirmCardPayment()">
+          {{ 'Turn into invoice payment' | t }}
+        </button>
+        <button class="ui-button-ghost" type="button" (click)="isPickingCard.set(false)">
+          {{ 'Cancel' | t }}
+        </button>
+      } @else {
+        <button class="ui-button-ghost" type="button" (click)="isPickingCard.set(true)">
+          {{ 'It paid a card invoice' | t }}
+        </button>
+        <span class="ui-muted hint">
+          {{ 'It leaves your expenses and lowers what the card owes.' | t }}
+        </span>
+      }
+    </div>
+  }
+
   <div class="actions">
     @if (isEditing()) {
       <button class="ui-button-ghost delete" type="button" (click)="remove.emit()">

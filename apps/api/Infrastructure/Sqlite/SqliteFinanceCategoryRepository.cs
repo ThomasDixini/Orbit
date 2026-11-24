@@ -7,7 +7,7 @@ namespace Orbit.Api.Infrastructure.Sqlite;
 /// <summary>Finance categories stored in the <c>finance_categories</c> table.</summary>
 public sealed class SqliteFinanceCategoryRepository(SqliteConnectionFactory connections) : IFinanceCategoryRepository
 {
-    private const string SelectColumns = "SELECT id, name FROM finance_categories";
+    private const string SelectColumns = "SELECT id, name, kind FROM finance_categories";
 
     public async Task<IReadOnlyList<FinanceCategory>> ListAsync(CancellationToken cancellationToken)
     {
@@ -32,11 +32,12 @@ public sealed class SqliteFinanceCategoryRepository(SqliteConnectionFactory conn
         await SqliteCommands.ExecuteAsync(
             lease.Connection,
             """
-            INSERT INTO finance_categories (user_id, id, name) VALUES ($user, $id, $name)
-            ON CONFLICT (user_id, id) DO UPDATE SET name = excluded.name
+            INSERT INTO finance_categories (user_id, id, name, kind) VALUES ($user, $id, $name, $kind)
+            ON CONFLICT (user_id, id) DO UPDATE SET name = excluded.name, kind = excluded.kind
             """,
             cancellationToken,
-            ("$user", connections.UserId), ("$id", category.Id), ("$name", category.Name));
+            ("$user", connections.UserId), ("$id", category.Id), ("$name", category.Name),
+            ("$kind", category.Kind.ToString()));
     }
 
     public async Task DeleteAsync(string categoryId, CancellationToken cancellationToken)
@@ -50,5 +51,6 @@ public sealed class SqliteFinanceCategoryRepository(SqliteConnectionFactory conn
     }
 
     private static FinanceCategory ToCategory(SqliteDataReader reader) =>
-        FinanceCategory.Restore(reader.GetString(0), reader.GetString(1));
+        FinanceCategory.Restore(
+            reader.GetString(0), reader.GetString(1), Enum.Parse<FinanceCategoryKind>(reader.GetString(2), ignoreCase: true));
 }

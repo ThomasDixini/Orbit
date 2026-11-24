@@ -19,6 +19,12 @@ internal sealed class InMemoryCardPaymentRepository : ICardPaymentRepository
         return Task.FromResult<IReadOnlyList<CardPayment>>(inMonth.ToList());
     }
 
+    public Task<IReadOnlyList<CardPayment>> ListToCardAsync(string cardId, CancellationToken cancellationToken)
+    {
+        var toCard = _payments.Where(payment => payment.CardId == cardId).OrderBy(payment => payment.Date);
+        return Task.FromResult<IReadOnlyList<CardPayment>>(toCard.ToList());
+    }
+
     public Task SaveAsync(CardPayment payment, CancellationToken cancellationToken)
     {
         var index = _payments.FindIndex(stored => stored.Id == payment.Id);

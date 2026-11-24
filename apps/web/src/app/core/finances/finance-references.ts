@@ -27,10 +27,26 @@ export interface Account {
 /** What the account form fills in; the id is given by the store. */
 export type AccountDraft = Omit<Account, 'id'>;
 
+/**
+ * Whether money filed under a category is earned or spent ('regular'), or only moves between accounts
+ * ('transfer': a Pix to one's own account or to family), which is never income nor an expense.
+ */
+export type FinanceCategoryKind = 'regular' | 'transfer';
+
 /** What money went to or came from (food, salary…); separate from the routines categories. */
 export interface FinanceCategory {
   readonly id: string;
   readonly name: string;
+  /** Absent means 'regular', as categories were before transfers existed. */
+  readonly kind?: FinanceCategoryKind;
+}
+
+/**
+ * Whether the category only moves money, so its transactions stay out of income and expenses.
+ * @example isTransferCategory({ id: 'transfers', name: 'Transfers', kind: 'transfer' }) // true
+ */
+export function isTransferCategory(category: FinanceCategory): boolean {
+  return category.kind === 'transfer';
 }
 
 /** The longest category name the API accepts. */

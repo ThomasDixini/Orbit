@@ -4,6 +4,7 @@ import { PT_BR_LANDING } from './pt-br-landing';
 import { PT_BR_ROUTINES } from './pt-br-routines';
 import { PT_BR_SAMPLES } from './pt-br-samples';
 import { PT_BR_SENTENCES } from './pt-br-sentences';
+import { PT_BR_TRANSFERS_INVOICES } from './pt-br-transfers-invoices';
 
 /**
  * Brazilian Portuguese, keyed by the English text shown in the app. Add an entry for each new text; one
@@ -16,6 +17,7 @@ export const PT_BR: Readonly<Record<string, string>> = {
   ...PT_BR_ROUTINES,
   ...PT_BR_SAMPLES,
   ...PT_BR_SENTENCES,
+  ...PT_BR_TRANSFERS_INVOICES,
   // Shell: header, dock, home
   Profile: 'Perfil',
   'Coming soon': 'Em breve',

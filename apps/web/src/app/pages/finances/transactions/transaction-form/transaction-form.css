@@ -37,6 +37,18 @@
   color: var(--color-danger);
 }
 
+.card-payment {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 8px 12px;
+}
+
+.card-payment .hint {
+  align-self: center;
+  font-size: var(--font-size-xs);
+}
+
 .actions {
   display: flex;
   flex-wrap: wrap;

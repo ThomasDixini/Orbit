@@ -11,6 +11,12 @@ public interface IMoneyTransactionRepository
     /// </summary>
     Task<IReadOnlyList<MoneyTransaction>> ListInMonthAsync(TransactionMonth month, CancellationToken cancellationToken);
 
+    /// <summary>Every transaction recorded on the account, oldest day first.</summary>
+    Task<IReadOnlyList<MoneyTransaction>> ListOnAccountAsync(string accountId, CancellationToken cancellationToken);
+
+    /// <summary>The transaction with the id, or null when there is none.</summary>
+    Task<MoneyTransaction?> FindAsync(string transactionId, CancellationToken cancellationToken);
+
     /// <summary>Stores the transaction, replacing a stored one with the same id without moving it.</summary>
     Task SaveAsync(MoneyTransaction transaction, CancellationToken cancellationToken);
 

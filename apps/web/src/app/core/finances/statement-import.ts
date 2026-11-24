@@ -41,7 +41,13 @@ const ID_PATTERN = /^[A-Za-z0-9-]{1,64}$/;
 /** Money moving between the account and the person's own investments (RDB, Treasury, shares, FIIs, NuInvest). */
 const INTERNAL_PATTERN =
   /^(resgate|aplicação) rdb|^(compra|venda) de (ações|fundos?|fii)\b|^(resgate|aplicação) - tesouro|^(devolução - )?aplicação em investimento|^transferência de saldo nuinvest/i;
-const INVOICE_PATTERN = /^pagamento de fatura/i;
+/**
+ * The payment of a card invoice: Nubank's own line, a boleto of a Santander credit card ("SANTANDER
+ * FREE MASTE"), or a Pix sent to Nu Pagamentos itself (by name or CNPJ 18.236.120), which is how other
+ * banks pay a Nubank invoice. A Pix to a person whose account is at Nubank names the person, not Nubank.
+ */
+const INVOICE_PATTERN =
+  /^pagamento de fatura|^pagamento de boleto - santander\b.*\bmaste|^(pix enviado|transferência enviada pelo pix) - (nu pagamentos s[./]?a\b|18\.236\.120)/i;
 const CENTS_PER_REAL = 100;
 
 /**

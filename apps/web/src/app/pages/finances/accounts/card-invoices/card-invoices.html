@@ -1,0 +1,106 @@
+<section class="ui-card invoices" aria-labelledby="card-invoices-title">
+  <div class="header">
+    <h3 id="card-invoices-title" class="ui-card-title">{{ 'Invoices' | t }}</h3>
+    @if (invoices().length > 0) {
+      <span class="owed ui-tabular" role="status">{{ owedLine() | t }}</span>
+    }
+  </div>
+  <p class="ui-muted hint">
+    {{ 'Each payment settles the oldest invoice still owed first.' | t }}
+  </p>
+
+  @if (hasLoadFailed()) {
+    <p class="ui-muted" role="alert">
+      {{ "Couldn't load the invoices." | t }}
+      <button class="ui-button-ghost small" type="button" (click)="retry.emit()">
+        {{ 'Try again' | t }}
+      </button>
+    </p>
+  } @else if (isLoading() && invoices().length === 0) {
+    <p class="ui-muted" role="status">{{ 'Loading…' | t }}</p>
+  } @else if (invoices().length === 0) {
+    <p class="ui-muted">{{ 'No invoices yet.' | t }}</p>
+  } @else {
+    <ul class="list" [attr.aria-label]="'Invoices' | t">
+      @for (invoice of invoices(); track invoice.closesOn) {
+        <li class="invoice" [class]="invoice.status">
+          <div class="summary">
+            <span class="when">
+              <span class="due">{{ 'Invoice due {day}' | t: { day: day(invoice.dueOn) } }}</span>
+              <span class="ui-muted period">{{ period(invoice) }}</span>
+            </span>
+            <span class="figures ui-tabular">
+              <span>{{ money(invoice.amountCents) }}</span>
+              @if (invoice.remainingCents > 0 && invoice.status !== 'upcoming') {
+                <span class="left">{{
+                  '{amount} still to pay' | t: { amount: money(invoice.remainingCents) }
+                }}</span>
+              }
+            </span>
+            <span class="ui-tag status">{{ statusLabel(invoice.status) | t }}</span>
+          </div>
+
+          @if (invoice.payments.length > 0 || invoice.creditCents > 0) {
+            <ul class="payments" [attr.aria-label]="'Paid by' | t">
+              @for (share of invoice.payments; track share.paymentId) {
+                <li class="payment ui-tabular">
+                  <span>{{ day(share.date) }} · {{ source(share) | t }}</span>
+                  <span>{{ shareAmount(share) | t }}</span>
+                </li>
+              }
+              @if (invoice.creditCents > 0) {
+                <li class="payment ui-tabular">
+                  <span>{{ 'Refund credit' | t }}</span>
+                  <span>{{ money(invoice.creditCents) }}</span>
+                </li>
+              }
+            </ul>
+          }
+
+          @if (canMarkPaid(invoice)) {
+            @if (markingCloses() === invoice.closesOn) {
+              <form
+                class="mark"
+                [attr.aria-label]="'Mark as paid by someone else' | t"
+                (submit)="confirmMarking($event, invoice)"
+                (keydown.escape)="cancelMarking()"
+              >
+                <label class="ui-field grow">
+                  {{ 'Who paid {amount}' | t: { amount: money(invoice.remainingCents) } }}
+                  <input
+                    class="ui-input"
+                    name="paidBy"
+                    type="text"
+                    autocomplete="off"
+                    [placeholder]="'E.g. Sister' | t"
+                    [attr.maxlength]="maxPaidByLength"
+                    [value]="paidBy()"
+                    (input)="paidBy.set(valueOf($event))"
+                  />
+                </label>
+                <button
+                  class="ui-button-primary small"
+                  type="submit"
+                  [disabled]="paidBy().trim() === ''"
+                >
+                  {{ 'Mark as paid' | t }}
+                </button>
+                <button class="ui-button-ghost small" type="button" (click)="cancelMarking()">
+                  {{ 'Cancel' | t }}
+                </button>
+              </form>
+            } @else {
+              <button
+                class="ui-button-ghost small mark-button"
+                type="button"
+                (click)="startMarking(invoice)"
+              >
+                {{ 'Paid by someone else' | t }}
+              </button>
+            }
+          }
+        </li>
+      }
+    </ul>
+  }
+</section>
