@@ -32,6 +32,26 @@ public class CardPaymentTests
         Should.Throw<DomainRuleException>(() => CardPayment.Create("p1", Visa, Visa, PaidOn, 100));
     }
 
+    [Fact]
+    public void CreatePaidByOthers_KeepsWhoPaidAndNoAccount()
+    {
+        var payment = CardPayment.CreatePaidByOthers("p2", Visa, "  Sister ", PaidOn, 82359);
+
+        (payment.FromAccountId, payment.PaidBy, payment.AmountCents).ShouldBe((null, "Sister", 82359L));
+    }
+
+    [Fact]
+    public void CreatePaidByOthers_RejectsAnEmptyName()
+    {
+        Should.Throw<DomainRuleException>(() => CardPayment.CreatePaidByOthers("p2", Visa, "  ", PaidOn, 100));
+    }
+
+    [Fact]
+    public void CreatePaidByOthers_RejectsPayingABankAccount()
+    {
+        Should.Throw<DomainRuleException>(() => CardPayment.CreatePaidByOthers("p2", Checking, "Sister", PaidOn, 100));
+    }
+
     [Theory]
     [InlineData(0)]
     [InlineData(-100)]

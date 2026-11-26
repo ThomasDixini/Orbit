@@ -32,7 +32,29 @@ public sealed class CardPaymentEndpointsTests : IDisposable
 
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         var november = await _client.GetFromJsonAsync<CardPaymentResponse[]>("/card-payments?month=2026-11");
-        november!.Single().ShouldBe(new CardPaymentResponse("p1", "credit-card", "checking-account", new DateOnly(2026, 11, 10), 28640));
+        november!.Single().ShouldBe(new CardPaymentResponse("p1", "credit-card", "checking-account", new DateOnly(2026, 11, 10), 28640, null));
+    }
+
+    [Fact]
+    public async Task Put_APaymentSomeoneElseMadeIsSavedWithoutAnAccount()
+    {
+        var body = new { cardId = "credit-card", paidBy = "Sister", date = "2026-11-10", amountCents = 28640 };
+
+        var response = await _client.PutAsJsonAsync("/card-payments/p2", body);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var november = await _client.GetFromJsonAsync<CardPaymentResponse[]>("/card-payments?month=2026-11");
+        november!.Single().ShouldBe(new CardPaymentResponse("p2", "credit-card", null, new DateOnly(2026, 11, 10), 28640, "Sister"));
+    }
+
+    [Fact]
+    public async Task Put_NeitherAnAccountNorWhoPaidIsBadRequest()
+    {
+        var body = new { cardId = "credit-card", date = "2026-11-10", amountCents = 28640 };
+
+        var response = await _client.PutAsJsonAsync("/card-payments/p3", body);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
     }
 
     [Fact]

@@ -1,3 +1,5 @@
+import { AccountStatementsGateway } from '../finances/account-statements-gateway';
+import { FakeAccountStatementsGateway } from '../finances/fake-account-statements-gateway';
 import { ErrorHandler } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { Observable } from 'rxjs';
@@ -90,6 +92,7 @@ describe('what a refresh reads again', () => {
     const gateway = new FakeTransactionsGateway();
     configure([
       { provide: TransactionsGateway, useValue: gateway },
+      { provide: AccountStatementsGateway, useValue: new FakeAccountStatementsGateway() },
       { provide: FinanceReferencesGateway, useValue: new FakeFinanceReferencesGateway() },
     ]);
     TestBed.inject(TransactionsStore);

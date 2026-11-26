@@ -3,15 +3,20 @@ using Orbit.Api.Domain.Finances;
 
 namespace Orbit.Api.Endpoints;
 
-public sealed record FinanceCategoryResponse(string Id, string Name)
+public sealed record FinanceCategoryResponse(string Id, string Name, FinanceCategoryKind Kind)
 {
-    public static FinanceCategoryResponse From(FinanceCategory category) => new(category.Id, category.Name);
+    public static FinanceCategoryResponse From(FinanceCategory category) =>
+        new(category.Id, category.Name, category.Kind);
 }
 
-/// <summary>Body of <c>PUT /finance-categories/{categoryId}</c>; the id comes from the route.</summary>
-public sealed record SaveFinanceCategoryRequest(string Name)
+/// <summary>
+/// Body of <c>PUT /finance-categories/{categoryId}</c>; the id comes from the route. A body without a kind
+/// (from a client older than transfers) saves a regular category.
+/// </summary>
+public sealed record SaveFinanceCategoryRequest(string Name, FinanceCategoryKind? Kind = null)
 {
-    public SaveFinanceCategoryCommand ToCommand(string categoryId) => new(categoryId, Name);
+    public SaveFinanceCategoryCommand ToCommand(string categoryId) =>
+        new(categoryId, Name, Kind ?? FinanceCategoryKind.Regular);
 }
 
 /// <summary>HTTP routes for the finance categories transactions are filed under.</summary>

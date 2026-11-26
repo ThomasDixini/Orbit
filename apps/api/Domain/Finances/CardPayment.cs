@@ -1,25 +1,37 @@
 namespace Orbit.Api.Domain.Finances;
 
 /// <summary>
-/// Money moved from a bank account to a credit card to pay its invoice. It is neither income nor an
-/// expense: the purchases on the card already counted as expenses, so the payment only moves money from
-/// one account to another.
+/// Money paid to a credit card to settle its invoice. It is neither income nor an expense: the purchases
+/// on the card already counted as expenses. It comes either from one of the person's bank accounts, so it
+/// only moves money between accounts, or from someone else (a relative who paid the invoice), so no
+/// account of the person's changes.
 /// </summary>
 public sealed class CardPayment
 {
+    /// <summary>The longest "paid by" note: a name, not a story.</summary>
+    public const int MaxPaidByLength = 40;
+
     public string Id { get; }
     public string CardId { get; }
-    public string FromAccountId { get; }
+
+    /// <summary>The bank account the money left; absent when someone else paid.</summary>
+    public string? FromAccountId { get; }
+
+    /// <summary>Who paid when it was not one of the person's accounts; absent otherwise.</summary>
+    public string? PaidBy { get; }
+
     public DateOnly Date { get; }
 
     /// <summary>The amount paid, in cents; always above zero.</summary>
     public long AmountCents { get; }
 
-    private CardPayment(string id, string cardId, string fromAccountId, DateOnly date, long amountCents)
+    private CardPayment(
+        string id, string cardId, string? fromAccountId, string? paidBy, DateOnly date, long amountCents)
     {
         Id = id;
         CardId = cardId;
         FromAccountId = fromAccountId;
+        PaidBy = paidBy;
         Date = date;
         AmountCents = amountCents;
     }
@@ -35,6 +47,24 @@ public sealed class CardPayment
             EntityId.Require(id, "card payment id"),
             RequireKind(card, AccountKind.CreditCard, "card"),
             RequireKind(fromAccount, AccountKind.BankAccount, "account it is paid from"),
+            paidBy: null,
+            date,
+            RequireAmount(amountCents));
+    }
+
+    /// <summary>
+    /// Builds a valid payment someone else made: to a credit card, with who paid it (trimmed), of an amount
+    /// above zero within the amount limit.
+    /// </summary>
+    /// <example><code>CardPayment.CreatePaidByOthers("p2", santander, " Sister ", new DateOnly(2026, 6, 12), 82359).PaidBy; // "Sister"</code></example>
+    public static CardPayment CreatePaidByOthers(
+        string id, Account card, string paidBy, DateOnly date, long amountCents)
+    {
+        return new CardPayment(
+            EntityId.Require(id, "card payment id"),
+            RequireKind(card, AccountKind.CreditCard, "card"),
+            fromAccountId: null,
+            RequiredText.Require(paidBy, MaxPaidByLength, "name of who paid the card"),
             date,
             RequireAmount(amountCents));
     }
@@ -42,9 +72,10 @@ public sealed class CardPayment
     /// <summary>
     /// Rebuilds a stored payment as it was saved, without today's rules.
     /// </summary>
-    /// <example><code>CardPayment.Restore("p1", "visa", "checking-account", new DateOnly(2026, 11, 10), 234690);</code></example>
-    internal static CardPayment Restore(string id, string cardId, string fromAccountId, DateOnly date, long amountCents) =>
-        new(id, cardId, fromAccountId, date, amountCents);
+    /// <example><code>CardPayment.Restore("p1", "visa", "checking-account", null, new DateOnly(2026, 11, 10), 234690);</code></example>
+    internal static CardPayment Restore(
+        string id, string cardId, string? fromAccountId, string? paidBy, DateOnly date, long amountCents) =>
+        new(id, cardId, fromAccountId, paidBy, date, amountCents);
 
     private static string RequireKind(Account account, AccountKind expected, string role)
     {

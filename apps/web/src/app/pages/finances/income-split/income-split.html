@@ -57,6 +57,7 @@
       [categories]="store.categories()"
       (add)="store.addCategory($event)"
       (rename)="store.renameCategory($event.categoryId, $event.name)"
+      (changeKind)="store.setCategoryKind($event.categoryId, $event.kind)"
       (remove)="store.deleteCategory($event)"
     />
   }

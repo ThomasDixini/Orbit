@@ -74,12 +74,21 @@
       [invoice]="shownInvoice()"
       [isCurrentInvoice]="isCurrentInvoice()"
       [isLoadingMonth]="isMonthLoading()"
-      [canPay]="bankAccounts().length > 0"
       (previousMonth)="showStep(-1)"
       (nextMonth)="showStep(1)"
       (edit)="openAccountForm('edit')"
       (pay)="openPayment()"
       (removePayment)="removePayment($event)"
     />
+    @if (account.kind === 'creditCard') {
+      <app-card-invoices
+        [invoices]="invoices.invoices()"
+        [accountNames]="accountNames()"
+        [isLoading]="invoices.isLoading()"
+        [hasLoadFailed]="invoices.hasLoadFailed()"
+        (markPaid)="markPaidByOthers($event)"
+        (retry)="invoices.reload()"
+      />
+    }
   }
 </div>

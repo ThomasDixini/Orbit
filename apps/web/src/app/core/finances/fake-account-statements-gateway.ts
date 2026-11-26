@@ -1,6 +1,7 @@
 import { Observable, of, throwError } from 'rxjs';
 import { AccountStatement, CardPayment } from './account-statement';
 import { AccountStatementsGateway } from './account-statements-gateway';
+import { CardInvoice } from './card-invoices';
 
 /** The October 10 payment of the credit card's September invoice, from the checking account. */
 export const SAMPLE_PAYMENT: CardPayment = {
@@ -9,6 +10,27 @@ export const SAMPLE_PAYMENT: CardPayment = {
   fromAccountId: 'checking-account',
   date: '2026-10-10',
   amountCents: 41250,
+};
+
+/** The credit card's September invoice, paid in full by the sample payment. */
+export const SAMPLE_INVOICE: CardInvoice = {
+  startsOn: '2026-09-03',
+  closesOn: '2026-10-03',
+  dueOn: '2026-10-10',
+  amountCents: 41250,
+  paidCents: 41250,
+  remainingCents: 0,
+  creditCents: 0,
+  status: 'paid',
+  payments: [
+    {
+      paymentId: 'september-invoice',
+      date: '2026-10-10',
+      amountCents: 41250,
+      paymentAmountCents: 41250,
+      fromAccountId: 'checking-account',
+    },
+  ],
 };
 
 /**
@@ -48,6 +70,10 @@ export class FakeAccountStatementsGateway extends AccountStatementsGateway {
   readonly deletedPayments: string[] = [];
   /** Days `statements` was asked for, in order. */
   readonly askedStatements: string[] = [];
+  invoicesToServe: readonly CardInvoice[] = [SAMPLE_INVOICE];
+  /** Cards and days `invoices` was asked for, in order. */
+  readonly askedInvoices: { cardId: string; asOf: string }[] = [];
+  readonly convertedTransactions: { transactionId: string; cardId: string }[] = [];
 
   constructor(
     private readonly paymentMonths: ReadonlyMap<string, readonly CardPayment[]> = new Map([
@@ -74,6 +100,17 @@ export class FakeAccountStatementsGateway extends AccountStatementsGateway {
   override deletePayment(paymentId: string): Observable<void> {
     this.deletedPayments.push(paymentId);
     return this.answer(undefined);
+  }
+
+  override invoices(cardId: string, asOf: string): Observable<readonly CardInvoice[]> {
+    this.askedInvoices.push({ cardId, asOf });
+    return this.answer(this.invoicesToServe);
+  }
+
+  override convertToCardPayment(transactionId: string, cardId: string): Observable<CardPayment> {
+    const converted = { transactionId, cardId };
+    this.convertedTransactions.push(converted);
+    return this.answer({ ...SAMPLE_PAYMENT, id: transactionId, cardId });
   }
 
   private answer<TValue>(value: TValue): Observable<TValue> {

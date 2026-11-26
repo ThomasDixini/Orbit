@@ -15,6 +15,7 @@ import {
   FinanceReferencesGateway,
   TransactionsGateway,
 } from '../../../core/finances/transactions-gateway';
+import { FinanceReferencesStore } from '../../../core/finances/finance-references-store';
 import { Overview } from './overview';
 
 /** Tuesday, November 3, 2026. */
@@ -50,6 +51,20 @@ function texts(fixture: ComponentFixture<Overview>, selector: string): string[] 
   );
 }
 
+function pickColumn(fixture: ComponentFixture<Overview>, label: string): void {
+  const columns = [
+    ...(fixture.nativeElement as HTMLElement).querySelectorAll<HTMLButtonElement>('.chart .column'),
+  ];
+  columns.find((column) => column.textContent?.trim() === label)!.click();
+  fixture.detectChanges();
+}
+
+function columnStates(fixture: ComponentFixture<Overview>): string[] {
+  return [...(fixture.nativeElement as HTMLElement).querySelectorAll('.chart .column')].map(
+    (column) => ['selected', 'dimmed'].find((state) => column.classList.contains(state)) ?? '',
+  );
+}
+
 describe('Finances Overview page', () => {
   it('shows balances, open invoices and this month so far', () => {
     const fixture = render();
@@ -64,6 +79,71 @@ describe('Finances Overview page', () => {
     const columns = (fixture.nativeElement as HTMLElement).querySelectorAll('.chart .column');
     const october = columns[labels.indexOf('Oct')].getAttribute('aria-label');
     expect([labels.length, october]).toEqual([6, 'Oct: received R$9,500.00, spent R$345.30']);
+  });
+
+  it('shows the figures of a month picked on the chart and its spending by category', () => {
+    const fixture = render();
+
+    pickColumn(fixture, 'Oct');
+
+    expect([
+      texts(fixture, '.month-detail dd'),
+      texts(fixture, '[aria-label="Spending by category"] .card-title'),
+      texts(fixture, '.spend-text > span:first-child'),
+      columnStates(fixture),
+    ]).toEqual([
+      ['R$9,500.00', 'R$345.30', '+R$9,154.70'],
+      ['Spending by category · October'],
+      ['Food', 'Health'],
+      ['dimmed', 'dimmed', 'dimmed', 'dimmed', 'selected', 'dimmed'],
+    ]);
+  });
+
+  it('clears the month when it is picked again, back to this month', () => {
+    const fixture = render();
+    pickColumn(fixture, 'Oct');
+
+    pickColumn(fixture, 'Oct');
+
+    expect([
+      texts(fixture, '.month-detail').length,
+      texts(fixture, '.month-hint'),
+      texts(fixture, '[aria-label="Spending by category"] .card-title'),
+    ]).toEqual([
+      0,
+      ['Click a bar to see that month. Click it again to clear.'],
+      ['Spending by category · November'],
+    ]);
+  });
+
+  it('says when nothing was spent in a past month picked', () => {
+    const fixture = render();
+
+    pickColumn(fixture, 'Sep');
+
+    expect(texts(fixture, '[aria-label="Spending by category"] .empty')).toEqual([
+      'Nothing spent in September.',
+    ]);
+  });
+
+  it('leaves a category marked as a transfer out of received, spent and the month picked', () => {
+    const fixture = render();
+    TestBed.inject(FinanceReferencesStore).setCategoryKind('health', 'transfer');
+    fixture.detectChanges();
+
+    pickColumn(fixture, 'Oct');
+
+    expect([
+      texts(fixture, '.chart .column')[4],
+      texts(fixture, '.month-detail dd'),
+      (fixture.nativeElement as HTMLElement)
+        .querySelectorAll('.chart .column')[4]
+        .getAttribute('aria-label'),
+    ]).toEqual([
+      'Oct',
+      ['R$9,500.00', 'R$286.40', '+R$9,213.60'],
+      'Oct: received R$9,500.00, spent R$286.40',
+    ]);
   });
 
   it('lists what is due next, overdue first, leaving out what is paid', () => {

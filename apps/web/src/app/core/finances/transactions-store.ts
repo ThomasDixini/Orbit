@@ -3,6 +3,7 @@ import { firstValueFrom } from 'rxjs';
 import { Clock } from '../calendar/clock';
 import { IdGenerator } from '../ids/id-generator';
 import { Positioned, positionOf, restoredAt, sameId } from '../lists/list-positions';
+import { AccountStatementsGateway } from './account-statements-gateway';
 import { FinanceReferencesStore } from './finance-references-store';
 import { Transaction, TransactionDraft } from './transaction';
 import { monthOf, monthOfDay } from './transaction-month';
@@ -21,6 +22,7 @@ const IMPORT_BATCH_SIZE = 8;
 @Injectable({ providedIn: 'root' })
 export class TransactionsStore {
   private readonly gateway = inject(TransactionsGateway);
+  private readonly statements = inject(AccountStatementsGateway);
   private readonly references = inject(FinanceReferencesStore);
   private readonly ids = inject(IdGenerator);
   private readonly errorHandler = inject(ErrorHandler);
@@ -126,6 +128,20 @@ export class TransactionsStore {
     const removed = positionOf(this.transactionList(), (current) => current.id === transactionId);
     this.transactionList.update((list) => list.filter((current) => current.id !== transactionId));
     this.gateway.delete(transactionId).subscribe({
+      error: (error: unknown) => this.rejected(error, () => this.putBack(removed)),
+    });
+  }
+
+  /**
+   * Turns an expense that paid a card invoice into that card payment: it leaves the list (and the
+   * expenses) at once and comes back if the gateway rejects it. `onStored` runs once it is stored.
+   * @example store.convertToCardPayment('bb-boleto', 'santander', refreshBalances)
+   */
+  convertToCardPayment(transactionId: string, cardId: string, onStored: () => void): void {
+    const removed = positionOf(this.transactionList(), (current) => current.id === transactionId);
+    this.transactionList.update((list) => list.filter((current) => current.id !== transactionId));
+    this.statements.convertToCardPayment(transactionId, cardId).subscribe({
+      next: () => onStored(),
       error: (error: unknown) => this.rejected(error, () => this.putBack(removed)),
     });
   }

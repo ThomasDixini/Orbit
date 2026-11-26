@@ -157,3 +157,39 @@ describe('FinanceReferencesStore account writes', () => {
     ]);
   });
 });
+
+describe('FinanceReferencesStore category kinds', () => {
+  it('marks a category as a transfer, saves it and lists it among the transfers', () => {
+    const { store, gateway } = createStore();
+
+    store.setCategoryKind('health', 'transfer');
+
+    expect([gateway.savedCategories, [...store.transferCategoryIds()]]).toEqual([
+      [{ id: 'health', name: 'Health', kind: 'transfer' }],
+      ['health'],
+    ]);
+  });
+
+  it('keeps the kind when a transfer category is renamed', () => {
+    const { store, gateway } = createStore();
+    store.setCategoryKind('health', 'transfer');
+
+    store.renameCategory('health', 'Between accounts');
+
+    expect(gateway.savedCategories.at(-1)).toEqual({
+      id: 'health',
+      name: 'Between accounts',
+      kind: 'transfer',
+    });
+  });
+
+  it('puts the previous kind back when the gateway rejects the change', () => {
+    const gateway = new FakeFinanceReferencesGateway();
+    const { store, errors } = createStore(gateway);
+    gateway.failure = new Error('offline');
+
+    store.setCategoryKind('health', 'transfer');
+
+    expect([store.transferCategoryIds().size, errors.errors.length]).toEqual([0, 1]);
+  });
+});

@@ -8,6 +8,9 @@ public interface ICardPaymentRepository
     /// <summary>The payments dated in the month, newest day first and, within a day, the latest recorded first.</summary>
     Task<IReadOnlyList<CardPayment>> ListInMonthAsync(TransactionMonth month, CancellationToken cancellationToken);
 
+    /// <summary>Every payment made to the card, oldest day first and, within a day, in the order recorded.</summary>
+    Task<IReadOnlyList<CardPayment>> ListToCardAsync(string cardId, CancellationToken cancellationToken);
+
     /// <summary>Stores the payment, replacing a stored one with the same id.</summary>
     Task SaveAsync(CardPayment payment, CancellationToken cancellationToken);
 

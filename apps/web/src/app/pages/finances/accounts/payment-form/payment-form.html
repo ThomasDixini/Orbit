@@ -4,10 +4,6 @@
   (submit)="submit($event)"
   (keydown.escape)="dismiss.emit()"
 >
-  @if (bankAccounts().length === 0) {
-    <p class="ui-muted empty">{{ 'Add a bank account to pay the invoice from.' | t }}</p>
-  }
-
   <div class="fields">
     <label class="ui-field">
       {{ 'Amount (R$)' | t }}
@@ -30,14 +26,33 @@
 
     <label class="ui-field">
       {{ 'Paid from' | t }}
-      <select class="ui-input" (change)="fromAccountId.set(valueOf($event))">
+      <select class="ui-input" name="paidFrom" (change)="fromAccountId.set(valueOf($event))">
         @for (account of bankAccounts(); track account.id) {
           <option [value]="account.id" [selected]="account.id === fromAccountId()">
             {{ account.name | t }}
           </option>
         }
+        <option [value]="paidByOthers" [selected]="isPaidByOthers()">
+          {{ 'Someone else paid it' | t }}
+        </option>
       </select>
     </label>
+
+    @if (isPaidByOthers()) {
+      <label class="ui-field">
+        {{ 'Who paid' | t }}
+        <input
+          class="ui-input"
+          name="paidBy"
+          type="text"
+          autocomplete="off"
+          [placeholder]="'E.g. Sister' | t"
+          [attr.maxlength]="maxPaidByLength"
+          [value]="paidBy()"
+          (input)="paidBy.set(valueOf($event))"
+        />
+      </label>
+    }
 
     <label class="ui-field">
       {{ 'Date' | t }}

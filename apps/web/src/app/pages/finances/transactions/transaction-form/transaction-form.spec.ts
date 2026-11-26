@@ -263,3 +263,26 @@ describe('TransactionForm: linking a bill', () => {
     ]);
   });
 });
+
+describe('TransactionForm invoice payment', () => {
+  const PHARMACY = SAMPLE_OCTOBER[1];
+
+  it('turns an expense on a bank account into the payment of the card chosen', () => {
+    const { fixture } = createForm(PHARMACY);
+    const converted: string[] = [];
+    fixture.componentInstance.convertToCardPayment.subscribe((cardId) => converted.push(cardId));
+
+    clickButton(fixture, 'It paid a card invoice');
+    clickButton(fixture, 'Turn into invoice payment');
+
+    expect(converted).toEqual(['credit-card']);
+  });
+
+  it('is not offered for a purchase on a card, for income or for a new transaction', () => {
+    const offered = [createForm(GROCERIES), createForm(SALARY), createForm()].map(({ fixture }) =>
+      (element(fixture).textContent ?? '').includes('It paid a card invoice'),
+    );
+
+    expect(offered).toEqual([false, false, false]);
+  });
+});

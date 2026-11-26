@@ -1,3 +1,5 @@
+import { AccountStatementsGateway } from '../../../core/finances/account-statements-gateway';
+import { FakeAccountStatementsGateway } from '../../../core/finances/fake-account-statements-gateway';
 import { ErrorHandler } from '@angular/core';
 import { Observable, of } from 'rxjs';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
@@ -5,6 +7,7 @@ import { provideRouter } from '@angular/router';
 import { Clock } from '../../../core/calendar/clock';
 import { FakeBillsGateway } from '../../../core/finances/fake-bills-gateway';
 import { BillsGateway } from '../../../core/finances/bills-gateway';
+import { FinanceReferencesStore } from '../../../core/finances/finance-references-store';
 import { Account, FinanceCategory } from '../../../core/finances/finance-references';
 import { FixedClock } from '../../../core/calendar/fixed-clock';
 import {
@@ -50,6 +53,7 @@ function render(
     providers: [
       provideRouter([]),
       { provide: TransactionsGateway, useValue: gateway },
+      { provide: AccountStatementsGateway, useValue: new FakeAccountStatementsGateway() },
       { provide: FinanceReferencesGateway, useValue: references },
       { provide: BillsGateway, useValue: bills },
       { provide: Clock, useValue: new FixedClock(HALLOWEEN) },
@@ -124,6 +128,24 @@ describe('Transactions page', () => {
       'R$345.30',
       '+R$9,154.70',
       '3',
+    ]);
+  });
+
+  it('marks a transfer with a two-way icon and leaves it out of the cards', () => {
+    const fixture = render();
+    TestBed.inject(FinanceReferencesStore).setCategoryKind('health', 'transfer');
+    fixture.detectChanges();
+
+    const rows = [
+      ...element(fixture).querySelectorAll<HTMLElement>('app-transaction-history .row'),
+    ];
+
+    expect([
+      rows.map((row) => row.querySelector('.mark path')?.classList.contains('swap')),
+      texts(fixture, 'app-month-summary .value'),
+    ]).toEqual([
+      [false, true, false],
+      ['R$9,500.00', 'R$286.40', '+R$9,213.60', '2'],
     ]);
   });
 

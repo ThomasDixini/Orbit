@@ -108,6 +108,25 @@ describe('parseStatement', () => {
     expect(rows.map((row) => row.kind)).toEqual(['invoicePayment', 'internal']);
   });
 
+  it('takes a Santander card boleto and a Pix to Nu Pagamentos for invoice payments', () => {
+    const { rows } = parseStatement(
+      [
+        HEADER,
+        '11/09/2026,-219.17,a,Pagamento de Boleto - SANTANDER SANTANDER FREE MASTE',
+        '04/05/2026,-170.27,b,Pix enviado - NU PAGAMENTOS S/A',
+        '30/03/2026,-138.74,c,Pix enviado - 18.236.120 0001-58',
+        '21/09/2026,-55.50,d,Transferência enviada pelo Pix - Ana Souza - •••.467.886-•• - NU PAGAMENTOS - IP',
+      ].join('\n'),
+    );
+
+    expect(rows.map((row) => row.kind)).toEqual([
+      'invoicePayment',
+      'invoicePayment',
+      'invoicePayment',
+      'regular',
+    ]);
+  });
+
   it('keeps a description with commas that the bank wrapped in quotes', () => {
     const { rows } = parseStatement(`${HEADER}\n03/10/2026,10.00,a,"Loja, filial 2"`);
 

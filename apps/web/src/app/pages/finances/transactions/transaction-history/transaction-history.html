@@ -11,6 +11,7 @@
             <button
               class="row"
               type="button"
+              [class.transfer]="isTransfer(transaction)"
               [attr.aria-label]="rowLabel(transaction) | t"
               (click)="edit.emit(transaction)"
             >
@@ -25,7 +26,10 @@
                   stroke-linecap="round"
                   stroke-linejoin="round"
                 >
-                  @if (transaction.amountCents > 0) {
+                  @if (isTransfer(transaction)) {
+                    <!-- Two arrows going opposite ways: the money only moved, it did not come in or go out. -->
+                    <path class="swap" d="M4 8h15M15 4l4 4-4 4M20 16H5M9 12l-4 4 4 4"></path>
+                  } @else if (transaction.amountCents > 0) {
                     <path d="M12 5v14M6 13l6 6 6-6"></path>
                   } @else {
                     <path d="M12 19V5M6 11l6-6 6 6"></path>

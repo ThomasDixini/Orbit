@@ -12,19 +12,32 @@ namespace Orbit.Api.Infrastructure.Sqlite;
 public sealed class SqliteCardPaymentRepository(SqliteConnectionFactory connections) : ICardPaymentRepository
 {
     private const string DateFormat = "yyyy-MM-dd";
+    private const string SelectColumns =
+        "SELECT id, card_id, from_account_id, paid_by, date, amount_cents FROM card_payments";
 
     public async Task<IReadOnlyList<CardPayment>> ListInMonthAsync(TransactionMonth month, CancellationToken cancellationToken)
     {
         await using var lease = await connections.LeaseAsync(cancellationToken);
         return await SqliteCommands.QueryAsync(
             lease.Connection,
-            """
-            SELECT id, card_id, from_account_id, date, amount_cents FROM card_payments
+            $"""
+            {SelectColumns}
             WHERE user_id = $user AND date >= $from AND date < $until ORDER BY date DESC, rowid DESC
             """,
             ToPayment,
             cancellationToken,
             ("$user", connections.UserId), ("$from", ToText(month.FirstDay)), ("$until", ToText(month.NextFirstDay)));
+    }
+
+    public async Task<IReadOnlyList<CardPayment>> ListToCardAsync(string cardId, CancellationToken cancellationToken)
+    {
+        await using var lease = await connections.LeaseAsync(cancellationToken);
+        return await SqliteCommands.QueryAsync(
+            lease.Connection,
+            $"{SelectColumns} WHERE user_id = $user AND card_id = $cardId ORDER BY date, rowid",
+            ToPayment,
+            cancellationToken,
+            ("$user", connections.UserId), ("$cardId", cardId));
     }
 
     public async Task SaveAsync(CardPayment payment, CancellationToken cancellationToken)
@@ -34,15 +47,15 @@ public sealed class SqliteCardPaymentRepository(SqliteConnectionFactory connecti
         await SqliteCommands.ExecuteAsync(
             lease.Connection,
             """
-            INSERT INTO card_payments (user_id, id, card_id, from_account_id, date, amount_cents)
-            VALUES ($user, $id, $cardId, $fromAccountId, $date, $amountCents)
+            INSERT INTO card_payments (user_id, id, card_id, from_account_id, paid_by, date, amount_cents)
+            VALUES ($user, $id, $cardId, $fromAccountId, $paidBy, $date, $amountCents)
             ON CONFLICT (user_id, id) DO UPDATE SET
-                card_id = excluded.card_id, from_account_id = excluded.from_account_id,
+                card_id = excluded.card_id, from_account_id = excluded.from_account_id, paid_by = excluded.paid_by,
                 date = excluded.date, amount_cents = excluded.amount_cents
             """,
             cancellationToken,
             ("$user", connections.UserId), ("$id", payment.Id), ("$cardId", payment.CardId), ("$fromAccountId", payment.FromAccountId),
-            ("$date", ToText(payment.Date)), ("$amountCents", payment.AmountCents));
+            ("$paidBy", payment.PaidBy), ("$date", ToText(payment.Date)), ("$amountCents", payment.AmountCents));
     }
 
     public async Task DeleteAsync(string paymentId, CancellationToken cancellationToken)
@@ -91,9 +104,10 @@ public sealed class SqliteCardPaymentRepository(SqliteConnectionFactory connecti
         return CardPayment.Restore(
             reader.GetString(0),
             reader.GetString(1),
-            reader.GetString(2),
-            DateOnly.ParseExact(reader.GetString(3), DateFormat, CultureInfo.InvariantCulture),
-            reader.GetInt64(4));
+            reader.IsDBNull(2) ? null : reader.GetString(2),
+            reader.IsDBNull(3) ? null : reader.GetString(3),
+            DateOnly.ParseExact(reader.GetString(4), DateFormat, CultureInfo.InvariantCulture),
+            reader.GetInt64(5));
     }
 
     private static string ToText(DateOnly day) => day.ToString(DateFormat, CultureInfo.InvariantCulture);

@@ -22,6 +22,7 @@ import {
   shiftMonth,
 } from '../../../core/finances/transaction-month';
 import { summarize } from '../../../core/finances/transaction-summary';
+import { countedTransactions, transferCategoryIds } from '../../../core/finances/transfers';
 import { TransactionsStore } from '../../../core/finances/transactions-store';
 import { FiltersBar } from './filters-bar/filters-bar';
 import { MonthSummary } from './month-summary/month-summary';
@@ -86,7 +87,11 @@ export class Transactions {
   private readonly shown = computed(() =>
     filterTransactions(this.store.transactions(), this.filters(), this.shownCategoryNames()),
   );
-  protected readonly summary = computed(() => summarize(this.shown()));
+  /** The categories that only move money: listed, but not counted as income or expenses. */
+  protected readonly transferIds = computed(() => transferCategoryIds(this.categories()));
+  protected readonly summary = computed(() =>
+    summarize(countedTransactions(this.shown(), this.transferIds())),
+  );
   protected readonly days = computed(() => groupByDay(this.shown()));
   protected readonly isFiltered = computed(() => {
     const filters = this.filters();
@@ -191,6 +196,17 @@ export class Transactions {
   protected remove(): void {
     const editing = this.editing();
     if (editing !== undefined) this.store.delete(editing.id);
+    this.closeForm();
+  }
+
+  /** The edited expense paid a card invoice: it becomes that payment and leaves the expenses. */
+  protected convertToCardPayment(cardId: string): void {
+    const editing = this.editing();
+    if (editing === undefined) return;
+    const cardName = this.accountNames().get(cardId) ?? 'the card';
+    this.store.convertToCardPayment(editing.id, cardId, () =>
+      this.billsNotice.set({ text: `Recorded as a payment of ${cardName}.` }),
+    );
     this.closeForm();
   }
 

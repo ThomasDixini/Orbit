@@ -7,7 +7,9 @@ import { positionOf, restoredAt, sameId } from '../lists/list-positions';
 import { AccountStatement, CardPayment, CardPaymentDraft } from './account-statement';
 import { AccountStatementsGateway } from './account-statements-gateway';
 import { Account, AccountDraft } from './finance-references';
-import { FinanceReferencesStore } from './finance-references-store';
+import { FinanceReferencesStore, OnStored } from './finance-references-store';
+
+const NOTHING_TO_DO: OnStored = () => undefined;
 import { Transaction } from './transaction';
 import { monthOfDay, shiftMonth } from './transaction-month';
 import { TransactionsGateway } from './transactions-gateway';
@@ -125,12 +127,12 @@ export class BanksAndCardsStore {
    * once it is stored. Dropped again if the gateway rejects it.
    * @example store.payInvoice({ cardId: 'credit-card', fromAccountId: 'checking-account', date: '2026-11-10', amountCents: 28640 })
    */
-  payInvoice(draft: CardPaymentDraft): CardPayment {
+  payInvoice(draft: CardPaymentDraft, onStored: OnStored = NOTHING_TO_DO): CardPayment {
     const payment: CardPayment = { ...draft, id: this.ids.next() };
     if (monthOfDay(payment.date) === this.shownMonth())
       this.paymentList.update((list) => [payment, ...list]);
     this.gateway.savePayment(payment).subscribe({
-      next: () => this.loadStatements(),
+      next: () => this.stored(onStored),
       error: (error: unknown) => {
         this.paymentList.update((list) => list.filter((current) => current !== payment));
         this.errorHandler.handleError(error);
@@ -143,17 +145,30 @@ export class BanksAndCardsStore {
    * Deletes a card payment; puts it back in place if the gateway rejects it.
    * @example store.deletePayment('september-invoice')
    */
-  deletePayment(paymentId: string): void {
+  deletePayment(paymentId: string, onStored: OnStored = NOTHING_TO_DO): void {
     const removed = positionOf(this.paymentList(), (current) => current.id === paymentId);
     this.paymentList.update((list) => list.filter((current) => current.id !== paymentId));
     this.gateway.deletePayment(paymentId).subscribe({
-      next: () => this.loadStatements(),
+      next: () => this.stored(onStored),
       error: (error: unknown) => {
         if (removed !== undefined)
           this.paymentList.update((list) => restoredAt(list, removed, sameId));
         this.errorHandler.handleError(error);
       },
     });
+  }
+
+  /**
+   * Asks for the balances again, after a change stored elsewhere (a card payment someone else made).
+   * @example store.refreshBalances()
+   */
+  refreshBalances(): void {
+    this.loadStatements();
+  }
+
+  private stored(onStored: OnStored): void {
+    this.loadStatements();
+    onStored();
   }
 
   private loadStatements(): void {

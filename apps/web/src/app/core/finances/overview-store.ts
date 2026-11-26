@@ -21,6 +21,7 @@ import {
 } from './overview';
 import { Transaction } from './transaction';
 import { monthOfDay } from './transaction-month';
+import { countedByMonth } from './transfers';
 import { TransactionsGateway } from './transactions-gateway';
 
 const NO_AGENDA: BillsAgenda = { bills: [], cardInvoices: [] };
@@ -61,12 +62,20 @@ export class OverviewStore {
       ),
     ),
   );
-  readonly flow = computed(() => monthlyFlow(this.months, this.monthTransactions()));
+  /** Each month's transactions without transfers, which are neither income nor expenses. */
+  private readonly countedMonths = computed(() =>
+    countedByMonth(this.monthTransactions(), this.references.transferCategoryIds()),
+  );
+  readonly flow = computed(() => monthlyFlow(this.months, this.countedMonths()));
   readonly flowPeak = computed(() => flowPeak(this.flow()));
   readonly thisMonth = computed(() => this.flow()[this.flow().length - 1]);
-  readonly spending = computed(() =>
-    spendingByCategory(this.monthTransactions().at(-1) ?? [], this.categoryNames()),
+  /** What each month of the chart spent by category, in the same order as `months`. */
+  readonly spendingByMonth = computed(() =>
+    this.countedMonths().map((transactions) =>
+      spendingByCategory(transactions, this.categoryNames()),
+    ),
   );
+  readonly spending = computed(() => this.spendingByMonth().at(-1) ?? []);
   readonly latest = computed(() =>
     latestTransactions(this.monthTransactions().slice(-2).flat(), LATEST_TRANSACTIONS),
   );

@@ -1,5 +1,6 @@
 import { Observable } from 'rxjs';
 import { AccountStatement, CardPayment } from './account-statement';
+import { CardInvoice } from './card-invoices';
 
 /**
  * Port to where account balances are worked out and card invoice payments are stored. `app.config.ts`
@@ -17,4 +18,13 @@ export abstract class AccountStatementsGateway {
 
   /** Deletes a card payment; deleting one already gone succeeds. */
   abstract deletePayment(paymentId: string): Observable<void>;
+
+  /** Every invoice of the card as of a `YYYY-MM-DD` day, oldest first, with what paid each. */
+  abstract invoices(cardId: string, asOf: string): Observable<readonly CardInvoice[]>;
+
+  /**
+   * Turns an expense on a bank account into the payment of the card's invoice (same id, day and
+   * amount); answers with the payment.
+   */
+  abstract convertToCardPayment(transactionId: string, cardId: string): Observable<CardPayment>;
 }

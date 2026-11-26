@@ -3,6 +3,7 @@ import { Observable, of, throwError } from 'rxjs';
 import { CardPayment, AccountStatement } from '../account-statement';
 import { AccountStatementsGateway } from '../account-statements-gateway';
 import { Bill, BillDraft, BillSettlement, BillsAgenda } from '../bills';
+import { CardInvoice } from '../card-invoices';
 import { BillsGateway } from '../bills-gateway';
 import { Account, FinanceCategory } from '../finance-references';
 import { IncomeSplit } from '../income-split';
@@ -121,6 +122,29 @@ export class DemoAccountStatementsGateway extends AccountStatementsGateway {
   override deletePayment(paymentId: string): Observable<void> {
     this.demo.payments = this.demo.payments.filter((item) => item.id !== paymentId);
     return of(undefined);
+  }
+
+  // The demo keeps no invoice history: the open invoice and the payments already tell its story.
+  override invoices(): Observable<readonly CardInvoice[]> {
+    return of([]);
+  }
+
+  override convertToCardPayment(transactionId: string, cardId: string): Observable<CardPayment> {
+    const expense = this.demo.transactions.find((item) => item.id === transactionId);
+    if (expense === undefined || expense.amountCents >= 0) {
+      return refused(
+        `Expected an expense to turn into a card payment, received "${transactionId}"`,
+      );
+    }
+    const payment: CardPayment = {
+      id: expense.id,
+      cardId,
+      fromAccountId: expense.accountId,
+      date: expense.date,
+      amountCents: -expense.amountCents,
+    };
+    this.demo.transactions = this.demo.transactions.filter((item) => item.id !== transactionId);
+    return this.savePayment(payment);
   }
 }
 
