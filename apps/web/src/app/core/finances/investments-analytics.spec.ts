@@ -2,6 +2,7 @@ import { Income, MonthlyPoint, PortfolioLine, Trade } from './investments';
 import {
   appliedByMonth,
   combineHistories,
+  rebaseToFirst,
   distribution,
   filterLines,
   incomeByMonth,
@@ -200,5 +201,18 @@ describe('combineHistories', () => {
 
   it('leaves a month with no figures undefined', () => {
     expect(combineHistories([rdb, undefined], ['2026-07'])).toEqual([undefined]);
+  });
+});
+
+describe('rebaseToFirst', () => {
+  it('starts the line at 0% and shows the growth since the first known month', () => {
+    const [first, second, third, fourth] = rebaseToFirst([undefined, 10, undefined, 21]);
+
+    expect([first, second, third]).toEqual([undefined, 0, undefined]);
+    expect(fourth).toBeCloseTo(10, 6);
+  });
+
+  it('leaves a line with no known month as it is', () => {
+    expect(rebaseToFirst([undefined, undefined])).toEqual([undefined, undefined]);
   });
 });

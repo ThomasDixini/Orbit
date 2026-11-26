@@ -1,0 +1,15 @@
+@if (figures(); as f) {
+  <p class="ui-muted note">
+    {{
+      'Return: {gross} before income tax, {net} after it ({rate}). CDI after the same tax: {cdiNet}.'
+        | t: f
+    }}
+  </p>
+} @else {
+  <p class="ui-muted note">
+    {{
+      'These figures are before income tax. Type the income tax rate in the Analysis tab to see them after it.'
+        | t
+    }}
+  </p>
+}

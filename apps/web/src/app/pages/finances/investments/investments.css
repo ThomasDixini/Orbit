@@ -195,6 +195,10 @@
   gap: 8px;
 }
 
+.tax-note {
+  margin-top: -12px;
+}
+
 .compare-note {
   margin: 0;
   font-size: var(--font-size-sm);

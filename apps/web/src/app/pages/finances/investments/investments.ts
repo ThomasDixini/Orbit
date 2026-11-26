@@ -32,6 +32,7 @@ import {
   incomeByMonth,
   lineValueCents,
   periodPerformance,
+  rebaseToFirst,
 } from '../../../core/finances/investments-analytics';
 import { appreciationMonths } from '../../../core/finances/monthly-appreciation';
 import { InvestmentsStore } from '../../../core/finances/investments-store';
@@ -40,6 +41,7 @@ import {
   RateSeries,
   cdiSeries,
   comparisonOptions,
+  latestIncomeTaxBasisPoints,
   rateSeries,
 } from '../../../core/finances/period-rates';
 import { PeriodRatesStore } from '../../../core/finances/period-rates-store';
@@ -67,6 +69,7 @@ import { InvestmentAnalyses } from './investment-analyses/investment-analyses';
 import { InvestmentNotes } from './investment-notes/investment-notes';
 import { PeriodRates } from './period-rates/period-rates';
 import { PortfolioDistribution } from './portfolio-distribution/portfolio-distribution';
+import { ReturnAfterTax } from './return-after-tax/return-after-tax';
 import { TradeFields, TradeForm } from './trade-form/trade-form';
 import { TranslatePipe } from '../../../core/i18n/translate.pipe';
 
@@ -119,6 +122,7 @@ const MOVEMENTS_PAGE_SIZE = 10;
     InvestmentNotes,
     InvestmentAnalyses,
     PeriodRates,
+    ReturnAfterTax,
   ],
   providers: [InvestmentsStore, PeriodRatesStore],
   templateUrl: './investments.html',
@@ -210,6 +214,11 @@ export class Investments {
   protected readonly summary = computed(() => this.describeSummary());
   protected readonly stats = computed(() => this.describeStats());
   protected readonly cdiNote = computed(() => this.describeCdiNote());
+  /** The return shown on the Return card and the CDI beside it; absent while nothing is loaded. */
+  protected readonly returnFigures = computed(() => this.describeReturnFigures());
+  protected readonly incomeTaxBasisPoints = computed(() =>
+    latestIncomeTaxBasisPoints(this.periodRates.rates(), this.months()),
+  );
   protected readonly slices = computed(() => distribution(this.lines()));
   protected readonly monthLabels = computed(() => this.months().map((key) => this.monthName(key)));
   protected readonly valueSeries = computed(() => this.describeValueSeries());
@@ -493,6 +502,21 @@ export class Investments {
     };
   }
 
+  private describeReturnFigures(): { returnPercent: number; cdiPercent?: number } | undefined {
+    if (!this.isLoaded()) return undefined;
+    const inPeriod = periodPerformance(this.selectedHistory());
+    if (inPeriod !== undefined) return inPeriod;
+    const lines = this.selected();
+    const cost = lines.reduce((total, line) => total + line.costCents, 0);
+    const value = lines.reduce((total, line) => total + lineValueCents(line), 0);
+    const { investmentId, kind } = this.filters();
+    const isWhole = investmentId === undefined && kind === undefined;
+    return {
+      returnPercent: this.percentOf(value - cost, cost),
+      cdiPercent: isWhole ? this.store.portfolio()?.performance?.cdiPercent : undefined,
+    };
+  }
+
   private placeholderStats(): Stat[] {
     return ['Current value', 'Invested', 'Return', 'Proventos'].map((label) => ({
       label,
@@ -578,13 +602,16 @@ export class Investments {
       ? [
           {
             name: 'CDI on your money',
-            values: history.map((point) => point?.cdiPercent),
+            values: rebaseToFirst(history.map((point) => point?.cdiPercent)),
             dashed: true,
           },
         ]
       : [];
     return [
-      { name: 'Your investments', values: history.map((point) => point?.returnPercent) },
+      {
+        name: 'Your investments',
+        values: rebaseToFirst(history.map((point) => point?.returnPercent)),
+      },
       ...yourMoneyInCdi,
       ...this.rateLines(chosen).map((series) => ({ ...series, dashed: true })),
     ];
