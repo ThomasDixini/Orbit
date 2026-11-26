@@ -177,6 +177,32 @@ function monthlyFactor(kind: PeriodRateKind, basisPoints: number): number {
 }
 
 /**
+ * The income tax rate typed for the latest of the given months that has one, in basis points; undefined
+ * when none of them has. The tax is charged on the gain when money is redeemed, so the latest rate is the
+ * one that applies today.
+ * @example latestIncomeTaxBasisPoints([rate('incomeTax', '2026-10', 1500)], ['2026-10', '2026-11']) // 1500
+ */
+export function latestIncomeTaxBasisPoints(
+  rates: readonly PeriodRate[],
+  months: readonly string[],
+): number | undefined {
+  const typed = new Map(
+    rates.filter((rate) => rate.kind === 'incomeTax').map((rate) => [rate.month, rate.basisPoints]),
+  );
+  const latest = [...months].reverse().find((month) => typed.has(month));
+  return latest === undefined ? undefined : typed.get(latest);
+}
+
+/**
+ * A return after the income tax: the tax is taken from a gain only, so a loss stays as it is.
+ * @example afterIncomeTax(10, 1500) // 8.5
+ */
+export function afterIncomeTax(returnPercent: number, taxBasisPoints: number): number {
+  if (returnPercent <= 0) return returnPercent;
+  return returnPercent * (1 - taxBasisPoints / BASIS_POINTS_PER_UNIT);
+}
+
+/**
  * Rates newest month first; within a month the kinds keep the order of the options.
  * @example sortedRates([older, newer]) // [newer, older]
  */

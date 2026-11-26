@@ -36,3 +36,16 @@
 - [x] Write down goals and important notes for myself (examples: leaving the comfort zone, Cambly, sales, etc.)
 - [x] A place to keep ideas and tasks that have no defined scope or date yet, just so they are recorded
 
+## Next up
+- [x] Add installment bills (contas parceladas)
+- [ ] Link card bills to To pay & receive
+- [x] Month-by-month appreciation of assets
+- [x] Sold assets: their yields are not showing, probably because they are hidden
+- [x] Work out how to record taxes and fees on investments
+- [x] Yield chart: the months at the edges show no yield
+- [x] Charts: hover to see the details
+- [x] Check the applied / CDI lines of the charts
+- [x] RDB yield
+- [x] Fix the CDB
+- [x] Monthly statement: include the assets that were sold too
+- [x] Net worth: why do the charts have no data?

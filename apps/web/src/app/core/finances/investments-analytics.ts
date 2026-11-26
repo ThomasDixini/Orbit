@@ -135,6 +135,19 @@ export function periodPerformance(
   };
 }
 
+/**
+ * Accumulated percentages shown from the first known month of a period: that month becomes 0% and the
+ * others the growth since it, so the end of a line agrees with the return of the period.
+ * @example rebaseToFirst([10, undefined, 21]) // [0, undefined, 10]
+ */
+export function rebaseToFirst(percents: readonly (number | undefined)[]): (number | undefined)[] {
+  const first = percents.find((percent) => percent !== undefined);
+  if (first === undefined) return [...percents];
+  return percents.map((percent) =>
+    percent === undefined ? undefined : growthBetween(first, percent),
+  );
+}
+
 function growthBetween(startPercent: number, endPercent: number): number {
   return ((1 + endPercent / PERCENT) / (1 + startPercent / PERCENT) - 1) * PERCENT;
 }

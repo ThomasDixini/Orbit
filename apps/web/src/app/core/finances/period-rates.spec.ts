@@ -1,6 +1,8 @@
 import {
+  afterIncomeTax,
   cdiSeries,
   comparisonOptions,
+  latestIncomeTaxBasisPoints,
   sameRate,
   PeriodRate,
   basisPointsText,
@@ -14,6 +16,34 @@ const MONTHS = ['2026-09', '2026-10', '2026-11'];
 function rate(kind: PeriodRate['kind'], month: string, basisPoints: number): PeriodRate {
   return { kind, month, basisPoints };
 }
+
+describe('latestIncomeTaxBasisPoints', () => {
+  it('takes the rate of the latest month that has one', () => {
+    const rates = [rate('incomeTax', '2026-09', 2250), rate('incomeTax', '2026-10', 1500)];
+
+    expect(latestIncomeTaxBasisPoints(rates, MONTHS)).toBe(1500);
+  });
+
+  it('ignores the other kinds of rate', () => {
+    expect(latestIncomeTaxBasisPoints([rate('selic', '2026-10', 1500)], MONTHS)).toBeUndefined();
+  });
+
+  it('is undefined when no month of the period has a rate', () => {
+    expect(
+      latestIncomeTaxBasisPoints([rate('incomeTax', '2025-01', 1500)], MONTHS),
+    ).toBeUndefined();
+  });
+});
+
+describe('afterIncomeTax', () => {
+  it('takes the tax from a gain', () => {
+    expect(afterIncomeTax(10, 1500)).toBeCloseTo(8.5);
+  });
+
+  it('leaves a loss as it is', () => {
+    expect(afterIncomeTax(-4, 1500)).toBe(-4);
+  });
+});
 
 describe('parseBasisPoints', () => {
   it.each([

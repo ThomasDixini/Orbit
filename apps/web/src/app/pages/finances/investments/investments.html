@@ -196,6 +196,14 @@
     @if (cdiNote(); as note) {
       <p class="ui-muted cdi-note">{{ note | t }}</p>
     }
+    @if (returnFigures(); as figures) {
+      <app-return-after-tax
+        class="tax-note"
+        [returnPercent]="figures.returnPercent"
+        [cdiPercent]="figures.cdiPercent"
+        [taxBasisPoints]="incomeTaxBasisPoints()"
+      />
+    }
 
     <div class="compare" role="group" [attr.aria-label]="'Compare the return with' | t">
       <span class="ui-muted">{{ 'Compare the return with' | t }}</span>
