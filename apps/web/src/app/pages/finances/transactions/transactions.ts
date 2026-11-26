@@ -29,6 +29,7 @@ import { ImportResult, StatementImport } from './statement-import/statement-impo
 import { BillLink, TransactionForm } from './transaction-form/transaction-form';
 import { TransactionHistory } from './transaction-history/transaction-history';
 import { TranslatePipe } from '../../../core/i18n/translate.pipe';
+import { Translator } from '../../../core/i18n/translator';
 
 /** Finances landing page: the month's totals and transactions, with filters and a quick-entry form. */
 @Component({
@@ -54,6 +55,7 @@ export class Transactions {
   private readonly billsGateway = inject(BillsGateway);
   private readonly ids = inject(IdGenerator);
   private readonly errorHandler = inject(ErrorHandler);
+  private readonly translator = inject(Translator);
 
   protected readonly categories = this.store.categories;
   protected readonly accounts = this.store.accounts;
@@ -76,8 +78,13 @@ export class Transactions {
   protected readonly monthTitle = computed(() => monthLabel(this.store.month(), this.locale));
   protected readonly categoryNames = computed(() => namesById(this.categories()));
   protected readonly accountNames = computed(() => namesById(this.accounts()));
+  /** The names as the rows show them, so a search matches what the person reads. */
+  private readonly shownCategoryNames = computed(
+    () =>
+      new Map([...this.categoryNames()].map(([id, name]) => [id, this.translator.translate(name)])),
+  );
   private readonly shown = computed(() =>
-    filterTransactions(this.store.transactions(), this.filters(), this.categoryNames()),
+    filterTransactions(this.store.transactions(), this.filters(), this.shownCategoryNames()),
   );
   protected readonly summary = computed(() => summarize(this.shown()));
   protected readonly days = computed(() => groupByDay(this.shown()));

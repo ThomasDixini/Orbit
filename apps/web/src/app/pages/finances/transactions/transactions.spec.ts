@@ -15,6 +15,7 @@ import {
   FinanceReferencesGateway,
   TransactionsGateway,
 } from '../../../core/finances/transactions-gateway';
+import { LanguageStore } from '../../../core/i18n/language-store';
 import { IdGenerator } from '../../../core/ids/id-generator';
 import { SequentialIdGenerator } from '../../../core/ids/sequential-id-generator';
 import { Transactions } from './transactions';
@@ -158,6 +159,15 @@ describe('Transactions page', () => {
     search(fixture, 'travel');
 
     expect(texts(fixture, '.empty')).toEqual(['No transactions match these filters.']);
+  });
+
+  it('finds a transaction by the category name as the screen shows it in Portuguese', () => {
+    TestBed.overrideProvider(LanguageStore, { useValue: { current: 'pt-BR' } });
+    const fixture = render();
+
+    search(fixture, 'alimentacao');
+
+    expect(texts(fixture, '.description')).toContain('Groceries');
   });
 
   it('says when a month has no transactions yet', () => {
