@@ -84,13 +84,22 @@ export class Transactions {
     () =>
       new Map([...this.categoryNames()].map(([id, name]) => [id, this.translator.translate(name)])),
   );
-  private readonly shown = computed(() =>
-    filterTransactions(this.store.transactions(), this.filters(), this.shownCategoryNames()),
-  );
   /** The categories that only move money: listed, but not counted as income or expenses. */
   protected readonly transferIds = computed(() => transferCategoryIds(this.categories()));
+  private readonly shown = computed(() =>
+    filterTransactions(
+      this.store.transactions(),
+      this.filters(),
+      this.shownCategoryNames(),
+      this.transferIds(),
+    ),
+  );
+  protected readonly showsTransfers = computed(() => this.filters().type === 'transfer');
+  /** Asked for transfers, the cards add them up; otherwise they stay out of the totals. */
   protected readonly summary = computed(() =>
-    summarize(countedTransactions(this.shown(), this.transferIds())),
+    summarize(
+      this.showsTransfers() ? this.shown() : countedTransactions(this.shown(), this.transferIds()),
+    ),
   );
   protected readonly days = computed(() => groupByDay(this.shown()));
   protected readonly isFiltered = computed(() => {

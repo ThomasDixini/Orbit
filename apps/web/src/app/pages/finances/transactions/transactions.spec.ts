@@ -149,6 +149,20 @@ describe('Transactions page', () => {
     ]);
   });
 
+  it('shows only the transfers, added up as money in and out, under their filter', () => {
+    const fixture = render();
+    TestBed.inject(FinanceReferencesStore).setCategoryKind('health', 'transfer');
+    fixture.detectChanges();
+
+    click(fixture, 'app-filters-bar .ui-chip', 'Transfer');
+
+    expect([
+      texts(fixture, '.description'),
+      texts(fixture, 'app-month-summary .label').slice(0, 2),
+      texts(fixture, 'app-month-summary .value'),
+    ]).toEqual([['Farmácia'], ['Money in', 'Money out'], ['R$0.00', 'R$58.90', '−R$58.90', '1']]);
+  });
+
   it('lists the transactions by day, newest first, with names and signed amounts', () => {
     const fixture = render();
 

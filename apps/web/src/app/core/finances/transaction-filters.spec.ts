@@ -4,8 +4,12 @@ import { NO_FILTERS, filterTransactions, searchKey } from './transaction-filters
 
 const CATEGORY_NAMES = namesById(SAMPLE_FINANCE_CATEGORIES);
 
-function idsFor(filters: Partial<typeof NO_FILTERS>): string[] {
-  return filterTransactions(SAMPLE_OCTOBER, { ...NO_FILTERS, ...filters }, CATEGORY_NAMES).map(
+function idsFor(
+  filters: Partial<typeof NO_FILTERS>,
+  transferIds: ReadonlySet<string> = new Set(),
+): string[] {
+  const narrowed = { ...NO_FILTERS, ...filters };
+  return filterTransactions(SAMPLE_OCTOBER, narrowed, CATEGORY_NAMES, transferIds).map(
     (transaction) => transaction.id,
   );
 }
@@ -20,6 +24,16 @@ describe('filterTransactions', () => {
       ['salary'],
       ['groceries', 'pharmacy'],
     ]);
+  });
+
+  it('lists transfers apart from income and expenses', () => {
+    const transfers = new Set(['health']);
+
+    expect([
+      idsFor({ type: 'transfer' }, transfers),
+      idsFor({ type: 'expense' }, transfers),
+      idsFor({}, transfers),
+    ]).toEqual([['pharmacy'], ['groceries'], ['groceries', 'pharmacy', 'salary']]);
   });
 
   it('keeps one account', () => {

@@ -6,6 +6,8 @@
 export const PT_BR_TRANSFERS_INVOICES: Readonly<Record<string, string>> = {
   // Transfer categories
   Transfer: 'Movimentação',
+  'Money in': 'Entradas',
+  'Money out': 'Saídas',
   'Mark as transfer': 'Marcar como movimentação',
   'Count as income/expense': 'Contar como ganho/gasto',
   'Mark {name} as a transfer between accounts': 'Marcar {name} como movimentação entre contas',
