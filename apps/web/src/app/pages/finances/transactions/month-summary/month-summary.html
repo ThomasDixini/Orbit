@@ -1,10 +1,16 @@
 <section class="summary" [attr.aria-label]="'Month summary' | t">
   <div class="stat">
-    <p class="label"><span class="mark income" aria-hidden="true"></span>{{ 'Income' | t }}</p>
+    <p class="label">
+      <span class="mark income" aria-hidden="true"></span
+      >{{ (isTransfers() ? 'Money in' : 'Income') | t }}
+    </p>
     <p class="value ui-tabular">{{ income() }}</p>
   </div>
   <div class="stat">
-    <p class="label"><span class="mark expense" aria-hidden="true"></span>{{ 'Expenses' | t }}</p>
+    <p class="label">
+      <span class="mark expense" aria-hidden="true"></span
+      >{{ (isTransfers() ? 'Money out' : 'Expenses') | t }}
+    </p>
     <p class="value ui-tabular">{{ expenses() }}</p>
   </div>
   <div class="stat">

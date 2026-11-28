@@ -16,6 +16,8 @@ const PENDING_VALUE = '—';
 export class MonthSummary {
   readonly summary = input.required<TransactionSummary>();
   readonly isLoading = input(false);
+  /** The totals are of transfers, which are money moved and not income or expenses. */
+  readonly isTransfers = input(false);
 
   private readonly locale = inject(LOCALE_ID);
 

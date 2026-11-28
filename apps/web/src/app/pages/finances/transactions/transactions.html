@@ -130,7 +130,11 @@
     <app-load-failed message="Couldn't load your transactions." (retry)="reload()" />
   }
 
-  <app-month-summary [summary]="summary()" [isLoading]="!isLoaded()" />
+  <app-month-summary
+    [summary]="summary()"
+    [isLoading]="!isLoaded()"
+    [isTransfers]="showsTransfers()"
+  />
 
   <app-filters-bar
     [accounts]="accounts()"

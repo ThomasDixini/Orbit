@@ -1,7 +1,8 @@
 import { Transaction, TransactionType, typeOf } from './transaction';
+import { isTransfer } from './transfers';
 
-/** Which side of the money the list shows. */
-export type TypeFilter = 'all' | TransactionType;
+/** What the list shows: income, expenses, or the transfers that are neither. */
+export type TypeFilter = 'all' | TransactionType | 'transfer';
 
 /** What narrows the transactions list; every filter applies at once. */
 export interface TransactionFilters {
@@ -19,21 +20,23 @@ export const TYPE_FILTER_OPTIONS: readonly { value: TypeFilter; label: string }[
   { value: 'all', label: 'All' },
   { value: 'income', label: 'Income' },
   { value: 'expense', label: 'Expenses' },
+  { value: 'transfer', label: 'Transfer' },
 ];
 
 /**
  * The transactions that pass every filter, in their original order.
- * @example filterTransactions(october, { ...NO_FILTERS, query: 'farmacia' }, categoryNames)
+ * @example filterTransactions(october, { ...NO_FILTERS, query: 'farmacia' }, categoryNames, transferIds)
  */
 export function filterTransactions(
   transactions: readonly Transaction[],
   filters: TransactionFilters,
   categoryNames: ReadonlyMap<string, string>,
+  transferIds: ReadonlySet<string>,
 ): Transaction[] {
   const query = searchKey(filters.query.trim());
   return transactions.filter(
     (transaction) =>
-      (filters.type === 'all' || typeOf(transaction) === filters.type) &&
+      matchesType(transaction, filters.type, transferIds) &&
       (filters.accountId === undefined || transaction.accountId === filters.accountId) &&
       matchesQuery(transaction, query, categoryNames),
   );
@@ -48,6 +51,17 @@ export function searchKey(text: string): string {
     .normalize('NFD')
     .replaceAll(/\p{Diacritic}/gu, '')
     .toLowerCase();
+}
+
+// A transfer has a sign like any transaction, but it is neither income nor an expense.
+function matchesType(
+  transaction: Transaction,
+  type: TypeFilter,
+  transferIds: ReadonlySet<string>,
+): boolean {
+  if (type === 'all') return true;
+  if (isTransfer(transaction, transferIds)) return type === 'transfer';
+  return typeOf(transaction) === type;
 }
 
 function matchesQuery(
